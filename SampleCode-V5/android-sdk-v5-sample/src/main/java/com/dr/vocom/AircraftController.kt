@@ -1,4 +1,4 @@
-package dji.sampleV5.aircraft.virtualstick
+package com.dr.vocom
 
 import android.util.Log
 import androidx.lifecycle.MutableLiveData
@@ -11,6 +11,8 @@ import dji.sampleV5.aircraft.utils.LocationUtils.distanceTo
 import dji.sampleV5.aircraft.utils.LocationUtils.translate
 import dji.sampleV5.aircraft.utils.normalizeAngle
 import dji.sampleV5.aircraft.utils.toDegrees
+import dji.sampleV5.aircraft.virtualstick.OnScreenJoystick
+import dji.sampleV5.aircraft.virtualstick.OnScreenJoystickListener
 import dji.sdk.keyvalue.key.FlightControllerKey
 import dji.sdk.keyvalue.value.common.Attitude
 import dji.sdk.keyvalue.value.common.EmptyMsg
@@ -22,8 +24,7 @@ import dji.sdk.keyvalue.value.flightcontroller.RollPitchControlMode
 import dji.sdk.keyvalue.value.flightcontroller.VerticalControlMode
 import dji.sdk.keyvalue.value.flightcontroller.VirtualStickFlightControlParam
 import dji.sdk.keyvalue.value.flightcontroller.YawControlMode
-import dji.v5.common.callback.CommonCallbacks.CompletionCallback
-import dji.v5.common.callback.CommonCallbacks.CompletionCallbackWithParam
+import dji.v5.common.callback.CommonCallbacks
 import dji.v5.common.error.IDJIError
 import dji.v5.et.create
 import dji.v5.et.get
@@ -48,7 +49,6 @@ import kotlin.math.cos
 import kotlin.math.sign
 import kotlin.math.sin
 
-
 open class AircraftController(
     private val stickVM: VirtualStickVM,
     private val acVM: BasicAircraftControlVM,
@@ -56,7 +56,7 @@ open class AircraftController(
 ) {
     companion object {
         private const val FLIGHT_PARAM_SEND_FREQUENCY_HZ = 25L
-        private val DEFAULT_CALLBACK = object : CompletionCallback {
+        private val DEFAULT_CALLBACK = object : CommonCallbacks.CompletionCallback {
             override fun onSuccess() {
             }
 
@@ -64,7 +64,8 @@ open class AircraftController(
                 Log.e("Controller", "Error: ${error.errorCode()}")
             }
         }
-        private val DEFAULT_CALLBACK_PARAM = object : CompletionCallbackWithParam<EmptyMsg> {
+        private val DEFAULT_CALLBACK_PARAM = object :
+            CommonCallbacks.CompletionCallbackWithParam<EmptyMsg> {
             override fun onSuccess(msg: EmptyMsg) {
             }
 
@@ -87,7 +88,7 @@ open class AircraftController(
     fun attachOnScreenSticks(
         leftStk: OnScreenJoystick,
         rightStk: OnScreenJoystick,
-        callback: CompletionCallback? = null,
+        callback: CommonCallbacks.CompletionCallback? = null,
         deviation: Double = 0.02,
         activate: Boolean = true,
     ) {
@@ -121,7 +122,7 @@ open class AircraftController(
                 )
             }
         })
-        if (activate) activate(object : CompletionCallback {
+        if (activate) activate(object : CommonCallbacks.CompletionCallback {
             override fun onSuccess() {
                 callback?.onSuccess()
             }
@@ -132,7 +133,7 @@ open class AircraftController(
         })
     }
 
-    private fun activate(callback: CompletionCallback = DEFAULT_CALLBACK) {
+    private fun activate(callback: CommonCallbacks.CompletionCallback = DEFAULT_CALLBACK) {
         if (!stickVMActive()) stickVM.enableVirtualStick(callback)
         intFlVM.initListener()
         FlightControllerKey.KeyAircraftLocation.create().listen(this) {
@@ -160,7 +161,7 @@ open class AircraftController(
         })
     }
 
-    fun stop(callback: CompletionCallback = DEFAULT_CALLBACK) {
+    fun stop(callback: CommonCallbacks.CompletionCallback = DEFAULT_CALLBACK) {
         flightJob?.cancel()
         stickVM.enableVirtualStickAdvancedMode()
         stickVM.sendVirtualStickAdvancedParam(VirtualStickFlightControlParam())
@@ -170,7 +171,7 @@ open class AircraftController(
         IntelligentFlightManager.getInstance().poiMissionManager.stopMission(callback)
     }
 
-    private fun disable(callback: CompletionCallback = DEFAULT_CALLBACK) {
+    private fun disable(callback: CommonCallbacks.CompletionCallback = DEFAULT_CALLBACK) {
         stop(callback)
         if (stickVMActive()) {
             stickVM.disableVirtualStickAdvancedMode()
@@ -193,13 +194,13 @@ open class AircraftController(
 
     fun ascendBy(
         meters: Double, speedMps: Double,
-        callback: CompletionCallback = DEFAULT_CALLBACK,
+        callback: CommonCallbacks.CompletionCallback = DEFAULT_CALLBACK,
         prep: Boolean = true
     ) {
         require(speedMps > 0) { "Speed must be positive" }
 
         if (prep && !stickVMActive()) {
-            activate(object : CompletionCallback {
+            activate(object : CommonCallbacks.CompletionCallback {
                 override fun onSuccess() = ascendBy(meters, speedMps, callback)
                 override fun onFailure(error: IDJIError) = callback.onFailure(error)
             })
@@ -240,14 +241,14 @@ open class AircraftController(
 
     fun forwardBy(
         meters: Double, speedMps: Double,
-        callback: CompletionCallback = DEFAULT_CALLBACK,
+        callback: CommonCallbacks.CompletionCallback = DEFAULT_CALLBACK,
         coordinateSystem: FlightCoordinateSystem = FlightCoordinateSystem.BODY,
         prep: Boolean = true,
     ) {
         require(speedMps > 0) { "Speed must be positive" }
 
         if (prep && !stickVMActive()) {
-            activate(object : CompletionCallback {
+            activate(object : CommonCallbacks.CompletionCallback {
                 override fun onSuccess() = ascendBy(meters, speedMps, callback)
                 override fun onFailure(error: IDJIError) = callback.onFailure(error)
             })
@@ -288,12 +289,12 @@ open class AircraftController(
 
 
     fun takeoff(
-        callback: CompletionCallbackWithParam<EmptyMsg> = DEFAULT_CALLBACK_PARAM,
+        callback: CommonCallbacks.CompletionCallbackWithParam<EmptyMsg> = DEFAULT_CALLBACK_PARAM,
         prep: Boolean = true,
     ) {
         if (prep) {
             if (!stickVMActive()) {
-                activate(object : CompletionCallback {
+                activate(object : CommonCallbacks.CompletionCallback {
                     override fun onSuccess() = takeoff(callback)
                     override fun onFailure(error: IDJIError) = callback.onFailure(error)
                 })
@@ -304,12 +305,12 @@ open class AircraftController(
     }
 
     fun land(
-        callback: CompletionCallbackWithParam<EmptyMsg> = DEFAULT_CALLBACK_PARAM,
+        callback: CommonCallbacks.CompletionCallbackWithParam<EmptyMsg> = DEFAULT_CALLBACK_PARAM,
         prep: Boolean = true,
     ) {
         if (prep) {
             if (!stickVMActive()) {
-                activate(object : CompletionCallback {
+                activate(object : CommonCallbacks.CompletionCallback {
                     override fun onSuccess() = land(callback)
                     override fun onFailure(error: IDJIError) {
                         callback.onFailure(error)
@@ -326,7 +327,7 @@ open class AircraftController(
 
     fun flyToIntelligent(
         target: LocationCoordinate3D,
-        callback: CompletionCallbackWithParam<LocationCoordinate3D>? = null,
+        callback: CommonCallbacks.CompletionCallbackWithParam<LocationCoordinate3D>? = null,
     ) {
         val flyToTarget = FlyToTarget()
         flyToTarget.apply {
@@ -340,7 +341,7 @@ open class AircraftController(
         ToastUtils.showToast("pre fly to")
         IntelligentFlightManager.getInstance().flyToMissionManager.startMission(
             flyToTarget, flyToParam,
-            object : CompletionCallback {
+            object : CommonCallbacks.CompletionCallback {
                 override fun onSuccess() {
                     ToastUtils.showToast("flyTo success @${target.toJson()}")
                     callback?.onSuccess(target)
@@ -358,14 +359,14 @@ open class AircraftController(
 
     fun flyToVirtualSticks(
         target: LocationCoordinate3D,
-        callback: CompletionCallbackWithParam<LocationCoordinate3D>? = null,
+        callback: CommonCallbacks.CompletionCallbackWithParam<LocationCoordinate3D>? = null,
         maxSpeed: Float = 2.0f,
         positionTolerance: Double = 0.5,
         prep: Boolean = true,
     ) {
         if (prep) {
             if (!stickVMActive()) {
-                activate(object : CompletionCallback {
+                activate(object : CommonCallbacks.CompletionCallback {
                     override fun onSuccess() =
                         flyToVirtualSticks(target, callback, maxSpeed, positionTolerance)
 
@@ -438,18 +439,17 @@ open class AircraftController(
 
     fun flyTo(
         location: LocationCoordinate3D,
-        callback: CompletionCallbackWithParam<LocationCoordinate3D>? = null
+        callback: CommonCallbacks.CompletionCallbackWithParam<LocationCoordinate3D>? = null
     ) {
         stop()
         if (FlightControllerKey.KeyIsWaypointSupport.create().get() == true)
             flyToIntelligent(location, callback)
-        else
-            flyToVirtualSticks(location, callback)
+        // else flyToVirtualSticks(location, callback)
     }
 
     fun flyTo(
         location: LocationCoordinate2D,
-        callback: CompletionCallbackWithParam<LocationCoordinate3D>? = null
+        callback: CommonCallbacks.CompletionCallbackWithParam<LocationCoordinate3D>? = null
     ) = flyTo(
         LocationCoordinate3D(
             location.latitude,
@@ -461,12 +461,12 @@ open class AircraftController(
     fun flyBy(
         distMeters: Double,
         direction: LocationUtils.Direction,
-        callback: CompletionCallbackWithParam<LocationCoordinate3D>? = null,
+        callback: CommonCallbacks.CompletionCallbackWithParam<LocationCoordinate3D>? = null,
     ) = flyToIntelligent(location.value!!.translate(distMeters, direction), callback)
 
     fun flyBy(
         distMeters: Double, direction: LocationUtils.RelativeDirection,
-        callback: CompletionCallbackWithParam<LocationCoordinate3D>? = null,
+        callback: CommonCallbacks.CompletionCallbackWithParam<LocationCoordinate3D>? = null,
     ) = flyToIntelligent(
         location.value!!.translate(
             distMeters, direction, currentHeadingDegrees = attitude.value!!.yaw
