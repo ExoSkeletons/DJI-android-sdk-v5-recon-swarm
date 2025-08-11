@@ -1,18 +1,12 @@
 package dji.sampleV5.aircraft.pages
 
-import android.Manifest
 import android.app.Activity
-import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.Color
 import android.location.Location
-import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
-import android.os.Looper
-import android.provider.Settings
 import android.speech.RecognizerIntent
 import android.util.Log
 import android.view.LayoutInflater
@@ -22,15 +16,12 @@ import android.view.SurfaceView
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
 import androidx.fragment.app.activityViewModels
 import com.dr.vocom.CommandController
+import com.dr.vocom.LiveLocationProvider
 import com.dr.vocom.LocaleUtils
-import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
-import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
-import com.google.android.gms.location.LocationServices
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVirtualStickPageVocomBinding
 import dji.sampleV5.aircraft.models.BasicAircraftControlVM
@@ -40,7 +31,7 @@ import dji.sampleV5.aircraft.models.SimulatorVM
 import dji.sampleV5.aircraft.models.VirtualStickVM
 import dji.sampleV5.aircraft.util.Helper
 import dji.sampleV5.aircraft.util.ToastUtils
-import dji.sampleV5.aircraft.virtualstick.AircraftController
+import com.dr.vocom.AircraftController
 import dji.sampleV5.aircraft.virtualstick.OnScreenJoystick
 import dji.sampleV5.aircraft.virtualstick.OnScreenJoystickListener
 import dji.sdk.keyvalue.key.FlightControllerKey
@@ -92,39 +83,9 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         ICameraStreamManager.ScaleType.CENTER_INSIDE
     private val cameraStreamManager = MediaDataCenter.getInstance().cameraStreamManager
 
-    private lateinit var locationProviderClient: FusedLocationProviderClient
-    private lateinit var locationRequest: LocationRequest
-    private lateinit var locationManager: LocationManager
-    private lateinit var locationCallback: LocationCallback
+    private val liveLocation: LiveLocationProvider = LiveLocationProvider(this)
+    private var liveLocationRequired = false
     private var currentDeviceLocation: Location? = null
-    private var isRequestingLocationUpdates = false
-    private val requestLocationPermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
-            if (isGranted) {
-                ToastUtils.showToast("Location permission granted")
-                startLocationUpdates()
-            } else {
-                // Explain to the user that the feature is unavailable because the
-                // features requires a permission that the user has denied.
-                ToastUtils.showToast("Location permission denied, Follow Me feature unavailable.")
-            }
-        }
-    private val enableLocationLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) {
-        // User has returned from the location settings screen.
-        // We can optionally re-check if location is enabled and try to start updates.
-        Log.d("LocationSettings", "Returned from location settings.")
-        if (ContextCompat.checkSelfPermission(
-                requireContext(),
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
-                locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
-            ) startLocationUpdates()
-        }
-    }
 
     private val speechRecognizerLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -168,19 +129,12 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         svCameraStream = view.findViewById(R.id.sv_camera_stream)
         initCameraStreamSurfaceCallback()
 
-        locationProviderClient = LocationServices.getFusedLocationProviderClient(requireActivity())
-        locationManager = requireActivity().getSystemService(Context.LOCATION_SERVICE)
-                as LocationManager
-        locationRequest = LocationRequest.Builder(10000) // 10 seconds
-            .setWaitForAccurateLocation(false)
-            .setMinUpdateIntervalMillis(5000) // 5 seconds
-            .setMaxUpdateDelayMillis(15000) // 15 seconds
-            .build()
-        locationCallback = object : LocationCallback() {
+        liveLocation.init(requireContext())
+        liveLocation.locationCallback = object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult) {
-                locationResult
                 for (location in locationResult.locations) {
                     currentDeviceLocation = location
+                    binding?.tvLocationDevice?.text = "lat: ${location.latitude}, lon: ${location.longitude} alt: ${location.altitude}"
                     Log.d("DeviceLocation", "Lat: ${location.latitude}, Lon: ${location.longitude}")
                 }
             }
@@ -188,17 +142,8 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
         binding?.btnStop?.setOnClickListener { controller.stop() }
         binding?.btnFollow?.setOnClickListener {
-            if (!(locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || locationManager.isProviderEnabled(
-                    LocationManager.NETWORK_PROVIDER
-                ))
-            ) {
-                ToastUtils.showToast("Please enable location services.")
-                val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
-                enableLocationLauncher.launch(intent)
-                return@setOnClickListener
-            }
-
-            if (!isRequestingLocationUpdates) startLocationUpdates()
+            liveLocationRequired = true
+            if (!liveLocation.enabled()) liveLocation.enable()
 
             if (currentDeviceLocation == null) {
                 ToastUtils.showToast("Device location not yet available. Waiting for updates.")
@@ -232,6 +177,8 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         controller.destroy()
+        liveLocationRequired = false
+        liveLocation.disable()
         if (cameraStreamSurface != null) {
             cameraStreamManager.removeCameraStreamSurface(cameraStreamSurface!!)
             cameraStreamSurface = null
@@ -241,48 +188,12 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
     override fun onResume() {
         super.onResume()
-        if (!isRequestingLocationUpdates) {
-            if (ContextCompat.checkSelfPermission(
-                    requireContext(),
-                    Manifest.permission.ACCESS_FINE_LOCATION
-                ) == PackageManager.PERMISSION_GRANTED
-            ) {
-                startLocationUpdates()
-            } else {
-                requestLocationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-            }
-        }
+        if (liveLocationRequired) liveLocation.enable() // re-enable location requesting if necessary
     }
 
     override fun onPause() {
         super.onPause()
-        stopLocationUpdates()
-    }
-
-    private fun startLocationUpdates() {
-        if (ContextCompat.checkSelfPermission(
-                requireContext(),
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            ToastUtils.showToast("Location permission not granted. Cannot start updates.")
-            return
-        }
-        locationProviderClient.requestLocationUpdates(
-            locationRequest,
-            locationCallback,
-            Looper.getMainLooper()
-        )
-        isRequestingLocationUpdates = true
-        Log.d("DeviceLocation", "Started location updates")
-    }
-
-    private fun stopLocationUpdates() {
-        if (isRequestingLocationUpdates) {
-            locationProviderClient.removeLocationUpdates(locationCallback)
-            isRequestingLocationUpdates = false
-            Log.d("DeviceLocation", "Stopped location updates")
-        }
+        liveLocation.disable() // disable location requesting to conserve battery
     }
 
     private fun initCameraStreamSurfaceCallback() {
@@ -444,7 +355,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                 }
                 str += "\n"
             }
-            binding?.locationInfoTv?.text = str
+            binding?.tvLocationAircraft?.text = str
 
             virtualStickVM.enableVirtualStick(object : CompletionCallback {
                 override fun onSuccess() {
@@ -477,7 +388,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             }
         }
         controller.location.observeForever {
-            binding?.locationInfoTv?.text = it.toString()
+            binding?.tvLocationAircraft?.text = it.toString()
         }
 
         binding?.btnSetVirtualStickSpeedLevel?.setOnClickListener {

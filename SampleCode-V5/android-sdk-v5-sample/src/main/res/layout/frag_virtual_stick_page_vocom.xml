@@ -189,16 +189,46 @@
         app:layout_constraintTop_toTopOf="parent"
         tools:ignore="HardcodedText" />
 
-    <TextView
-        android:id="@+id/location_info_tv"
+    <TableLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="LOCATION"
-        android:textColor="@color/red_dark"
         app:layout_constraintBottom_toTopOf="@+id/speech_layout"
-        app:layout_constraintEnd_toStartOf="@+id/simulator_state_info_tv"
         app:layout_constraintStart_toEndOf="@+id/stick_button_list"
-        app:layout_constraintTop_toBottomOf="@+id/virtual_stick_info_tv" />
+        app:layout_constraintTop_toTopOf="@+id/sv_camera_stream">
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Aircraft Location" />
+
+            <TextView
+                android:id="@+id/tv_location_aircraft"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/red_dark" />
+        </TableRow>
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Device Location" />
+
+            <TextView
+                android:id="@+id/tv_location_device"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/red_dark" />
+        </TableRow>
+
+    </TableLayout>
 
     <TextView
         android:id="@+id/simulator_state_info_tv"
