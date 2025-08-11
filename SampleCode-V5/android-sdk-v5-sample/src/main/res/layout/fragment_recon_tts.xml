@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/cardview_dark_background"
+    android:divider="@android:drawable/divider_horizontal_textfield"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:showDividers="middle">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:background="@android:color/holo_purple"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <TableLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1">
+
+                <TableRow
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+
+                    <EditText
+                        android:id="@+id/tv_server_info_hostname"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:ems="10"
+                        android:inputType="text|textUri"
+                        android:minHeight="50dp"
+                        android:text="192.168.10.88"
+                        android:textAlignment="center"
+                        tools:text="localhost" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:minWidth="40dp"
+                        android:text="ip"
+                        android:textAlignment="center" />
+
+                </TableRow>
+
+                <TableRow
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+
+                    <EditText
+                        android:id="@+id/tv_server_info_port"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:ems="10"
+                        android:inputType="numberSigned"
+                        android:maxLength="8"
+                        android:minHeight="50dp"
+                        android:text="8765"
+                        android:textAlignment="center"
+                        tools:text="7331" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:minWidth="40dp"
+                        android:text="port"
+                        android:textAlignment="center" />
+
+                </TableRow>
+
+            </TableLayout>
+
+            <Button
+                android:id="@+id/btn_server_info_connect"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:clickable="true"
+                android:text="Connect" />
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tv_server_info_msg"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/design_default_color_on_primary" />
+
+        <TableLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layoutDirection="locale">
+
+            <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layoutDirection="locale"
+                android:minHeight="50dp">
+
+                <TextView
+                    android:id="@+id/tv_object_type"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_weight="1"
+                    android:text="@string/obstacle_type"
+                    android:textStyle="bold" />
+
+                <Spinner
+                    android:id="@+id/sp_object_type"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" />
+
+            </TableRow>
+
+            <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layoutDirection="locale"
+                android:minHeight="50dp">
+
+                <TextView
+                    android:id="@+id/tv_object_direction"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_weight="1"
+                    android:text="@string/obstacle_direction"
+                    android:textStyle="bold" />
+
+                <Spinner
+                    android:id="@+id/sp_object_direction"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" />
+
+            </TableRow>
+
+            <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layoutDirection="locale">
+
+                <TextView
+                    android:id="@+id/tv_object_dist"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_weight="1"
+                    android:text="@string/obstacle_distance"
+                    android:textStyle="bold" />
+
+                <EditText
+                    android:id="@+id/et_object_dist"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:autofillHints="postalCode"
+                    android:ems="10"
+                    android:inputType="numberSigned"
+                    android:selectAllOnFocus="true"
+                    tools:ignore="LabelFor" />
+
+            </TableRow>
+
+            <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layoutDirection="locale">
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/obstacle_motion_sw"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/obstacle_moving"
+                    android:textStyle="bold" />
+
+            </TableRow>
+
+        </TableLayout>
+
+        <Button
+            android:id="@+id/speakButtonObj"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/tts_speak" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <EditText
+            android:id="@+id/tts_free_input_edit_et"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/tts_tv_prompt"
+            android:importantForAutofill="no"
+            android:inputType="textAutoComplete|textAutoCorrect|textShortMessage"
+            android:minHeight="70dp" />
+
+        <Button
+            android:id="@+id/speakButtonFree"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/tts_speak" />
+
+    </LinearLayout>
+
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="30dp" />
+
+</LinearLayout>
