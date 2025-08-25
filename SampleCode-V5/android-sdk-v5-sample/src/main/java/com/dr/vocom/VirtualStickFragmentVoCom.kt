@@ -1,4 +1,4 @@
-package dji.sampleV5.aircraft.pages
+package com.dr.vocom
 
 import android.app.Activity
 import android.content.Intent
@@ -8,6 +8,7 @@ import android.location.Location
 import android.os.Build
 import android.os.Bundle
 import android.speech.RecognizerIntent
+import android.text.TextUtils
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.Surface
@@ -15,11 +16,10 @@ import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.activityViewModels
-import com.dr.vocom.CommandController
-import com.dr.vocom.LiveLocationProvider
-import com.dr.vocom.LocaleUtils
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
 import dji.sampleV5.aircraft.R
@@ -29,9 +29,10 @@ import dji.sampleV5.aircraft.models.IntelligentFlightVM
 import dji.sampleV5.aircraft.models.LiveStreamVM
 import dji.sampleV5.aircraft.models.SimulatorVM
 import dji.sampleV5.aircraft.models.VirtualStickVM
+import dji.sampleV5.aircraft.models.WayPointV3VM
+import dji.sampleV5.aircraft.pages.DJIFragment
 import dji.sampleV5.aircraft.util.Helper
 import dji.sampleV5.aircraft.util.ToastUtils
-import com.dr.vocom.AircraftController
 import dji.sampleV5.aircraft.virtualstick.OnScreenJoystick
 import dji.sampleV5.aircraft.virtualstick.OnScreenJoystickListener
 import dji.sdk.keyvalue.key.FlightControllerKey
@@ -39,7 +40,6 @@ import dji.sdk.keyvalue.value.common.ComponentIndexType
 import dji.sdk.keyvalue.value.common.EmptyMsg
 import dji.sdk.keyvalue.value.common.LocationCoordinate2D
 import dji.v5.common.callback.CommonCallbacks
-import dji.v5.common.callback.CommonCallbacks.CompletionCallback
 import dji.v5.common.error.IDJIError
 import dji.v5.et.create
 import dji.v5.et.get
@@ -47,6 +47,8 @@ import dji.v5.et.isKeySupported
 import dji.v5.manager.aircraft.simulator.InitializationSettings
 import dji.v5.manager.aircraft.virtualstick.Stick
 import dji.v5.manager.datacenter.MediaDataCenter
+import dji.v5.manager.datacenter.livestream.LiveVideoBitrateMode
+import dji.v5.manager.datacenter.livestream.StreamQuality
 import dji.v5.manager.interfaces.ICameraStreamManager
 import java.util.Locale
 import kotlin.math.abs
@@ -65,10 +67,11 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     private val intelligentFlightVM: IntelligentFlightVM by activityViewModels()
     private val basicAircraftControlVM: BasicAircraftControlVM by activityViewModels()
     private val virtualStickVM: VirtualStickVM by activityViewModels()
+    private val wayPointV3VM: WayPointV3VM by activityViewModels()
     private val simulatorVM: SimulatorVM by activityViewModels()
     private val liveStreamVM: LiveStreamVM by activityViewModels()
     private lateinit var controller: AircraftController
-    private lateinit var commandController: CommandController
+    private lateinit var commandResolver: CommandResolver
 
     private var binding: FragVirtualStickPageVocomBinding? = null
 
@@ -123,18 +126,23 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         binding?.widgetHorizontalSituationIndicator?.setSimpleModeEnable(false)
         initBtnClickListener()
         initStickListener()
-
         initMicListener()
-
         svCameraStream = view.findViewById(R.id.sv_camera_stream)
         initCameraStreamSurfaceCallback()
+        initLiveStreamControls()
 
         liveLocation.init(requireContext())
         liveLocation.locationCallback = object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult) {
                 for (location in locationResult.locations) {
                     currentDeviceLocation = location
-                    binding?.tvLocationDevice?.text = "lat: ${location.latitude}, lon: ${location.longitude} alt: ${location.altitude}"
+                    binding?.tvLocationDevice?.text =
+                        getString(
+                            R.string.location_fmt_short,
+                            location.latitude,
+                            location.longitude,
+                            location.altitude
+                        )
                     Log.d("DeviceLocation", "Lat: ${location.latitude}, Lon: ${location.longitude}")
                 }
             }
@@ -143,24 +151,14 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         binding?.btnStop?.setOnClickListener { controller.stop() }
         binding?.btnFollow?.setOnClickListener {
             liveLocationRequired = true
-            if (!liveLocation.enabled()) liveLocation.enable()
-
-            if (currentDeviceLocation == null) {
-                ToastUtils.showToast("Device location not yet available. Waiting for updates.")
-                Log.d("FollowMeLocation", "Location not available yet.")
+            if (!liveLocation.enabled()) {
+                liveLocation.enable()
                 return@setOnClickListener
             }
 
-            val locationMsg =
-                "Current Device Location: Lat: ${currentDeviceLocation!!.latitude}, Lon: ${currentDeviceLocation!!.longitude}"
-            Log.d("FollowMeLocation", locationMsg)
-            ToastUtils.showToast(locationMsg)
-            controller.flyTo(
-                LocationCoordinate2D(
-                    currentDeviceLocation!!.latitude,
-                    currentDeviceLocation!!.longitude
-                )
-            )
+            val lat = currentDeviceLocation!!.latitude
+            val lng = currentDeviceLocation!!.longitude
+            controller.flyTo(LocationCoordinate2D(lat, lng))
         }
 
         virtualStickVM.listenRCStick()
@@ -176,6 +174,9 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        if (liveStreamVM.isStreaming())
+            liveStreamVM.stopStream(null)
+
         controller.destroy()
         liveLocationRequired = false
         liveLocation.disable()
@@ -196,11 +197,82 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         liveLocation.disable() // disable location requesting to conserve battery
     }
 
+
+    private fun initLiveStreamControls() {
+        binding?.btnStartStream?.setOnClickListener {
+            val factory = LayoutInflater.from(requireContext())
+            val rtmpConfigView = factory.inflate(R.layout.dialog_livestream_rtmp_config_view, null)
+            val etRtmpUrl = rtmpConfigView.findViewById<EditText>(R.id.et_livestream_rtmp_config)
+            val configDialog = requireContext().let {
+                AlertDialog.Builder(it, R.style.Base_ThemeOverlay_AppCompat_Dialog_Alert)
+                    .setIcon(android.R.drawable.ic_menu_camera)
+                    .setTitle(R.string.live_share_rtmp_type_name)
+                    .setCancelable(false)
+                    .setView(rtmpConfigView)
+                    .setPositiveButton(R.string.ad_confirm) { configDialog, _ ->
+                        val rtmpUrl = etRtmpUrl.text.toString()
+                        if (TextUtils.isEmpty(rtmpUrl)) {
+                            ToastUtils.showToast("input is empty")
+                        } else {
+                            liveStreamVM.setRTMPConfig(rtmpUrl)
+
+                            liveStreamVM.setCameraIndex(cameraIndex)
+                            liveStreamVM.setLiveVideoBitRateMode(LiveVideoBitrateMode.AUTO)
+                            liveStreamVM.setLiveStreamScaleType(ICameraStreamManager.ScaleType.CENTER_CROP)
+                            liveStreamVM.setLiveStreamQuality(StreamQuality.SD)
+
+                            liveStreamVM.startStream(object : CommonCallbacks.CompletionCallback {
+                                override fun onSuccess() {
+                                    ToastUtils.showToast("live stream starting")
+                                }
+
+                                override fun onFailure(error: IDJIError) {
+                                    activity?.runOnUiThread {
+                                        binding?.tvLivestreamStatus?.text =
+                                            "Failed to stream to ${liveStreamVM.getRtmpUrl()}"
+                                        liveStreamVM.stopStream(null)
+                                        ToastUtils.showToast("live stream fail ${error.description()}")
+                                    }
+                                }
+                            })
+                        }
+                        configDialog.dismiss()
+                    }
+                    .setNegativeButton(R.string.ad_cancel) { configDialog, _ ->
+                        configDialog.dismiss()
+                    }
+                    .create()
+            }
+            configDialog.show()
+        }
+
+        binding?.btnStopStream?.setOnClickListener {
+            if (liveStreamVM.isStreaming())
+                liveStreamVM.stopStream(null)
+        }
+
+        liveStreamVM.liveStreamStatus.observe(viewLifecycleOwner) { status ->
+            binding?.tvLivestreamStatus?.text = "Streaming: ${status?.isStreaming ?: ""}"
+            binding?.btnStartStream?.isEnabled = !liveStreamVM.isStreaming()
+            binding?.btnStopStream?.isEnabled = liveStreamVM.isStreaming()
+        }
+
+        liveStreamVM.liveStreamError.observe(viewLifecycleOwner) { error ->
+            error?.let {
+                ToastUtils.showToast("Live Stream Error: ${it.description()}")
+                Log.e("LiveStream", "Error: ${it.description()}")
+            }
+        }
+    }
+
     private fun initCameraStreamSurfaceCallback() {
         svCameraStream.holder.addCallback(object : SurfaceHolder.Callback {
             override fun surfaceCreated(holder: SurfaceHolder) {
                 Log.d("CameraView", "Surface Created")
                 cameraStreamSurface = holder.surface
+                if (cameraStreamWidth != -1 && cameraStreamHeight != -1) { // Added this check from previous suggestions
+                    putCameraStreamSurface()
+                }
             }
 
             override fun surfaceChanged(
@@ -218,7 +290,10 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
             override fun surfaceDestroyed(holder: SurfaceHolder) {
                 Log.d("CameraView", "Surface Destroyed")
-                cameraStreamManager.removeCameraStreamSurface(holder.surface)
+                // Check if cameraStreamSurface is not null before removing, good practice
+                if (cameraStreamSurface != null) {
+                    cameraStreamManager.removeCameraStreamSurface(holder.surface)
+                }
                 cameraStreamSurface = null // Clear the reference
             }
         })
@@ -271,67 +346,108 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         controller = AircraftController(
             virtualStickVM,
             basicAircraftControlVM,
-            intelligentFlightVM
+            intelligentFlightVM,
+            wayPointV3VM
         )
-        commandController =
-            CommandController(CommandController.ParseConfig())
-        commandController.commands.addAll(
+        virtualStickVM.stickValue.observe(viewLifecycleOwner) { stickValue ->
+            if (virtualStickVM.currentVirtualStickStateInfo.value!!.state.isVirtualStickEnable) {
+                ToastUtils.showShortToast(
+                    "touchie da sticks!\n" +
+                            "lh=${stickValue.leftHorizontal} lh=${stickValue.leftVertical}" +
+                            " rh=${stickValue.rightHorizontal} rh=${stickValue.rightVertical}"
+                )
+                controller.stop(returnStickControl = true) // stop controller return control to manual RC
+            }
+        }
+        controller.activate(object : CommonCallbacks.CompletionCallback {
+            override fun onSuccess() {
+                ToastUtils.showToast("controller activated successfully")
+
+                initVoiceCommandResolver()
+
+                if (binding?.leftStickView != null && binding?.rightStickView != null)
+                    controller.attachOnScreenSticks(
+                        binding?.leftStickView!!, binding?.rightStickView!!,
+                        object : CommonCallbacks.CompletionCallback {
+                            override fun onSuccess() {
+                                ToastUtils.showToast("sticks set")
+                            }
+
+                            override fun onFailure(error: IDJIError) {
+                                ToastUtils.showToast("error setting sticks: ${error.errorCode()}")
+                            }
+                        },
+                        deviation = deviation
+                    )
+            }
+
+            override fun onFailure(error: IDJIError) {
+                ToastUtils.showToast("error activating controller: ${error.errorCode()}")
+            }
+        })
+    }
+
+    private fun initVoiceCommandResolver() {
+        commandResolver =
+            CommandResolver(CommandResolver.ParseConfig())
+        commandResolver.commands.addAll(
             arrayOf(
-                CommandController.Command(
+                CommandResolver.Command(
                     "STOP",
                     R.string.commands_stop
                 ) { controller.stop() },
-                CommandController.Command(
+                CommandResolver.Command(
                     "TAKE OFF",
                     R.string.commands_takeoff
                 ) {
                     controller.takeoff()
                 },
-                CommandController.Command(
+                CommandResolver.Command(
                     "LAND",
                     R.string.commands_land
                 ) { controller.land() },
-                CommandController.Command(
+                CommandResolver.Command(
                     "RETURN HOME",
                     R.string.commands_return_home
                 ),
-                CommandController.Command(
+                CommandResolver.Command(
                     "FOLLOW TARGET",
                     R.string.commands_follow_target
                 ),
-                CommandController.Command("FOLLOW ME", R.string.commands_follow_me),
-                CommandController.Command(
+                CommandResolver.Command("FOLLOW ME", R.string.commands_follow_me),
+                CommandResolver.Command(
                     "FLY WAYPOINT",
                     R.string.commands_fly_waypoint
                 ),
 
-                CommandController.Command(
+                CommandResolver.Command(
                     "ASCEND",
-                    R.string.command_up
-                ) { controller.ascendBy(1.0, .1) },
-                CommandController.Command(
+                    R.string.command_go_up
+                ) { controller.ascendBy(1.0) },
+                CommandResolver.Command(
+                    "DESCEND",
+                    R.string.command_go_down
+                ) { controller.ascendBy(-1.0) },
+                CommandResolver.Command(
                     "SCAN",
-                    R.string.commands_scan_forward
-                ) { controller.forwardBy(2.0, .1) },
+                    R.string.command_go_forward
+                ) { controller.forwardBy(1.0) },
+                CommandResolver.Command(
+                    "BACK UP",
+                    R.string.command_go_backward
+                ) { controller.forwardBy(-0.5) },
+                CommandResolver.Command(
+                    "LEFT",
+                    R.string.command_go_left
+                ) { controller.leftBy(0.5) },
+                CommandResolver.Command(
+                    "RIGHT",
+                    R.string.command_go_right
+                ) { controller.leftBy(-0.5) },
 
-                CommandController.Command("STEALTH", R.string.commands_silence),
+                CommandResolver.Command("STEALTH", R.string.commands_silence),
             )
         )
-
-        if (binding?.leftStickView != null && binding?.rightStickView != null)
-            controller.attachOnScreenSticks(
-                binding?.leftStickView!!, binding?.rightStickView!!,
-                object : CompletionCallback {
-                    override fun onSuccess() {
-                        ToastUtils.showToast("sticks set")
-                    }
-
-                    override fun onFailure(error: IDJIError) {
-                        ToastUtils.showToast("error setting sticks: ${error.errorCode()}")
-                    }
-                },
-                deviation = deviation
-            )
     }
 
     private fun initBtnClickListener() {
@@ -357,7 +473,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             }
             binding?.tvLocationAircraft?.text = str
 
-            virtualStickVM.enableVirtualStick(object : CompletionCallback {
+            virtualStickVM.enableVirtualStick(object : CommonCallbacks.CompletionCallback {
                 override fun onSuccess() {
                     ToastUtils.showToast("snees.")
                 }
@@ -368,13 +484,13 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             })
         }
         binding?.btnDisableVirtualStick?.setOnClickListener {
-            virtualStickVM.disableVirtualStick(object : CompletionCallback {
+            virtualStickVM.disableVirtualStick(object : CommonCallbacks.CompletionCallback {
                 override fun onSuccess() {
                     ToastUtils.showToast("sdos.")
                 }
 
                 override fun onFailure(error: IDJIError) {
-                    ToastUtils.showToast("stass.... ${error})")
+                    ToastUtils.showToast("stass.... ${error}")
                 }
             })
         }
@@ -384,11 +500,16 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         simulatorVM.simulatorStateSb.observe(viewLifecycleOwner) {
             binding?.simulatorStateInfoTv?.apply {
                 text = it
-                setTextColor(if (simulatorVM.isSimulatorOn()) Color.BLACK else Color.RED)
+                setTextColor(if (simulatorVM.isSimulatorOn()) Color.WHITE else Color.RED)
             }
         }
         controller.location.observeForever {
-            binding?.tvLocationAircraft?.text = it.toString()
+            binding?.tvLocationAircraft?.text = getString(
+                R.string.location_fmt_short,
+                it.latitude,
+                it.longitude,
+                it.altitude
+            )
         }
 
         binding?.btnSetVirtualStickSpeedLevel?.setOnClickListener {
@@ -460,6 +581,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     }
 
     private fun startListening() {
+        val maxSilenceDurationMillis = 20000L
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(
                 RecognizerIntent.EXTRA_LANGUAGE_MODEL,
@@ -468,13 +590,18 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, locale.toLanguageTag())
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, locale.toLanguageTag())
             putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, true)
+            putExtra(RecognizerIntent.EXTRA_PROMPT, getString(R.string.speech_prompt_listening))
             putExtra(
-                RecognizerIntent.EXTRA_PROMPT,
-                getString(R.string.speech_prompt_listening)
+                RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS,
+                maxSilenceDurationMillis
+            )
+            putExtra(
+                RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS,
+                maxSilenceDurationMillis
             )
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                val bias = commandController.commands
+                val bias = commandResolver.commands
                     .flatMap {
                         it.strings(
                             LocaleUtils.getLocalizedResources(
@@ -489,14 +616,14 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
         try {
             speechRecognizerLauncher.launch(intent)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             binding?.txtSpeechResult?.text =
-                getString(R.string.mission_edit_warning_unsupport_action)
+                getString(R.string.dji_msdk_error_common_unsupported)
         }
     }
 
     private fun onHearText(spokenText: String) {
-        val com = commandController.resolve(
+        val com = commandResolver.resolve(
             spokenText,
             LocaleUtils.getLocalizedResources(requireContext(), locale)
         )
@@ -510,33 +637,39 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     }
 
     private fun enableSimulator() {
-        val coordinate2D = LocationCoordinate2D()
-        val data = InitializationSettings.createInstance(coordinate2D, 3)
-        simulatorVM.enableSimulator(data, object : CompletionCallback {
-            override fun onSuccess() {
-                ToastUtils.showToast("start Success")
-                mainHandler.post {
-                    binding?.simulatorStateInfoTv?.setTextColor(Color.BLACK)
+        val initLocation = LocationCoordinate2D(
+            currentDeviceLocation?.latitude ?: 0.0,
+            currentDeviceLocation?.longitude ?: 0.0
+        )
+        val satelliteCount = 20
+        simulatorVM.enableSimulator(
+            InitializationSettings.createInstance(initLocation, satelliteCount),
+            object : CommonCallbacks.CompletionCallback {
+                override fun onSuccess() {
+                    ToastUtils.showToast("simulator started")
+                    mainHandler.post {
+                        binding?.simulatorStateInfoTv?.setTextColor(Color.BLACK)
+                    }
+                }
+
+                override fun onFailure(error: IDJIError) {
+                    ToastUtils.showToast("failed to start simulator" + error.description())
                 }
             }
-
-            override fun onFailure(error: IDJIError) {
-                ToastUtils.showToast("start Failed" + error.description())
-            }
-        })
+        )
     }
 
-    private fun disableSimulator(callbacks: CompletionCallback?) {
-        simulatorVM.disableSimulator(object : CompletionCallback {
+    private fun disableSimulator(callback: CommonCallbacks.CompletionCallback?) {
+        simulatorVM.disableSimulator(object : CommonCallbacks.CompletionCallback {
             override fun onSuccess() {
-                ToastUtils.showToast("disable Success")
+                ToastUtils.showToast("simulator disabled")
                 mainHandler.post { binding?.simulatorStateInfoTv?.setTextColor(Color.RED) }
-                callbacks?.onSuccess()
+                callback?.onSuccess()
             }
 
             override fun onFailure(error: IDJIError) {
-                ToastUtils.showToast("close Failed" + error.description())
-                callbacks?.onFailure(error)
+                ToastUtils.showToast("failed to stop simulator" + error.description())
+                callback?.onFailure(error)
             }
         })
     }

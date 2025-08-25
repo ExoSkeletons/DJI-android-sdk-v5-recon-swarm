@@ -1,10 +1,9 @@
 package com.dr.vocom
 
-import android.content.Context
 import android.content.res.Resources
 import java.util.Locale
 
-class CommandController(val config: ParseConfig) {
+class CommandResolver(val config: ParseConfig) {
     data class ParseConfig(
         val matchContained: Boolean = true,
         val noSpaces: Boolean = true,

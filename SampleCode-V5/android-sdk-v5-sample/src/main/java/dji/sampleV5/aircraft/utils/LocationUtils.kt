@@ -1,9 +1,10 @@
 package dji.sampleV5.aircraft.utils
 
-import dji.sdk.keyvalue.value.common.LocationCoordinate2D
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
+import dji.sdk.keyvalue.value.flightcontroller.FlightCoordinateSystem
 import kotlin.math.atan2
 import kotlin.math.cos
+import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
@@ -15,10 +16,10 @@ fun Double.toDegrees(): Double = Math.toDegrees(this)
 fun Double.toRadians(): Double = Math.toRadians(this)
 
 object LocationUtils {
-    enum class RelativeDirection(val bearingOffsetDegrees: Float) {
-        FORWARD(0f), BACKWARD(-180f),
-        LEFT(-90f), RIGHT(90f),
-        UP(0f), DOWN(0f)
+    enum class RelativeDirection(val sign: Int, val bearingOffsetDegrees: Float) {
+        FORWARD(1, 0f), BACKWARD(-1, -180f),
+        LEFT(1, -90f), RIGHT(-1, 90f),
+        UP(1, 0f), DOWN(-1, 0f), ;
     }
 
     enum class Direction(val bearingDegrees: Float) {
@@ -105,35 +106,19 @@ object LocationUtils {
         val dLat = lat2 - lat1
         val dLon = lon2 - lon1
 
+        // Horizontal surface distance (Haversine)
         val a = sin(dLat / 2).pow(2) + cos(lat1) * cos(lat2) * sin(dLon / 2).pow(2)
         val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+        val horizontalDist = EARTH_RADIUS * c
 
-        return EARTH_RADIUS * c
+        // Vertical difference
+        val dAlt = other.altitude - this.altitude
+
+        // 3D distance
+        return sqrt(horizontalDist.pow(2) + dAlt.pow(2))
     }
 
-    fun LocationCoordinate2D.distanceTo(other: LocationCoordinate2D): Double {
-        val lat1 = this.latitude
-        val lon1 = this.longitude
-        val lat2 = other.latitude
-        val lon2 = other.longitude
-
-        val dLat = Math.toRadians(lat2 - lat1)
-        val dLon = Math.toRadians(lon2 - lon1)
-
-        val a = kotlin.math.sin(dLat / 2).pow(2) +
-                kotlin.math.cos(Math.toRadians(lat1)) *
-                kotlin.math.cos(Math.toRadians(lat2)) *
-                kotlin.math.sin(dLon / 2).pow(2)
-
-        val c = 2 * kotlin.math.atan2(kotlin.math.sqrt(a), kotlin.math.sqrt(1 - a))
-        return EARTH_RADIUS * c
-    }
-
-    fun LocationCoordinate3D.distanceTo(other: LocationCoordinate2D): Double {
-        return LocationCoordinate2D(this.longitude, this.latitude).distanceTo(other)
-    }
-
-    fun bearingFromTo(start: LocationCoordinate3D, end: LocationCoordinate3D): Double {
+    fun bearingDegreesFromTo(start: LocationCoordinate3D, end: LocationCoordinate3D): Double {
         val startLat = Math.toRadians(start.latitude)
         val startLng = Math.toRadians(start.longitude)
         val endLat = Math.toRadians(end.latitude)
@@ -144,6 +129,59 @@ object LocationUtils {
         val x = cos(startLat) * sin(endLat) - sin(startLat) * cos(endLat) * cos(dLng)
         return Math.toDegrees(atan2(y, x)).normalizeAngle()
     }
+
+    fun calculateVelocityToTarget(
+        cur: LocationCoordinate3D,
+        target: LocationCoordinate3D,
+        curYaw: Double,
+        maxVelocity: Double,
+        coordinateSystem: FlightCoordinateSystem
+    ): Triple<Double, Double, Double> {
+        // --- Step 1: Compute horizontal differences in meters ---
+        val deltaLat = target.latitude - cur.latitude
+        val deltaLon = target.longitude - cur.longitude
+
+        // Approximate meters per degree at current latitude
+        val latMeters = deltaLat * (Math.PI / 180) * EARTH_RADIUS
+        val lonMeters =
+            deltaLon * (Math.PI / 180) * EARTH_RADIUS * cos(Math.toRadians(cur.latitude))
+
+        // vertical difference
+        val deltaAlt = target.altitude - cur.altitude
+        // horizontal distance
+        val horizontalDist = sqrt(latMeters * latMeters + lonMeters * lonMeters)
+
+        // Avoid division by zero
+        if (horizontalDist == 0.0 && deltaAlt == 0.0) return Triple(0.0, 0.0, 0.0)
+
+        var vx: Double
+        var vy: Double
+        when (coordinateSystem) {
+            FlightCoordinateSystem.GROUND -> {
+                // Ground frame: pitch = North/South, roll = East/West
+                vy = ((latMeters / horizontalDist) * min(horizontalDist, maxVelocity))
+                vx = ((lonMeters / horizontalDist) * min(horizontalDist, maxVelocity))
+            }
+
+            FlightCoordinateSystem.BODY -> {
+                // Body frame: rotate horizontal vector by -curYaw
+                val bearingRad =
+                    atan2(lonMeters, latMeters)           // angle to target in world frame
+                val relBearing = bearingRad - Math.toRadians(curYaw)   // rotate to drone's heading
+                val speed = min(horizontalDist, maxVelocity)
+                vy = (speed * cos(relBearing)) // forward/back relative to drone
+                vx = (speed * sin(relBearing)) // left/right relative to drone
+            }
+
+            FlightCoordinateSystem.UNKNOWN -> return Triple(0.0, 0.0, 0.0)
+        }
+
+        // Vertical speed
+        val vz = deltaAlt.coerceIn(-maxVelocity, maxVelocity)
+
+        return Triple(vx, vy, vz)
+    }
+
 
     private const val EARTH_RADIUS = 6378137.0 // meters
 }

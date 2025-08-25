@@ -20,8 +20,13 @@
     <string name="commands_follow_me">עקוב אחרי|אחרי|אלי</string>
     <string name="commands_fly_waypoint">נקודת ציון|נקודת|נון צדיק|צדיק|נ.צ.|נצ|נו|ציון|נקודה</string>
     <string name="commands_silence">שקט|השקט|הס|חשאי|חושך|צל|חשאיות</string>
-    <string name="command_up">סרוק למעלה|למעלה|עלה|לך למעלה|גבוה</string>
-    <string name="scan_forward">סריקה קדימה|קדימה|סרוק קדימה</string>
+
+    <string name="command_go_up">סרוק למעלה|למעלה|עלה|לך למעלה|גבוה|עליה</string>
+    <string name="command_go_forward">סריקה קדימה|קדימה|סרוק קדימה</string>
+    <string name="command_go_down">סרוק למטה|למטה|רד|לך למטה|נמוך|ירידה</string>
+    <string name="command_go_backward">סריקה אחורה|אחורה|סרוק אחורה|לך אחורה|חזור|מאחור</string>
+    <string name="command_go_left">סריקה ימינה|ימינה|לך ימינה|לימין</string>
+    <string name="command_go_right">סריקה שמאלה|שמאלה|לשמאל|לך שמאלה</string>
 
     <string name="commands_parser_title">מזהה פקודות</string>
 
@@ -61,5 +66,4 @@
     <string name="obstacle_moving">בתנועה</string>
     <string name="obstacle_detected_msg_dist">%1$s %4$s %3$s במרחק %2$d מטר</string>
     <string name="obstacle_detected_msg">%1$s %4$s %3$s</string>
-    <string name="commands_scan_forward">סריקה|סרוק|סורק|קדימה|סרוק קדימה</string>
 </resources>

@@ -513,8 +513,14 @@ More refer to the release notes." </string>
     <string name="commands_follow_target">follow|follow target|follow him|target</string>
     <string name="commands_follow_me">follow me|me</string>
     <string name="commands_fly_waypoint">goto|go to|waypoint|go to waypoint|waypoint</string>
-    <string name="command_up">up|go up|rise|high</string>
-    <string name="scan_forward">scan|forward|go forward|check</string>
+    <string name="commands_silence">stealth|quiet|silence|dark</string>
+
+    <string name="command_go_up">up|go up|rise|high</string>
+    <string name="command_go_forward">scan|forward|go forward|check</string>
+    <string name="command_go_down">down|go down|under|low</string>
+    <string name="command_go_backward">backward|back|go back|back up</string>
+    <string name="command_go_right">right|rightwards|go right</string>
+    <string name="command_go_left">left|leftwards|go left</string>
 
     <string name="commands_parser_title">STT</string>
 
@@ -553,6 +559,6 @@ More refer to the release notes." </string>
     <string name="obstacle_distance">Distance</string>
     <string name="obstacle_detected_msg_dist">%1$s %4$s detected %2$d meters %3$s</string>
     <string name="obstacle_detected_msg">%1$s %4$s detected %3$s</string>
-    <string name="commands_silence">stealth|quiet|silence|dark</string>
-    <string name="commands_scan_forward">scan|forward|go forward|scan forward</string>
+
+    <string name="location_fmt_short">lat: %1$f, lon: %2$f\nalt: %3$f</string>
 </resources>

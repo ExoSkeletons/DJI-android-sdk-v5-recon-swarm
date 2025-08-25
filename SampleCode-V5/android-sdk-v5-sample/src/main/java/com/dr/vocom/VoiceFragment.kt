@@ -18,7 +18,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.dr.vocom.CommandController.Command
+import com.dr.vocom.CommandResolver.Command
 import dji.sampleV5.aircraft.R
 import java.util.Locale
 
@@ -75,7 +75,7 @@ class VoiceFragment : Fragment() {
 
     var onCommand: (Command) -> Unit = { }
     private lateinit var comListAdapter: CommandAdapter
-    private lateinit var controller: CommandController
+    private lateinit var controller: CommandResolver
     private val locale = Locale.getDefault()
 
     private lateinit var root: View
@@ -106,7 +106,7 @@ class VoiceFragment : Fragment() {
         val recyclerView = rootView.findViewById<RecyclerView>(R.id.command_list)
 
         comListAdapter = CommandAdapter(this)
-        controller = CommandController(CommandController.ParseConfig())
+        controller = CommandResolver(CommandResolver.ParseConfig())
 
         rootView.findViewById<ImageButton>(R.id.btnMic).setOnClickListener { startListening() }
 
