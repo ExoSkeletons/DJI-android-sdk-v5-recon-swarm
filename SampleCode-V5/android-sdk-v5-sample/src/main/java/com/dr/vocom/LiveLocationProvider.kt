@@ -4,7 +4,9 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.location.Location
 import android.location.LocationManager
+import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.util.Log
@@ -14,24 +16,32 @@ import androidx.fragment.app.Fragment
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import dji.sampleV5.aircraft.util.ToastUtils
 
 class LiveLocationProvider(
     fragment: Fragment,
-    intervalMillis: Long = 10000,
-    minUpdateIntervalMillis: Long = 5000,
-    maxUpdateDelayMillis: Long = 15000
+    intervalMillis: Long,
+    minUpdateIntervalMillis: Long = intervalMillis,
+    maxUpdateDelayMillis: Long = intervalMillis,
 ) {
     private lateinit var context: Context
-    private lateinit var locationProviderClient: FusedLocationProviderClient
-    private lateinit var locationManager: LocationManager
-    private val locationRequest = LocationRequest.Builder(intervalMillis) // 10 seconds
+    private lateinit var mLocationProviderClient: FusedLocationProviderClient
+    private lateinit var mLocationManager: LocationManager
+
+    /** Enable smoothing of location updates. */
+    val enableSmoothing: Boolean = true
+    // Buffer for location smoothing
+    private val locationBuffer: ArrayDeque<Location> = ArrayDeque()
+    val smoothingWindowSize: Int = 10
+
+    private val locationRequest = LocationRequest.Builder(intervalMillis)
         .setWaitForAccurateLocation(false)
-        .setMinUpdateIntervalMillis(minUpdateIntervalMillis) // 5 seconds
-        .setMaxUpdateDelayMillis(maxUpdateDelayMillis) // 15 seconds
+        .setMinUpdateIntervalMillis(minUpdateIntervalMillis)
+        .setMaxUpdateDelayMillis(maxUpdateDelayMillis)
         .build()
-    private val enableLocationLauncher = fragment.registerForActivityResult(
+    private val mEnableLocationLauncher = fragment.registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
         // User has returned from the location settings screen.
@@ -42,8 +52,8 @@ class LiveLocationProvider(
                 Manifest.permission.ACCESS_FINE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED
         ) {
-            if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
-                locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+            if (mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+                mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
             ) enable()
         }
     }
@@ -60,14 +70,47 @@ class LiveLocationProvider(
         }
     }
 
+
+    /** Internal location callback wrapper. */
+    private val mLocationCallback: LocationCallback = object : LocationCallback() {
+        override fun onLocationResult(result: LocationResult) {
+            val locations = mutableListOf<Location>()
+
+            for (raw in result.locations) {
+                val location =
+                    if (enableSmoothing) {
+                        // add location to smoothing buffer
+                        locationBuffer.addLast(raw)
+                        if (locationBuffer.size > smoothingWindowSize) locationBuffer.removeFirst()
+                        // compute smoothed location
+                        getSmoothedLocation(locationBuffer)
+                    } else raw
+
+                // collect locations
+                if (location != null) locations.add(location)
+            }
+
+            // Forward collected locations to user callback
+            if (locations.isNotEmpty())
+                locationCallback?.let {
+                    // Post on main thread
+                    Handler(Looper.getMainLooper()).post {
+                        it.onLocationResult(LocationResult.create(locations))
+                    }
+                }
+        }
+    }
+
+    /** Callback for receiving location updates. */
     var locationCallback: LocationCallback? = null
     private var requestingEnabled = false
 
+
     fun init(context: Context) {
         this.context = context
-        locationProviderClient =
+        mLocationProviderClient =
             LocationServices.getFusedLocationProviderClient(context)
-        locationManager =
+        mLocationManager =
             context.getSystemService(Context.LOCATION_SERVICE)
                     as LocationManager
     }
@@ -88,35 +131,50 @@ class LiveLocationProvider(
             return
         }
         // Check location enabled
-        if (!(locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || locationManager.isProviderEnabled(
+        if (!(mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || mLocationManager.isProviderEnabled(
                 LocationManager.NETWORK_PROVIDER
             ))
         ) {
             val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
             intent.putExtra(Intent.EXTRA_TITLE, "Location Settings")
             intent.putExtra(Intent.EXTRA_TEXT, "Please enable Location Services")
-            enableLocationLauncher.launch(intent)
+            mEnableLocationLauncher.launch(intent)
             return
         }
-
-        locationCallback?.let {
-            locationProviderClient.requestLocationUpdates(
-                locationRequest,
-                it,
-                Looper.getMainLooper()
-            )
-        }
+        // Start location updates
+        mLocationProviderClient.requestLocationUpdates(
+            locationRequest,
+            mLocationCallback,
+            Looper.getMainLooper()
+        )
         requestingEnabled = true
         Log.d("DeviceLocation", "Started location updates")
     }
 
     fun disable() {
         if (requestingEnabled) {
-            locationCallback?.let {
-                locationProviderClient.removeLocationUpdates(it)
-            }
+            mLocationProviderClient.removeLocationUpdates(mLocationCallback)
             requestingEnabled = false
             Log.d("DeviceLocation", "Stopped location updates")
+        }
+    }
+
+    /**
+     * Computes the average of buffered locations.
+     */
+    private fun getSmoothedLocation(locationBuffer: Collection<Location>): Location? {
+        if (locationBuffer.isEmpty()) return null
+
+        val avgLat = locationBuffer.map { it.latitude }.average()
+        val avgLon = locationBuffer.map { it.longitude }.average()
+        val avgAlt = locationBuffer.map { it.altitude }.average()
+
+        val last = locationBuffer.last()
+        return Location(last).apply {
+            latitude = avgLat
+            longitude = avgLon
+            altitude = avgAlt
+            accuracy = locationBuffer.map { it.accuracy.toDouble() }.average().toFloat()
         }
     }
 }

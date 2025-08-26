@@ -86,7 +86,11 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         ICameraStreamManager.ScaleType.CENTER_INSIDE
     private val cameraStreamManager = MediaDataCenter.getInstance().cameraStreamManager
 
-    private val liveLocation: LiveLocationProvider = LiveLocationProvider(this)
+    private val liveLocation: LiveLocationProvider = LiveLocationProvider(
+        this,
+        1000,
+        500, 5000
+    )
     private var liveLocationRequired = false
     private var currentDeviceLocation: Location? = null
 
