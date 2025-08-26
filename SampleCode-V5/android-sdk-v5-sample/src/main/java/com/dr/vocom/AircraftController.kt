@@ -2,14 +2,13 @@ package com.dr.vocom
 
 import android.util.Log
 import androidx.lifecycle.MutableLiveData
+import com.dr.vocom.LocationUtils.RelativeDirection
+import com.dr.vocom.LocationUtils.distanceTo
 import dji.sampleV5.aircraft.models.BasicAircraftControlVM
 import dji.sampleV5.aircraft.models.IntelligentFlightVM
 import dji.sampleV5.aircraft.models.VirtualStickVM
 import dji.sampleV5.aircraft.models.WayPointV3VM
 import dji.sampleV5.aircraft.util.ToastUtils
-import dji.sampleV5.aircraft.utils.LocationUtils
-import dji.sampleV5.aircraft.utils.LocationUtils.RelativeDirection
-import dji.sampleV5.aircraft.utils.LocationUtils.distanceTo
 import dji.sampleV5.aircraft.virtualstick.OnScreenJoystick
 import dji.sampleV5.aircraft.virtualstick.OnScreenJoystickListener
 import dji.sdk.keyvalue.key.FlightControllerKey

@@ -1,4 +1,4 @@
-package dji.sampleV5.aircraft.utils
+package com.dr.vocom
 
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
 import dji.sdk.keyvalue.value.flightcontroller.FlightCoordinateSystem
