@@ -513,6 +513,8 @@ More refer to the release notes." </string>
     <string name="commands_follow_target">follow|follow target|follow him|target</string>
     <string name="commands_follow_me">follow me|me</string>
     <string name="commands_fly_waypoint">goto|go to|waypoint|go to waypoint|waypoint</string>
+    <string name="commands_scan">scan|go scan|search|pattern</string>
+
     <string name="commands_silence">stealth|quiet|silence|dark</string>
 
     <string name="command_go_up">up|go up|rise|high</string>

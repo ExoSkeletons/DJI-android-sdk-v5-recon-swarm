@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Color
-import android.location.Location
 import android.os.Build
 import android.os.Bundle
 import android.speech.RecognizerIntent
@@ -20,8 +19,13 @@ import android.widget.EditText
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.lifecycleScope
+import com.dr.vocom.LocationUtils.RelativeDirection
+import com.dr.vocom.LocationUtils.distanceTo
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.Priority
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVirtualStickPageVocomBinding
 import dji.sampleV5.aircraft.models.BasicAircraftControlVM
@@ -35,21 +39,19 @@ import dji.sampleV5.aircraft.util.Helper
 import dji.sampleV5.aircraft.util.ToastUtils
 import dji.sampleV5.aircraft.virtualstick.OnScreenJoystick
 import dji.sampleV5.aircraft.virtualstick.OnScreenJoystickListener
-import dji.sdk.keyvalue.key.FlightControllerKey
 import dji.sdk.keyvalue.value.common.ComponentIndexType
 import dji.sdk.keyvalue.value.common.EmptyMsg
 import dji.sdk.keyvalue.value.common.LocationCoordinate2D
+import dji.sdk.keyvalue.value.common.LocationCoordinate3D
 import dji.v5.common.callback.CommonCallbacks
 import dji.v5.common.error.IDJIError
-import dji.v5.et.create
-import dji.v5.et.get
-import dji.v5.et.isKeySupported
 import dji.v5.manager.aircraft.simulator.InitializationSettings
 import dji.v5.manager.aircraft.virtualstick.Stick
 import dji.v5.manager.datacenter.MediaDataCenter
 import dji.v5.manager.datacenter.livestream.LiveVideoBitrateMode
 import dji.v5.manager.datacenter.livestream.StreamQuality
 import dji.v5.manager.interfaces.ICameraStreamManager
+import kotlinx.coroutines.delay
 import java.util.Locale
 import kotlin.math.abs
 
@@ -89,10 +91,12 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     private val liveLocation: LiveLocationProvider = LiveLocationProvider(
         this,
         1000,
-        500, 5000
+        500, 5000,
+        Priority.PRIORITY_HIGH_ACCURACY
     )
     private var liveLocationRequired = false
-    private var currentDeviceLocation: Location? = null
+    private var deviceLocation: MutableLiveData<LocationCoordinate3D> = MutableLiveData()
+    private var aircraftLocation: LocationCoordinate3D? = null
 
     private val speechRecognizerLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -139,15 +143,35 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         liveLocation.locationCallback = object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult) {
                 for (location in locationResult.locations) {
-                    currentDeviceLocation = location
-                    binding?.tvLocationDevice?.text =
-                        getString(
-                            R.string.location_fmt_short,
-                            location.latitude,
-                            location.longitude,
-                            location.altitude
-                        )
-                    Log.d("DeviceLocation", "Lat: ${location.latitude}, Lon: ${location.longitude}")
+                    val current = deviceLocation.value
+                    val dist = current?.let {
+                        LocationCoordinate3D().apply {
+                            latitude = location.latitude
+                            longitude = location.longitude
+                            altitude = location.altitude
+                        }.distanceTo(LocationCoordinate3D().apply {
+                            latitude = current.latitude
+                            longitude = current.longitude
+                            altitude = current.altitude
+                        })
+                    } ?: 0.0
+
+                    // update device location
+                    deviceLocation.postValue(LocationCoordinate3D().apply {
+                        latitude = location.latitude
+                        longitude = location.longitude
+                        // altitude = location.altitude
+                    })
+
+                    val formattedLocation = getString(
+                        R.string.location_fmt_short,
+                        location.latitude,
+                        location.longitude,
+                        location.altitude
+                    )
+                    binding?.tvLocationDevice?.text = formattedLocation
+                    Log.d("DeviceLocation", formattedLocation)
+                    Log.d("DeviceLocation", "Distance: ${dist}m")
                 }
             }
         }
@@ -160,9 +184,10 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                 return@setOnClickListener
             }
 
-            val lat = currentDeviceLocation!!.latitude
-            val lng = currentDeviceLocation!!.longitude
-            controller.flyTo(LocationCoordinate2D(lat, lng))
+            val location = deviceLocation.value
+            if (location == null) return@setOnClickListener
+
+            controller.flyTo(binding!!.tvFollowVelocity, deviceLocation)
         }
 
         virtualStickVM.listenRCStick()
@@ -348,21 +373,22 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
     private fun initController() {
         controller = AircraftController(
+            lifecycleScope,
+
             virtualStickVM,
             basicAircraftControlVM,
             intelligentFlightVM,
             wayPointV3VM
         )
         virtualStickVM.stickValue.observe(viewLifecycleOwner) { stickValue ->
-            if (virtualStickVM.currentVirtualStickStateInfo.value!!.state.isVirtualStickEnable) {
-                ToastUtils.showShortToast(
-                    "touchie da sticks!\n" +
-                            "lh=${stickValue.leftHorizontal} lh=${stickValue.leftVertical}" +
-                            " rh=${stickValue.rightHorizontal} rh=${stickValue.rightVertical}"
-                )
-                controller.stop(returnStickControl = true) // stop controller return control to manual RC
+            if (controller.isVirtualStickEnabled()) {
+                Log.w("RCSticks", "RC Sticks touched when virtual stick had control")
+
+                ToastUtils.showShortToast("Controller Overriding")
+                controller.stop() // stop controller return control to manual RC
             }
         }
+        controller.init()
         controller.activate(object : CommonCallbacks.CompletionCallback {
             override fun onSuccess() {
                 ToastUtils.showToast("controller activated successfully")
@@ -403,17 +429,16 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                 CommandResolver.Command(
                     "TAKE OFF",
                     R.string.commands_takeoff
-                ) {
-                    controller.takeoff()
-                },
+                ) { controller.fly { takeoff() } },
                 CommandResolver.Command(
                     "LAND",
                     R.string.commands_land
-                ) { controller.land() },
+                ) { controller.fly { land() } },
                 CommandResolver.Command(
                     "RETURN HOME",
                     R.string.commands_return_home
                 ),
+
                 CommandResolver.Command(
                     "FOLLOW TARGET",
                     R.string.commands_follow_target
@@ -425,29 +450,62 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                 ),
 
                 CommandResolver.Command(
+                    "SCAN",
+                    R.string.commands_scan
+                ) {
+                    val missionCallback = object : CommonCallbacks.CompletionCallback {
+                        override fun onSuccess() {
+                            ToastUtils.showToast("mission complete!")
+                        }
+
+                        override fun onFailure(error: IDJIError) {
+                            ToastUtils.showToast("mission error: ${error.description()}")
+                        }
+                    }
+                    controller.fly(missionCallback) {
+                        flyBySticks(RelativeDirection.FORWARD, 1.0, 0.25)
+                        delay(1000)
+
+                        spinBy(360.0)
+                        delay(500)
+                        spinBy(-360.0)
+                        delay(1000)
+
+                        flyCircleSticks(.5, 2.0, 0.25)
+                        delay(2000)
+                        spinBy(360.0 * 2)
+                        delay(500)
+
+                        flyBySticks(RelativeDirection.BACKWARD, 1.0, 0.5)
+
+                        land()
+                    }
+                },
+
+                CommandResolver.Command(
                     "ASCEND",
                     R.string.command_go_up
-                ) { controller.ascendBy(1.0) },
+                ) { controller.fly { ascendBy(1.0) } },
                 CommandResolver.Command(
                     "DESCEND",
                     R.string.command_go_down
-                ) { controller.ascendBy(-1.0) },
+                ) { controller.fly { ascendBy(-1.0) } },
                 CommandResolver.Command(
-                    "SCAN",
+                    "FORWARD",
                     R.string.command_go_forward
-                ) { controller.forwardBy(1.0) },
+                ) { controller.fly { forwardBy(1.0) } },
                 CommandResolver.Command(
                     "BACK UP",
                     R.string.command_go_backward
-                ) { controller.forwardBy(-0.5) },
+                ) { controller.fly { forwardBy(-0.5) } },
                 CommandResolver.Command(
                     "LEFT",
                     R.string.command_go_left
-                ) { controller.leftBy(0.5) },
+                ) { controller.fly { leftBy(0.5) } },
                 CommandResolver.Command(
                     "RIGHT",
                     R.string.command_go_right
-                ) { controller.leftBy(-0.5) },
+                ) { controller.fly { leftBy(-0.5) } },
 
                 CommandResolver.Command("STEALTH", R.string.commands_silence),
             )
@@ -456,27 +514,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
     private fun initBtnClickListener() {
         binding?.btnEnableVirtualStick?.setOnClickListener {
-            val keys = arrayOf(
-                FlightControllerKey.KeyAircraftLocation.create(),
-                FlightControllerKey.KeyGPSIsValid.create(),
-                FlightControllerKey.KeyGPSSignalLevel.create()
-            )
-            var str = ""
-            keys.forEach {
-                if (!it.isKeySupported())
-                    Log.e("DJI", "Key ${it.keyIdentifier} isn't supported for some ungodly reason")
-                val value = it.get()
-                if (value != null) {
-                    Log.d("DJI", "${it.keyIdentifier}: $value")
-                    str += "${it.keyIdentifier}: $value"
-                } else {
-                    Log.e("DJI", "Couldn't get ${it.keyIdentifier}!")
-                    str += "Couldn't get ${it.keyIdentifier}!"
-                }
-                str += "\n"
-            }
-            binding?.tvLocationAircraft?.text = str
-
             virtualStickVM.enableVirtualStick(object : CommonCallbacks.CompletionCallback {
                 override fun onSuccess() {
                     ToastUtils.showToast("snees.")
@@ -507,13 +544,20 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                 setTextColor(if (simulatorVM.isSimulatorOn()) Color.WHITE else Color.RED)
             }
         }
-        controller.location.observeForever {
+        controller.location.observe(viewLifecycleOwner) {
             binding?.tvLocationAircraft?.text = getString(
                 R.string.location_fmt_short,
                 it.latitude,
                 it.longitude,
                 it.altitude
             )
+            val updated = it
+            val current = aircraftLocation
+            val device = deviceLocation.value
+            val dist = if (current != null && device != null) current.distanceTo(device) else 0.0
+            aircraftLocation = updated
+            binding?.tvDistance?.text = "${dist}m"
+            binding?.tvAttitude?.text = "${controller.attitude.value?.toJson() ?: "-"}"
         }
 
         binding?.btnSetVirtualStickSpeedLevel?.setOnClickListener {
@@ -527,11 +571,11 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             basicAircraftControlVM.startTakeOff(object :
                 CommonCallbacks.CompletionCallbackWithParam<EmptyMsg> {
                 override fun onSuccess(t: EmptyMsg?) {
-                    ToastUtils.showToast("start takeOff onSuccess.")
+                    // ToastUtils.showToast("started takeoff.")
                 }
 
                 override fun onFailure(error: IDJIError) {
-                    ToastUtils.showToast("start takeOff onFailure,$error")
+                    ToastUtils.showToast("failed takeoff. ${error.errorCode()},${error.description()}")
                 }
             })
         }
@@ -642,8 +686,8 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
     private fun enableSimulator() {
         val initLocation = LocationCoordinate2D(
-            currentDeviceLocation?.latitude ?: 0.0,
-            currentDeviceLocation?.longitude ?: 0.0
+            deviceLocation.value?.latitude ?: 0.0,
+            deviceLocation.value?.longitude ?: 0.0
         )
         val satelliteCount = 20
         simulatorVM.enableSimulator(

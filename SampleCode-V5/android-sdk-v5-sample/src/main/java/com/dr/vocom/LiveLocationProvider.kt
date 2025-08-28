@@ -18,6 +18,7 @@ import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import dji.sampleV5.aircraft.util.ToastUtils
 
 class LiveLocationProvider(
@@ -25,6 +26,7 @@ class LiveLocationProvider(
     intervalMillis: Long,
     minUpdateIntervalMillis: Long = intervalMillis,
     maxUpdateDelayMillis: Long = intervalMillis,
+    priority: Int = Priority.PRIORITY_BALANCED_POWER_ACCURACY,
 ) {
     private lateinit var context: Context
     private lateinit var mLocationProviderClient: FusedLocationProviderClient
@@ -40,6 +42,7 @@ class LiveLocationProvider(
         .setWaitForAccurateLocation(false)
         .setMinUpdateIntervalMillis(minUpdateIntervalMillis)
         .setMaxUpdateDelayMillis(maxUpdateDelayMillis)
+        .setPriority(priority)
         .build()
     private val mEnableLocationLauncher = fragment.registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
