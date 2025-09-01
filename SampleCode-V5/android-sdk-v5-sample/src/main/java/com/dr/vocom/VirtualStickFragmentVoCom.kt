@@ -55,14 +55,6 @@ import kotlinx.coroutines.delay
 import java.util.Locale
 import kotlin.math.abs
 
-/**
- * Class Description
- *
- * @author Hoker
- * @date 2021/5/11
- *
- * Copyright (c) 2021, DJI All Rights Reserved.
- */
 class VirtualStickFragmentVoCom : DJIFragment() {
     private val locale = Locale("he", "IL")
 
@@ -72,6 +64,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     private val wayPointV3VM: WayPointV3VM by activityViewModels()
     private val simulatorVM: SimulatorVM by activityViewModels()
     private val liveStreamVM: LiveStreamVM by activityViewModels()
+
     private lateinit var controller: AircraftController
     private lateinit var commandResolver: CommandResolver
 
@@ -110,6 +103,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             else binding?.txtSpeechResult?.text = getString(R.string.error_speech_unrecognised)
         }
     }
+
 
     override fun onCreateView(
         inflater: LayoutInflater,

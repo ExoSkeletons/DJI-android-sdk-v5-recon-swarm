@@ -22,8 +22,9 @@ import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.lifecycleScope
-import com.dr.vocom.RecognitionSample.ObstacleInfo
-import com.dr.vocom.RecognitionSample.ObstacleInfo.Direction
+import com.dr.vocom.RecognitionMemory.RecognitionSample
+import com.dr.vocom.RecognitionMemory.RecognitionSample.ObstacleInfo
+import com.dr.vocom.RecognitionMemory.RecognitionSample.ObstacleInfo.Direction
 import dji.sampleV5.aircraft.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -53,6 +54,8 @@ class ReconTTSFragment : Fragment() {
     }
 
     private lateinit var stillAlive: JobRepeater
+
+    // TTS
     private val preferredTTSEngine = "com.google.android.tts"
     private lateinit var tts: TextToSpeech
     private val onInitListener = OnInitListener { status ->
@@ -60,8 +63,10 @@ class ReconTTSFragment : Fragment() {
             checkAndPromptPreferredTTSEngine()
         }
     }
+
     private val silent: Boolean = false
 
+    // Obstacle memory
     private val obstacleInfo = MutableLiveData(
         ObstacleInfo(
             confidence = 1.0,
@@ -69,14 +74,16 @@ class ReconTTSFragment : Fragment() {
             inMotion = false
         )
     )
+    private val sampleMemory = RecognitionMemory(1.0)
+    // Obstacle UI
     private lateinit var oTypeSp: Spinner
     private lateinit var directionSp: Spinner
     private lateinit var editTextObjDist: EditText
     private lateinit var motionSw: SwitchCompat
     private lateinit var editText: EditText
-
+    // Obstacle info connection client
     private lateinit var client: TCPClient
-    private lateinit var tvServerInfo: TextView
+    private lateinit var tvConnectionInfo: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -102,10 +109,10 @@ class ReconTTSFragment : Fragment() {
                         client.connect(InetSocketAddress(host, port.toInt()))
                     }
             } catch (e: Exception) {
-                tvServerInfo.text = e.message
+                tvConnectionInfo.text = e.message
             }
         }
-        tvServerInfo = view.findViewById(R.id.tv_server_info_msg)
+        tvConnectionInfo = view.findViewById(R.id.tv_server_info_msg)
 
         // Obstacle detection TTS
         view.findViewById<Button>(R.id.speakButtonObj)
@@ -223,59 +230,61 @@ class ReconTTSFragment : Fragment() {
     }
 
     private fun setupObjectInfoClient() {
+        sampleMemory.apply {
+            onSeen = { seen ->
+                seen.forEach { obstacle ->
+                    // Calculate direction
+                    val x = obstacle.position[0]
+                    val y = obstacle.position[1]
+
+                    val xThreshold = .5
+                    val yThreshold = .45
+
+                    obstacle.direction = when {
+                        x < -1 + xThreshold -> Direction.Front
+                        x > 1 - xThreshold -> Direction.Back
+                        y < -1 + yThreshold -> Direction.Left
+                        y > 1 - yThreshold -> Direction.Right
+                        else -> Direction.Away
+                    }
+                }
+            }
+            sampleMemory.onMemoryAdded = { newlySeen ->
+                newlySeen.firstOrNull()?.let {
+                    // Update latest seen obstacle UI
+                    obstacleInfo.postValue(it)
+                    // Speak about newly seen obstacle
+                    speakInfo(it)
+                }
+            }
+        }
         // Socket to get object info from
         client = object : TCPJSONClient<RecognitionSample>(
             publishScope = viewLifecycleOwner.lifecycleScope,
             deserializer = RecognitionSample.serializer()
         ) {
             override fun onConnected(socket: Socket) {
-                tvServerInfo.text = "connected to ${socket.remoteSocketAddress}!"
+                tvConnectionInfo.text = "connected to ${socket.remoteSocketAddress}!"
                 SFXManager.playSfx(SFXManager.SFX.ACTION_CONFIRM)
                 stillAlive.restart()
             }
 
             override fun onReconnectAttempt(delay: Long) {
-                tvServerInfo.text = "reconncting in ${delay / 1000L}s..."
-            }
-
-            override fun onMessage(message: String) {
-                //tvServerInfo.text = "msg: ${message}"
-                super.onMessage(message)
+                tvConnectionInfo.text = "reconncting in ${delay / 1000L}s..."
             }
 
             override fun onParse(data: RecognitionSample, json: JSONObject) {
-                data.objects.forEach { obstacle ->
-                    obstacle.position.let {
-                        val x = it[0]
-                        val y = it[1]
-
-                        val xT = .5
-                        val yT = .45
-
-                        obstacle.direction = when {
-                            x < -1 + xT -> Direction.Front
-                            x > 1 - xT -> Direction.Back
-                            y < -1 + yT -> Direction.Left
-                            y > 1 - yT -> Direction.Right
-                            else -> Direction.Away
-                        }
-                    }
-                }
-                val newObstacleInfo = data.objects.firstOrNull()
-                newObstacleInfo?.let {
-                    obstacleInfo.postValue(it)
-                    speakInfo(it)
-                }
+                sampleMemory.see(data)
             }
 
             override fun onError(error: Throwable) {
                 Log.e("error", error.message, error)
-                tvServerInfo.text = "error: ${error.message}"
+                tvConnectionInfo.text = "error: ${error.message}"
             }
 
             override fun onDisconnect() {
                 SFXManager.playSfx(SFXManager.SFX.NOTIFY_TECHNICAL)
-                tvServerInfo.text = "disconnected"
+                tvConnectionInfo.text = "disconnected"
                 stillAlive.cancel()
             }
         }
