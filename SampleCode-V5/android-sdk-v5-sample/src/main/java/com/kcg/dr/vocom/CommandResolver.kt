@@ -1,4 +1,4 @@
-package com.dr.vocom
+package com.kcg.dr.vocom
 
 import android.content.res.Resources
 import java.util.Locale

@@ -1,4 +1,4 @@
-package com.dr.vocom
+package com.kcg.dr.vocom
 
 import android.app.Activity
 import android.content.Intent
@@ -18,7 +18,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.dr.vocom.CommandResolver.Command
+import com.kcg.dr.LocaleUtils
+import com.kcg.dr.vocom.CommandResolver.Command
 import dji.sampleV5.aircraft.R
 import java.util.Locale
 

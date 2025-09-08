@@ -1,4 +1,4 @@
-package com.dr.vocom
+package com.kcg.dr
 
 import android.app.Activity
 import android.content.Intent
@@ -21,11 +21,13 @@ import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.lifecycleScope
-import com.dr.vocom.LocationUtils.RelativeDirection
-import com.dr.vocom.LocationUtils.distanceTo
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.Priority
+import com.kcg.dr.LocationUtils.RelativeDirection
+import com.kcg.dr.LocationUtils.distanceTo
+import com.kcg.dr.controller.AircraftController
+import com.kcg.dr.vocom.CommandResolver
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVirtualStickPageVocomBinding
 import dji.sampleV5.aircraft.models.BasicAircraftControlVM
@@ -181,7 +183,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             val location = deviceLocation.value
             if (location == null) return@setOnClickListener
 
-            controller.flyTo(binding!!.tvFollowVelocity, deviceLocation)
+            controller.flyTo(deviceLocation)
         }
 
         virtualStickVM.listenRCStick()

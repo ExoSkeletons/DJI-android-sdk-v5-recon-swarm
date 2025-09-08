@@ -1,4 +1,4 @@
-package com.dr.vocom
+package com.kcg.dr
 
 import android.content.Context
 import android.os.Bundle
@@ -11,6 +11,8 @@ import androidx.core.content.edit
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.kcg.dr.vocom.ReconTTSFragment
+import com.kcg.dr.vocom.VoiceFragment
 import dji.sampleV5.aircraft.R
 import java.util.Locale
 

@@ -1,4 +1,4 @@
-package com.dr.vocom
+package com.kcg.dr.vocom
 
 import android.app.AlertDialog
 import android.content.Intent
@@ -22,9 +22,10 @@ import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.lifecycleScope
-import com.dr.vocom.RecognitionMemory.RecognitionSample
-import com.dr.vocom.RecognitionMemory.RecognitionSample.ObstacleInfo
-import com.dr.vocom.RecognitionMemory.RecognitionSample.ObstacleInfo.Direction
+import com.kcg.dr.JobRepeater
+import com.kcg.dr.SFXManager
+import com.kcg.dr.TCPClient
+import com.kcg.dr.TCPJSONClient
 import dji.sampleV5.aircraft.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -68,7 +69,7 @@ class ReconTTSFragment : Fragment() {
 
     // Obstacle memory
     private val obstacleInfo = MutableLiveData(
-        ObstacleInfo(
+        RecognitionMemory.RecognitionSample.ObstacleInfo(
             confidence = 1.0,
             position = listOf(0.0, 0.0),
             inMotion = false
@@ -127,7 +128,7 @@ class ReconTTSFragment : Fragment() {
         oTypeSp.adapter = oTypeSpAd
         oTypeSp.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, pos: Int, id: Long) {
-                val selected = ObstacleInfo.ObstacleType.values()[pos]
+                val selected = RecognitionMemory.RecognitionSample.ObstacleInfo.ObstacleType.values()[pos]
                 obstacleInfo.value?.type = selected
             }
 
@@ -143,7 +144,7 @@ class ReconTTSFragment : Fragment() {
         directionSp.adapter = directionSpAd
         directionSp.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, pos: Int, id: Long) {
-                val selected = Direction.values()[pos]
+                val selected = RecognitionMemory.RecognitionSample.ObstacleInfo.Direction.values()[pos]
                 obstacleInfo.value?.direction = selected
             }
 
@@ -205,7 +206,7 @@ class ReconTTSFragment : Fragment() {
         }
     }
 
-    private fun speakInfo(obstacleInfo: ObstacleInfo) {
+    private fun speakInfo(obstacleInfo: RecognitionMemory.RecognitionSample.ObstacleInfo) {
         val text =
             getString(
                 if (obstacleInfo.distance >= 10) R.string.obstacle_detected_msg_dist
@@ -241,11 +242,11 @@ class ReconTTSFragment : Fragment() {
                     val yThreshold = .45
 
                     obstacle.direction = when {
-                        x < -1 + xThreshold -> Direction.Front
-                        x > 1 - xThreshold -> Direction.Back
-                        y < -1 + yThreshold -> Direction.Left
-                        y > 1 - yThreshold -> Direction.Right
-                        else -> Direction.Away
+                        x < -1 + xThreshold -> RecognitionMemory.RecognitionSample.ObstacleInfo.Direction.Front
+                        x > 1 - xThreshold -> RecognitionMemory.RecognitionSample.ObstacleInfo.Direction.Back
+                        y < -1 + yThreshold -> RecognitionMemory.RecognitionSample.ObstacleInfo.Direction.Left
+                        y > 1 - yThreshold -> RecognitionMemory.RecognitionSample.ObstacleInfo.Direction.Right
+                        else -> RecognitionMemory.RecognitionSample.ObstacleInfo.Direction.Away
                     }
                 }
             }
@@ -259,9 +260,9 @@ class ReconTTSFragment : Fragment() {
             }
         }
         // Socket to get object info from
-        client = object : TCPJSONClient<RecognitionSample>(
+        client = object : TCPJSONClient<RecognitionMemory.RecognitionSample>(
             publishScope = viewLifecycleOwner.lifecycleScope,
-            deserializer = RecognitionSample.serializer()
+            deserializer = RecognitionMemory.RecognitionSample.serializer()
         ) {
             override fun onConnected(socket: Socket) {
                 tvConnectionInfo.text = "connected to ${socket.remoteSocketAddress}!"
@@ -273,7 +274,7 @@ class ReconTTSFragment : Fragment() {
                 tvConnectionInfo.text = "reconncting in ${delay / 1000L}s..."
             }
 
-            override fun onParse(data: RecognitionSample, json: JSONObject) {
+            override fun onParse(data: RecognitionMemory.RecognitionSample, json: JSONObject) {
                 sampleMemory.see(data)
             }
 

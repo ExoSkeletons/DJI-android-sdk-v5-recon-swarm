@@ -1,4 +1,4 @@
-package com.dr.vocom
+package com.kcg.dr
 
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
 import dji.sdk.keyvalue.value.flightcontroller.FlightCoordinateSystem

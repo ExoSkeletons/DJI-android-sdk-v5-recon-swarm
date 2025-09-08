@@ -1,4 +1,4 @@
-package com.dr.vocom
+package com.kcg.dr
 
 import android.content.Context
 import android.media.AudioAttributes

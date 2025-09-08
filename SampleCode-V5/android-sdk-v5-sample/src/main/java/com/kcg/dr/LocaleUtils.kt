@@ -1,10 +1,8 @@
-package com.dr.vocom
+package com.kcg.dr
 
 import android.content.Context
 import android.content.res.Configuration
 import android.content.res.Resources
-import android.util.LayoutDirection
-import androidx.core.text.layoutDirection
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import java.util.Locale
