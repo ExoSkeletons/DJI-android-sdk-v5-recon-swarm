@@ -11,6 +11,13 @@ import kotlin.math.sqrt
 
 fun Double.normalizeAngle() = ((this % 360) + 360) % 360
 
+fun Double.wrap180(): Double {
+    var v = this % 360.0
+    if (v > 180) v -= 360
+    if (v < -180) v += 360
+    return v
+}
+
 fun Double.toDegrees(): Double = Math.toDegrees(this)
 
 fun Double.toRadians(): Double = Math.toRadians(this)
