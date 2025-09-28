@@ -19,6 +19,8 @@
     <string name="commands_follow_target">עקוב מטרה|מטרה|מטעה|עקוב אחריו|עקוב אחריה|עקוב אחריהם|צפה</string>
     <string name="commands_follow_me">עקוב אחרי|אחרי|אלי</string>
     <string name="commands_fly_waypoint">נקודת ציון|נקודת|נון צדיק|צדיק|נ.צ.|נצ|נו|ציון|נקודה</string>
+
+    <string name="command_gimbal_wave">שלום|הי|היי|הלו|מה נשמע|מה קורה|אהלן|נפנוף|נפנף</string>
     <string name="commands_scan">סריקה קדימה|סרוק|סרוק קדימה|סרוק מלפנים|סרוק לפנים|סריקה|סליקה|שריטה</string>
 
     <string name="commands_silence">שקט|השקט|הס|חשאי|חושך|צל|חשאיות</string>
