@@ -28,7 +28,6 @@ class CommandResolver(val config: ParseConfig) {
         var cleanedSpeech = speech
 
         commands.forEach { com ->
-            println(com.name)
             // TODO: replace | with regex string res
             com.strings(resources).forEach { comTxt ->
                 var matchCom = comTxt
@@ -38,11 +37,9 @@ class CommandResolver(val config: ParseConfig) {
                 }
                 val contained = cleanedSpeech.lowercase(locale).contains(matchCom)
                 val exact = cleanedSpeech.lowercase(locale).contentEquals(matchCom)
-                print("$comTxt c?$contained ex?$exact, ")
                 if (contained) matchedCommandContained += com
                 if (exact) matchedCommandExact += com
             }
-            println()
         }
 
         return when {
