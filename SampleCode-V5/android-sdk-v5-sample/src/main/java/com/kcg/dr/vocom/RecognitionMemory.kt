@@ -2,6 +2,7 @@
 
 package com.kcg.dr.vocom
 
+import com.kcg.dr.vocom.RecognitionMemory.RecognitionSample.ObstacleInfo
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -68,7 +69,7 @@ class RecognitionMemory(private val memTime: Double) {
         }
     }
 
-    val memory = mutableListOf<RecognitionSample.ObstacleInfo>()
+    val memory = mutableListOf<ObstacleInfo>()
 
     fun see(sample: RecognitionSample) {
         onSeen(sample.objects)
