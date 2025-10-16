@@ -1,4 +1,4 @@
-package com.kcg.dr
+package com.kcg.dr.vocom
 
 import android.app.Activity
 import android.content.Intent
@@ -24,10 +24,12 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.Priority
-import com.kcg.dr.LocationUtils.RelativeDirection
+import com.kcg.dr.LiveLocationProvider
+import com.kcg.dr.LocaleUtils
+import com.kcg.dr.LocationUtils
 import com.kcg.dr.LocationUtils.distanceTo
 import com.kcg.dr.controller.AircraftController
-import com.kcg.dr.vocom.CommandResolver
+import com.kcg.dr.remote_api.KeyActivator
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVirtualStickPageVocomBinding
 import dji.sampleV5.aircraft.models.BasicAircraftControlVM
@@ -45,6 +47,7 @@ import dji.sdk.keyvalue.value.common.ComponentIndexType
 import dji.sdk.keyvalue.value.common.EmptyMsg
 import dji.sdk.keyvalue.value.common.LocationCoordinate2D
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
+import dji.sdk.keyvalue.value.gimbal.GimbalMode
 import dji.v5.common.callback.CommonCallbacks
 import dji.v5.common.error.IDJIError
 import dji.v5.manager.aircraft.simulator.InitializationSettings
@@ -54,6 +57,7 @@ import dji.v5.manager.datacenter.livestream.LiveVideoBitrateMode
 import dji.v5.manager.datacenter.livestream.StreamQuality
 import dji.v5.manager.interfaces.ICameraStreamManager
 import kotlinx.coroutines.delay
+import kotlinx.serialization.json.Json
 import java.util.Locale
 import kotlin.math.abs
 
@@ -68,7 +72,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     private val liveStreamVM: LiveStreamVM by activityViewModels()
 
     private lateinit var controller: AircraftController
-    private lateinit var commandResolver: CommandResolver
+    private val commandResolver: CommandResolver = CommandResolver(CommandResolver.ParseConfig())
 
     private var binding: FragVirtualStickPageVocomBinding? = null
 
@@ -126,6 +130,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         super.onViewCreated(view, savedInstanceState)
 
         initController()
+        initVoiceCommandResolver()
 
         binding?.widgetHorizontalSituationIndicator?.setSimpleModeEnable(false)
         initBtnClickListener()
@@ -183,7 +188,16 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             val location = deviceLocation.value
             if (location == null) return@setOnClickListener
 
-            controller.flyTo(deviceLocation)
+            controller.fly {
+                repeat(10) {
+                    lookToWithSpin(LocationCoordinate3D().apply {
+                        latitude = location.latitude
+                        longitude = location.longitude
+                        altitude = 0.125
+                    })
+                    delay(3000)
+                }
+            }
         }
 
         virtualStickVM.listenRCStick()
@@ -367,6 +381,54 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         }
     }
 
+    fun attachOnScreenSticks(
+        leftStk: OnScreenJoystick,
+        rightStk: OnScreenJoystick,
+        callback: CommonCallbacks.CompletionCallback? = null,
+        deviation: Double = 0.02,
+        activate: Boolean = true,
+    ) {
+        val stickVM = virtualStickVM
+        leftStk.setJoystickListener(object : OnScreenJoystickListener {
+            override fun onTouch(joystick: OnScreenJoystick?, pX: Float, pY: Float) {
+                var leftPx = 0F
+                var leftPy = 0F
+
+                if (abs(pX) >= deviation) leftPx = pX
+                if (abs(pY) >= deviation) leftPy = pY
+
+                stickVM.setLeftPosition(
+                    (leftPx * Stick.MAX_STICK_POSITION_ABS).toInt(),
+                    (leftPy * Stick.MAX_STICK_POSITION_ABS).toInt()
+                )
+            }
+        })
+        rightStk.setJoystickListener(object : OnScreenJoystickListener {
+            override fun onTouch(joystick: OnScreenJoystick?, pX: Float, pY: Float) {
+                var rightPx = 0F
+                var rightPy = 0F
+
+                if (abs(pX) >= deviation) rightPx = pX
+                if (abs(pY) >= deviation) rightPy = pY
+
+                stickVM.setRightPosition(
+                    (rightPx * Stick.MAX_STICK_POSITION_ABS).toInt(),
+                    (rightPy * Stick.MAX_STICK_POSITION_ABS).toInt()
+                )
+            }
+        })
+        if (activate)
+            stickVM.enableVirtualStick(object : CommonCallbacks.CompletionCallback {
+                override fun onSuccess() {
+                    callback?.onSuccess()
+                }
+
+                override fun onFailure(error: IDJIError) {
+                    callback?.onFailure(error)
+                }
+            })
+    }
+
     private fun initController() {
         controller = AircraftController(
             lifecycleScope,
@@ -389,10 +451,8 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             override fun onSuccess() {
                 ToastUtils.showToast("controller activated successfully")
 
-                initVoiceCommandResolver()
-
                 if (binding?.leftStickView != null && binding?.rightStickView != null)
-                    controller.attachOnScreenSticks(
+                    attachOnScreenSticks(
                         binding?.leftStickView!!, binding?.rightStickView!!,
                         object : CommonCallbacks.CompletionCallback {
                             override fun onSuccess() {
@@ -414,8 +474,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     }
 
     private fun initVoiceCommandResolver() {
-        commandResolver =
-            CommandResolver(CommandResolver.ParseConfig())
+        commandResolver.commands.clear()
         commandResolver.commands.addAll(
             arrayOf(
                 CommandResolver.Command(
@@ -425,7 +484,18 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                 CommandResolver.Command(
                     "TAKE OFF",
                     R.string.commands_takeoff
-                ) { controller.fly { takeoff() } },
+                ) {
+                    controller.fly {
+                        val response = KeyActivator.handleKeyRequest(
+                            Json.Default.decodeFromString(
+                                "{\"group\":\"flight_controller\", \"key\":\"StartTakeoff\"}"
+                            )
+                        )
+                        if (response.ok) Log.d("KeyExecutor", "OK: " + response.result.toString())
+                        else Log.e("KeyExecutor", "" + response.error)
+                        //takeoff()
+                    }
+                },
                 CommandResolver.Command(
                     "LAND",
                     R.string.commands_land
@@ -446,9 +516,17 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                 ),
 
                 CommandResolver.Command(
+                    "WAVE",
+                    R.string.command_gimbal_wave
+                ) { controller.fly { gimbalWave() } },
+                CommandResolver.Command(
                     "SCAN",
                     R.string.commands_scan
                 ) {
+                    val scanDist = 2.0
+                    val scanSpeed = 0.25
+                    val circleRadius = 1.0
+
                     val missionCallback = object : CommonCallbacks.CompletionCallback {
                         override fun onSuccess() {
                             ToastUtils.showToast("mission complete!")
@@ -459,21 +537,21 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                         }
                     }
                     controller.fly(missionCallback) {
-                        flyBySticks(RelativeDirection.FORWARD, 1.0, 0.25)
-                        delay(1000)
-
-                        spinBy(360.0)
+                        flyBySticks(LocationUtils.RelativeDirection.FORWARD, scanDist, 0.25)
                         delay(500)
-                        spinBy(-360.0)
-                        delay(1000)
 
-                        flyCircleSticks(.5, 2.0, 0.25)
-                        delay(2000)
+                        setCameraGimbalMode(GimbalMode.YAW_FOLLOW)
+                        aimCameraAt(circleRadius, -height.value!! * .75)
+                        flyCircle(circleRadius, 1.0, scanSpeed, faceCenter = true)
+                        delay(500)
+                        flySquare(circleRadius, scanSpeed, false)
+                        delay(500)
+                        resetCameraGimbal()
+
                         spinBy(360.0 * 2)
                         delay(500)
 
-                        flyBySticks(RelativeDirection.BACKWARD, 1.0, 0.5)
-
+                        flyBySticks(LocationUtils.RelativeDirection.BACKWARD, scanDist, 0.5)
                         land()
                     }
                 },
@@ -553,7 +631,11 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             val dist = if (current != null && device != null) current.distanceTo(device) else 0.0
             aircraftLocation = updated
             binding?.tvDistance?.text = "${dist}m"
-            binding?.tvAttitude?.text = "${controller.attitude.value?.toJson() ?: "-"}"
+            binding?.tvAttitude?.text =
+                "${controller.attitude.value?.toJson() ?: "-"},\nheight: ${controller.height.value}"
+        }
+        controller.gimbalAttitude.observe(viewLifecycleOwner) {
+            binding?.tvGimbalAttitude?.text = "${it.toJson() ?: "-"}"
         }
 
         binding?.btnSetVirtualStickSpeedLevel?.setOnClickListener {
