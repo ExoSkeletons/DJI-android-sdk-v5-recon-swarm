@@ -125,15 +125,9 @@ object LocationUtils {
     }
 
     fun LocationCoordinate3D.distanceTo(other: LocationCoordinate3D): Double {
-        val l1 = Location("l1")
-        l1.latitude = this.latitude
-        l1.longitude = this.longitude
-        l1.altitude = this.altitude
-        val l2 = Location("l2")
-        l2.latitude = other.latitude
-        l2.longitude = other.longitude
-        l2.altitude = other.altitude
-        return l1.distanceTo(l2).toDouble()
+        val horizontal = this.as2D().distanceTo(other.as2D())
+        val vertical = other.altitude - this.altitude
+        return sqrt(horizontal * horizontal + vertical * vertical)
     }
 
     fun LocationCoordinate2D.bearingTo(end: LocationCoordinate2D): Double {
