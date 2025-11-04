@@ -1,8 +1,8 @@
 package com.kcg.dr
 
+import android.location.Location
+import dji.sdk.keyvalue.value.common.LocationCoordinate2D
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
-import dji.sdk.keyvalue.value.flightcontroller.FlightCoordinateSystem
-import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.pow
@@ -21,6 +21,16 @@ fun Double.wrap180(): Double {
 fun Double.toDegrees(): Double = Math.toDegrees(this)
 
 fun Double.toRadians(): Double = Math.toRadians(this)
+
+private fun Triple<Double, Double, Double>.normalized(): Triple<Double, Double, Double> {
+    val (vx, vy, vz) = this
+    val mag = sqrt(vx.pow(2) + vy.pow(2) + vz.pow(2))
+    if (mag < 1e-6) return Triple(0.0, 0.0, 0.0)
+    return Triple(vx / mag, vy / mag, vz / mag)
+}
+
+fun LocationCoordinate3D.as2D() = LocationCoordinate2D(this.latitude, this.longitude)
+
 
 object LocationUtils {
     enum class RelativeDirection(val sign: Int, val bearingOffsetDegrees: Float) {
@@ -104,89 +114,62 @@ object LocationUtils {
         )
     }
 
-    fun LocationCoordinate3D.distanceTo(other: LocationCoordinate3D): Double {
-        val lat1 = Math.toRadians(this.latitude)
-        val lon1 = Math.toRadians(this.longitude)
-        val lat2 = Math.toRadians(other.latitude)
-        val lon2 = Math.toRadians(other.longitude)
-
-        val dLat = lat2 - lat1
-        val dLon = lon2 - lon1
-
-        // Horizontal surface distance (Haversine)
-        val a = sin(dLat / 2).pow(2) + cos(lat1) * cos(lat2) * sin(dLon / 2).pow(2)
-        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
-        val horizontalDist = EARTH_RADIUS * c
-
-        // Vertical difference
-        val dAlt = other.altitude - this.altitude
-
-        // 3D distance
-        return sqrt(horizontalDist.pow(2) + dAlt.pow(2))
+    fun LocationCoordinate2D.distanceTo(other: LocationCoordinate2D): Double {
+        val l1 = Location("l1")
+        l1.latitude = this.latitude
+        l1.longitude = this.longitude
+        val l2 = Location("l2")
+        l2.latitude = other.latitude
+        l2.longitude = other.longitude
+        return l1.distanceTo(l2).toDouble()
     }
 
-    fun bearingDegreesFromTo(start: LocationCoordinate3D, end: LocationCoordinate3D): Double {
-        val startLat = Math.toRadians(start.latitude)
-        val startLng = Math.toRadians(start.longitude)
-        val endLat = Math.toRadians(end.latitude)
-        val endLng = Math.toRadians(end.longitude)
+    fun LocationCoordinate3D.distanceTo(other: LocationCoordinate3D): Double {
+        val l1 = Location("l1")
+        l1.latitude = this.latitude
+        l1.longitude = this.longitude
+        l1.altitude = this.altitude
+        val l2 = Location("l2")
+        l2.latitude = other.latitude
+        l2.longitude = other.longitude
+        l2.altitude = other.altitude
+        return l1.distanceTo(l2).toDouble()
+    }
 
-        val dLng = endLng - startLng
-        val y = sin(dLng) * cos(endLat)
-        val x = cos(startLat) * sin(endLat) - sin(startLat) * cos(endLat) * cos(dLng)
-        return Math.toDegrees(atan2(y, x)).normalizeAngle()
+    fun LocationCoordinate2D.bearingTo(end: LocationCoordinate2D): Double {
+        val start = this
+        val l1 = Location("l1").apply {
+            latitude = start.latitude
+            longitude = start.longitude
+        }
+        val l2 = Location("l2").apply {
+            latitude = end.latitude
+            longitude = end.longitude
+        }
+        return l1.bearingTo(l2).toDouble().normalizeAngle()
     }
 
     fun calculateVelocityToTarget(
         cur: LocationCoordinate3D,
         target: LocationCoordinate3D,
-        curYaw: Double,
-        maxVelocity: Double,
-        coordinateSystem: FlightCoordinateSystem
+        curYaw: Double, // degrees clockwise from North
+        maxVelocity: Double
     ): Triple<Double, Double, Double> {
-        // --- Step 1: Compute horizontal differences in meters ---
-        val deltaLat = target.latitude - cur.latitude
-        val deltaLon = target.longitude - cur.longitude
+        val bearingToTarget = cur.as2D().bearingTo(target.as2D())
+        val vz = target.altitude - cur.altitude
 
-        // Approximate meters per degree at current latitude
-        val latMeters = deltaLat * (Math.PI / 180) * EARTH_RADIUS
-        val lonMeters =
-            deltaLon * (Math.PI / 180) * EARTH_RADIUS * cos(Math.toRadians(cur.latitude))
+        // relative bearing (target direction relative to aircraft’s heading)
+        val relBearingRad = Math.toRadians((bearingToTarget - curYaw).normalizeAngle())
 
-        // vertical difference
-        val deltaAlt = target.altitude - cur.altitude
-        // horizontal distance
-        val horizontalDist = sqrt(latMeters * latMeters + lonMeters * lonMeters)
+        // body-frame directions (x = forward, y = right)
+        val vx = cos(relBearingRad)
+        val vy = sin(relBearingRad)
 
-        // Avoid division by zero
-        if (horizontalDist == 0.0 && deltaAlt == 0.0) return Triple(0.0, 0.0, 0.0)
+        // normalize and scale
+        val mag = sqrt(vx * vx + vy * vy + vz * vz)
+        val scale = if (mag > 1e-6) min(maxVelocity, mag) / mag else 0.0
 
-        var vx: Double
-        var vy: Double
-        when (coordinateSystem) {
-            FlightCoordinateSystem.GROUND -> {
-                // Ground frame: pitch = North/South, roll = East/West
-                vy = ((latMeters / horizontalDist) * min(horizontalDist, maxVelocity))
-                vx = ((lonMeters / horizontalDist) * min(horizontalDist, maxVelocity))
-            }
-
-            FlightCoordinateSystem.BODY -> {
-                // Body frame: rotate horizontal vector by -curYaw
-                val bearingRad =
-                    atan2(lonMeters, latMeters)           // angle to target in world frame
-                val relBearing = bearingRad - Math.toRadians(curYaw)   // rotate to drone's heading
-                val speed = min(horizontalDist, maxVelocity)
-                vy = (speed * cos(relBearing)) // forward/back relative to drone
-                vx = (speed * sin(relBearing)) // left/right relative to drone
-            }
-
-            FlightCoordinateSystem.UNKNOWN -> return Triple(0.0, 0.0, 0.0)
-        }
-
-        // Vertical speed
-        val vz = deltaAlt.coerceIn(-maxVelocity, maxVelocity)
-
-        return Triple(vx, vy, vz)
+        return Triple(vx * scale, vy * scale, vz * scale)
     }
 
 
