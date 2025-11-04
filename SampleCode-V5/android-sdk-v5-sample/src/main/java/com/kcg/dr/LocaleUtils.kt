@@ -11,7 +11,8 @@ object LocaleUtils {
     const val LANG_KEY = "lang"
     const val COUNTRY_KEY = "country"
 
-    fun getLocalizedResources(context: Context, locale: Locale): Resources {
+    fun Context.getLocalizedResources(locale: Locale): Resources {
+        val context = this
         val config = Configuration(context.resources.configuration)
         config.setLocale(locale)
         config.setLayoutDirection(locale)

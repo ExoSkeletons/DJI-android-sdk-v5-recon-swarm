@@ -25,8 +25,8 @@ import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.Priority
 import com.kcg.dr.LiveLocationProvider
-import com.kcg.dr.LocaleUtils
 import com.kcg.dr.LocationUtils
+import com.kcg.dr.LocaleUtils.getLocalizedResources
 import com.kcg.dr.LocationUtils.distanceTo
 import com.kcg.dr.controller.AircraftController
 import com.kcg.dr.remote_api.KeyActivator
@@ -727,15 +727,9 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             )
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                val bias = commandResolver.commands
-                    .flatMap {
-                        it.strings(
-                            LocaleUtils.getLocalizedResources(
-                                requireContext(),
-                                locale
-                            )
-                        )
-                    }
+                val bias = commandResolver.commands.flatMap {
+                    it.strings(requireContext().getLocalizedResources(locale))
+                }
                 putExtra(RecognizerIntent.EXTRA_BIASING_STRINGS, ArrayList(bias))
             }
         }
@@ -751,15 +745,22 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     private fun onHearText(spokenText: String) {
         val com = commandResolver.resolve(
             spokenText,
-            LocaleUtils.getLocalizedResources(requireContext(), locale)
+            requireContext().getLocalizedResources(locale)
         )
 
-        binding?.commandResult?.text =
-            if (com == null) requireContext().getString(R.string.error_speech_unrecognised)
-            else {
+        when (com) {
+            null -> binding?.commandResult?.text =
+                requireContext().getString(R.string.error_speech_unrecognised)
+
+            else -> {
                 com.func()
-                com.name
+
+                if (!silent) speakText(
+                    com.strings(requireContext().getLocalizedResources(locale)).first()
+                )
+                binding?.commandResult?.text = com.name
             }
+        }
     }
 
     private fun enableSimulator() {

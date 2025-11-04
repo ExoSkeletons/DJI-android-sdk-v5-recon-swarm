@@ -19,6 +19,7 @@ import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.kcg.dr.LocaleUtils
+import com.kcg.dr.LocaleUtils.getLocalizedResources
 import com.kcg.dr.vocom.CommandResolver.Command
 import dji.sampleV5.aircraft.R
 import java.util.Locale
@@ -50,10 +51,8 @@ class VoiceFragment : Fragment() {
         override fun onBindViewHolder(holder: CommandViewHolder, position: Int) {
             val command = commandList[position]
             val strings = command.strings(
-                LocaleUtils.getLocalizedResources(
-                    holder.itemView.context,
-                    fragment.locale
-                )
+                holder.itemView.context
+                    .getLocalizedResources(fragment.locale)
             )
 
             holder.commandButton.setOnClickListener { fragment.execCom(command) }
@@ -141,12 +140,7 @@ class VoiceFragment : Fragment() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 val bias = listOf<Command>()
                     .flatMap {
-                        it.strings(
-                            LocaleUtils.getLocalizedResources(
-                                requireContext(),
-                                locale
-                            )
-                        )
+                        it.strings(requireContext().getLocalizedResources(locale))
                     }
                 putExtra(RecognizerIntent.EXTRA_BIASING_STRINGS, ArrayList(bias))
             }
@@ -166,7 +160,7 @@ class VoiceFragment : Fragment() {
 
         val com = controller.resolve(
             spokenText,
-            LocaleUtils.getLocalizedResources(requireContext(), locale)
+            requireContext().getLocalizedResources(locale)
         )
         com?.let { execCom(it) }
     }
