@@ -110,6 +110,30 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         }
     }
 
+    // TTS
+    private val preferredTTSEngine = "com.google.android.tts"
+    private lateinit var tts: TextToSpeech
+    private val onInitListener = OnInitListener { status ->
+        if (status == TextToSpeech.SUCCESS) {
+            checkAndPromptPreferredTTSEngine()
+        }
+    }
+    private var silent: Boolean = false
+
+    // Remote server
+
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        requireContext().apply {
+            // Server foreground service
+            ApiServerService.start(this, 8080)
+            // TTS
+            tts = TextToSpeech(this, onInitListener)
+        }
+    }
+
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -229,11 +253,69 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     override fun onResume() {
         super.onResume()
         if (liveLocationRequired) liveLocation.enable() // re-enable location requesting if necessary
+
+        // restart TTS to recheck available voices
+        //  tts.shutdown()
+        //  tts = TextToSpeech(requireContext(), onInitListener)
     }
 
     override fun onPause() {
         super.onPause()
         liveLocation.disable() // disable location requesting to conserve battery
+    }
+
+    private fun speakText(text: String) {
+        if (text.isNotBlank() && !silent) {
+            if (tts.isLanguageAvailable(Locale.getDefault()) < TextToSpeech.LANG_AVAILABLE) {
+                promptInstallTTSLang()
+                return
+            }
+            tts.language = Locale.getDefault()
+            tts.setSpeechRate(1.1f)
+            SFXManager.playSfx(SFXManager.SFX.NOTIFY_INFO)
+            tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
+        }
+    }
+
+    private fun checkAndPromptPreferredTTSEngine() {
+        val currentEngine = Settings.Secure.getString(
+            requireContext().contentResolver,
+            Settings.Secure.TTS_DEFAULT_SYNTH
+        )
+
+        if (currentEngine != null && currentEngine != preferredTTSEngine) {
+            android.app.AlertDialog.Builder(requireContext())
+                .setTitle(getString(R.string.tts_switch_engine_prompt))
+                .setMessage(getString(R.string.tts_switch_engine_prompt_details))
+                .setPositiveButton("Open Settings") { dialog, _ ->
+                    try {
+                        val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                        startActivity(intent)
+                    } catch (_: Exception) {
+                        Toast.makeText(
+                            requireContext(),
+                            "Unable to open settings",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                    dialog.dismiss()
+                }
+                .setNegativeButton(R.string.cancel) { dialog, _ -> dialog.dismiss() }
+                .show()
+        }
+    }
+
+    private fun promptInstallTTSLang() {
+        val installIntent = Intent(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA)
+        try {
+            startActivity(installIntent)
+        } catch (_: Exception) {
+            Toast.makeText(
+                requireContext(),
+                "No TTS engine available to install language data.",
+                Toast.LENGTH_LONG
+            ).show()
+        }
     }
 
 
