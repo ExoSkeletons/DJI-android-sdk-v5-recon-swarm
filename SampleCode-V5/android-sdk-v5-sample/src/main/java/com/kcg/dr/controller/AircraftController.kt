@@ -758,7 +758,7 @@ open class AircraftController(
             velocity,
             clockwise = clockwise,
             fromCenter = true,
-            faceCenter = true,
+            faceCenter = faceCenter,
             callback = callback
         )
     }
