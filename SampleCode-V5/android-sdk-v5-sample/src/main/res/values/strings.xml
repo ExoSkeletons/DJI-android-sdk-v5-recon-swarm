@@ -514,13 +514,20 @@ More refer to the release notes." </string>
     <string name="commands_follow_me">follow me|me</string>
     <string name="commands_fly_waypoint">goto|go to|waypoint|go to waypoint|waypoint</string>
 
-    <string name="command_gimbal_wave">hello|hi|heya|hiya|hey|wave</string>
-    <string name="commands_scan">scan|go scan|search|pattern</string>
+    <string name="commands_mission_scan_above">scan|go scan|search|scan around|eagle</string>
+    <string name="commands_mission_recon">recon</string>
+    <string name="commands_mission_far_recon">far scan|long|far</string>
+
+    <string name="command_hello">hello|hi|heya|hiya|hey|wave</string>
+    <string name="commands_circle">circle|loop|circling|orbit</string>
+    <string name="commands_square">square|patrol|perimeter</string>
+    <string name="commands_cam_fan">fan</string>
+    <string name="commands_spin">spin|around|look around|spin around</string>
 
     <string name="commands_silence">stealth|quiet|silence|dark</string>
 
     <string name="command_go_up">up|go up|rise|high</string>
-    <string name="command_go_forward">scan|forward|go forward|check</string>
+    <string name="command_go_forward">forward|go forward</string>
     <string name="command_go_down">down|go down|under|low</string>
     <string name="command_go_backward">backward|back|go back|back up</string>
     <string name="command_go_right">right|rightwards|go right</string>

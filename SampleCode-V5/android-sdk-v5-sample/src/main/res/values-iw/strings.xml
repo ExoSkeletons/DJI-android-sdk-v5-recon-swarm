@@ -13,15 +13,22 @@
     <string name="error_speech_unrecognised">דיבור לא זוהה.</string>
 
     <string name="commands_stop">עצירה|עצור|חד על|מספיק|חדל|סיום</string>
-    <string name="commands_takeoff">המראה|עוף|צא|שמיים|תעופה|תמריא|תמריאו|אמרה|בוקר טוב|בוקר|להמריא|תעוף|המרה</string>
-    <string name="commands_land">נחיתה|תנחת|נחת|לרדת|לנחות|רצפה|לרצפה|נפילה|לילה טוב|לילה|לנחות|ליפול|פול|לישון|שינה|מחיקה</string>
+    <string name="commands_takeoff">המראה|עוף|צא|שמיים|תעופה|תמריא|תמריאו|אמרה|בוקר טוב|בוקר|להמריא|תעוף|המרה|רחפן עולה</string>
+    <string name="commands_land">נחיתה|תנחת|נחת|לרדת|לנחות|רצפה|לרצפה|נפילה|לילה טוב|לילה|לנחות|ליפול|פול|לישון|שינה|מחיקה|רחפן יורד|נוחת</string>
     <string name="commands_return_home">הביתה|חזור הביתה|בית|לבית|לך הביתה</string>
     <string name="commands_follow_target">עקוב מטרה|מטרה|מטעה|עקוב אחריו|עקוב אחריה|עקוב אחריהם|צפה</string>
-    <string name="commands_follow_me">עקוב אחרי|אחרי|אלי</string>
+    <string name="commands_follow_me">אחריי|עקוב אחרי|אחרי|אלי</string>
     <string name="commands_fly_waypoint">נקודת ציון|נקודת|נון צדיק|צדיק|נ.צ.|נצ|נו|ציון|נקודה</string>
 
-    <string name="command_gimbal_wave">שלום|הי|היי|הלו|מה נשמע|מה קורה|אהלן|נפנוף|נפנף</string>
-    <string name="commands_scan">סריקה קדימה|סרוק|סרוק קדימה|סרוק מלפנים|סרוק לפנים|סריקה|סליקה|שריטה</string>
+    <string name="commands_mission_scan_above">סרוק|רוק|סריקה|סליקה|שריטה</string>
+    <string name="commands_mission_recon">חקור|חקירה|אור</string>
+    <string name="commands_mission_far_recon">רחוק|סרוק רחוק</string>
+
+    <string name="command_hello">שלום|הי|היי|הלו|מה נשמע|מה קורה|אהלן|נפנוף|נפנף</string>
+    <string name="commands_square">ריבוע|קיבוע|ריבוי</string>
+    <string name="commands_circle">עיגול|מעגל|עגול|גל</string>
+    <string name="commands_cam_fan">מניפה</string>
+    <string name="commands_spin">סיבוב|תסתובב|תסתובבי|סביב|סביבך|מסביב</string>
 
     <string name="commands_silence">שקט|השקט|הס|חשאי|חושך|צל|חשאיות</string>
 
