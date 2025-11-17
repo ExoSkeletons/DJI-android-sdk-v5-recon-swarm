@@ -28,12 +28,15 @@ class LiveLocationProvider(
     maxUpdateDelayMillis: Long = intervalMillis,
     priority: Int = Priority.PRIORITY_BALANCED_POWER_ACCURACY,
 ) {
+    private val TAG = "LiveLocationProvider"
+
     private lateinit var context: Context
     private lateinit var mLocationProviderClient: FusedLocationProviderClient
     private lateinit var mLocationManager: LocationManager
 
     /** Enable smoothing of location updates. */
     val enableSmoothing: Boolean = true
+
     // Buffer for location smoothing
     private val locationBuffer: ArrayDeque<Location> = ArrayDeque()
     val smoothingWindowSize: Int = 10
@@ -48,29 +51,33 @@ class LiveLocationProvider(
         ActivityResultContracts.StartActivityForResult()
     ) {
         // User has returned from the location settings screen.
-        // We can optionally re-check if location is enabled and try to start updates.
-        Log.d("LocationSettings", "Returned from location settings.")
-        if (ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            if (mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
-                mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
-            ) enable()
-        }
+        // We re-check if location is enabled and try to start updates.
+        Log.d(TAG, "Returned from location settings.")
+        enable() // FIXME: if user does not enable location in settings, this causes a settings loop
     }
     private val requestLocationPermissionLauncher = fragment.registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted) {
-            ToastUtils.showToast("Location permission granted")
-            enable()
-        } else {
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { results ->
+        var allGranted = true
+        results.forEach {
+            if (!it.value) {
+                allGranted = false
+                return@forEach
+            }
+        }
+        if (!allGranted) {
+            // User denied location permissions request.
+            Log.d(TAG, "Location permissions request denied.")
+            Log.i(TAG, results.toString())
             // Explain to the user that the feature is unavailable because the
             // features requires a permission that the user has denied.
-            ToastUtils.showToast("Location permission denied, Follow Me feature unavailable.")
+            ToastUtils.showToast("Location permissions denied.\nSome features may be unavailable.")
+            return@registerForActivityResult
         }
+        // Location permissions granted.
+        Log.d(TAG, "Location permissions request granted.")
+        // Try to start location updates.
+        enable()
     }
 
 
@@ -123,21 +130,39 @@ class LiveLocationProvider(
 
     fun enable() {
         if (enabled()) return
+
         // Check permissions granted
-        if (ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            requestLocationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-            ToastUtils.showToast("Location permission not granted. Cannot start updates.")
+        val locationPerms = arrayOf(
+            Manifest.permission.ACCESS_BACKGROUND_LOCATION,
+            Manifest.permission.INTERNET,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+        var allGranted = true
+        for (perm in locationPerms) {
+            if (ContextCompat.checkSelfPermission(
+                    context,
+                    perm
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                allGranted = false
+                break
+            }
+        }
+        if (!allGranted) {
+            // Permissions missing
+            Log.d(TAG, "Location permissions missing, requesting permission.")
+            requestLocationPermissionLauncher.launch(locationPerms)
             return
         }
-        // Check location enabled
-        if (!(mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || mLocationManager.isProviderEnabled(
-                LocationManager.NETWORK_PROVIDER
-            ))
+        // Check location provider enabled
+        if (!(
+                    mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+                            mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+                    )
         ) {
+            // Ask user to enable location
+            Log.d(TAG, "Location not enabled, launching settings intent.")
             val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
             intent.putExtra(Intent.EXTRA_TITLE, "Location Settings")
             intent.putExtra(Intent.EXTRA_TEXT, "Please enable Location Services")
@@ -145,20 +170,21 @@ class LiveLocationProvider(
             return
         }
         // Start location updates
+        Log.i(TAG, "Starting location updates.")
         mLocationProviderClient.requestLocationUpdates(
             locationRequest,
             mLocationCallback,
             Looper.getMainLooper()
         )
         requestingEnabled = true
-        Log.d("DeviceLocation", "Started location updates")
+        Log.d(TAG, "Started location updates")
     }
 
     fun disable() {
         if (requestingEnabled) {
             mLocationProviderClient.removeLocationUpdates(mLocationCallback)
             requestingEnabled = false
-            Log.d("DeviceLocation", "Stopped location updates")
+            Log.d(TAG, "Stopped location updates")
         }
     }
 
