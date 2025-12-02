@@ -4,10 +4,12 @@ import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
+import com.kcg.dr.DJIErrorException
 import com.kcg.dr.LocationUtils
 import com.kcg.dr.LocationUtils.bearingTo
 import com.kcg.dr.LocationUtils.distanceTo
 import com.kcg.dr.LocationUtils.translate
+import com.kcg.dr.LocationUtils.vectorToTarget
 import com.kcg.dr.as2D
 import com.kcg.dr.normalizeAngle
 import com.kcg.dr.toDegrees
@@ -38,6 +40,7 @@ import dji.v5.common.error.DJICoreError
 import dji.v5.common.error.IDJIError
 import dji.v5.et.action
 import dji.v5.et.create
+import dji.v5.et.get
 import dji.v5.et.listen
 import dji.v5.manager.KeyManager
 import dji.v5.manager.intelligent.IntelligentFlightInfo
@@ -48,21 +51,30 @@ import dji.v5.manager.intelligent.flyto.FlyToParam
 import dji.v5.manager.intelligent.flyto.FlyToTarget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.cancellation.CancellationException
-import kotlin.coroutines.coroutineContext
+import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sign
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 open class AircraftController(
-    private var flightScope: CoroutineScope,
+    val scope: CoroutineScope,
 
     private val stickVM: VirtualStickVM,
     private val acVM: BasicAircraftControlVM,
@@ -101,11 +113,56 @@ open class AircraftController(
         }
     }
 
-    val location = MutableLiveData(LocationCoordinate3D())
-    val attitude = MutableLiveData(Attitude())
+    data class FlightParam(
+        var pitch: Double? = null,
+        var roll: Double? = null,
+        var yaw: Double? = null,
+        var verticalThrottle: Double? = null,
+
+        var coordinateSystem: FlightCoordinateSystem = FlightCoordinateSystem.BODY,
+    ) {
+
+        fun merge(other: FlightParam): FlightParam {
+            return FlightParam().apply {
+                pitch = other.pitch ?: this@FlightParam.pitch
+                roll = other.roll ?: this@FlightParam.roll
+                yaw = other.yaw ?: this@FlightParam.yaw
+                verticalThrottle = other.verticalThrottle ?: this@FlightParam.verticalThrottle
+
+                coordinateSystem = other.coordinateSystem
+            }
+        }
+
+        fun build(): VirtualStickFlightControlParam {
+            return VirtualStickFlightControlParam().apply {
+                pitch = this@FlightParam.pitch ?: 0.0
+                roll = this@FlightParam.roll ?: 0.0
+                yaw = this@FlightParam.yaw ?: 0.0
+                verticalThrottle = this@FlightParam.verticalThrottle ?: 0.0
+
+                rollPitchCoordinateSystem = coordinateSystem
+
+                rollPitchControlMode = RollPitchControlMode.VELOCITY
+                verticalControlMode = VerticalControlMode.VELOCITY
+                yawControlMode = YawControlMode.ANGULAR_VELOCITY
+            }
+        }
+
+        override fun toString(): String {
+            return "" +
+                    (if (pitch != null) "pitch: $pitch," else "") +
+                    (if (roll != null) " roll: $roll," else "") +
+                    (if (yaw != null) " yaw: $yaw," else "") +
+                    (if (verticalThrottle != null) " verticalThrottle: $verticalThrottle" else "")
+        }
+    }
+
+    val height = MutableLiveData(0.0)
+    val location = MutableLiveData<LocationCoordinate3D>(null)
+    val batteryPercent = MutableLiveData(0)
+    val attitude = MutableLiveData<Attitude>(null)
     val heading = MutableLiveData(0.0)
-    val height = intFlVM.aircraftHeight
-    val gimbalAttitude = MutableLiveData(Attitude())
+    val gimbalAttitude = MutableLiveData<Attitude>(null)
 
     val intelFlightInfoListener = object : IntelligentFlightInfoListener {
         override fun onIntelligentFlightInfoUpdate(info: IntelligentFlightInfo) {
@@ -121,7 +178,13 @@ open class AircraftController(
     fun init() {
         intFlVM.initListener()
         FlightControllerKey.KeyAircraftLocation3D.create().listen(this) {
-            it?.let { updated -> location.postValue(updated) }
+            location.postValue(it)
+        }
+        FlightControllerKey.KeyAltitude.create().listen(this) {
+            it?.let { updated -> height.postValue(updated) }
+        }
+        FlightControllerKey.KeyBatteryPowerPercent.create().listen(this) {
+            it?.let { batteryPercent.postValue(it) }
         }
         FlightControllerKey.KeyAircraftAttitude.create().listen(this) {
             it?.let { attitude.postValue(it) }
@@ -136,18 +199,9 @@ open class AircraftController(
             .addIntelligentFlightInfoListener(intelFlightInfoListener)
     }
 
-    fun activate(callback: CompletionCallback = DEFAULT_CALLBACK) {
-        Log.d(TAG, "enabling virtual stick...")
-        if (isVirtualStickEnabled()) {
-            Log.d(TAG, "virtual stick already enabled")
-            callback.onSuccess()
-            return
-        }
-        stickVM.enableVirtualStick(callback)
-    }
-
     fun destroy() {
         stop(true)
+        flightParamTransmissionJob?.cancel()
         intFlVM.cleanListener()
         IntelligentFlightManager.getInstance()
             .removeIntelligentFlightInfoListener(intelFlightInfoListener)
@@ -163,35 +217,54 @@ open class AircraftController(
     fun isMissionSupported(mission: MissionType): Boolean =
         supportedIntelligentFeatures.contains(mission)
 
+    fun takeStickControl(callback: CompletionCallback = DEFAULT_CALLBACK) {
+        Log.d(TAG, "enabling virtual stick...")
+        if (isVirtualStickEnabled()) {
+            Log.d(TAG, "virtual stick already enabled")
+            callback.onSuccess()
+            return
+        }
+        stickVM.enableVirtualStick(object : CompletionCallback {
+            override fun onSuccess() {
+                Log.d(TAG, "virtual stick enabled")
+                startFlightParamTransmission()
+                callback.onSuccess()
+            }
 
-    suspend fun requireVirtualStick(
-        onFailure: (IDJIError) -> Unit = { }
-    ) {
+            override fun onFailure(error: IDJIError) = callback.onFailure(error)
+        })
+    }
+
+    fun returnStickControl(callback: CompletionCallback = DEFAULT_CALLBACK) {
+        Log.d(TAG, "returning stick control")
+        stopFlightParamTransmission()
+        Log.d(TAG, "disabling virtual stick...")
+        if (!isVirtualStickEnabled()) {
+            Log.d(TAG, "virtual stick already disabled")
+            callback.onSuccess()
+            return
+        }
+        stickVM.disableVirtualStick(callback)
+    }
+
+    suspend fun requireVirtualStick() {
         if (!isVirtualStickEnabled()) {
             Log.d(TAG, "virtual stick not enabled")
             suspendCancellableCoroutine { cont ->
-                Log.i(TAG, "suspendCancellableCoroutine")
                 val callback = object : CompletionCallback {
-                    override fun onSuccess() {
-                        Log.d(TAG, "virtual stick enabled")
-                        cont.resumeWith(Result.success(null))
-                    }
+                    override fun onSuccess() = cont.resume(0)
 
-                    override fun onFailure(error: IDJIError) {
-                        onFailure(error)
-                        cont.resumeWithException(IllegalStateException(error.description()))
-                    }
+                    override fun onFailure(error: IDJIError) =
+                        cont.resumeWithException(DJIErrorException(error))
                 }
-                activate(callback)
+                takeStickControl(callback)
             }
-            Log.i(TAG, "suspendCancellableCoroutine resumed")
-            Log.i(TAG, "virtual stick enabled?=${isVirtualStickEnabled()}")
-        }
+        } else Log.d(TAG, "virtual stick already enabled")
     }
 
     suspend fun requireVirtualStickAdvancedMode(
-        waitForMillis: Long = 200,
         onFailure: () -> Unit = { },
+        waitFor: Duration = 200.milliseconds,
     ) {
         requireVirtualStick()
 
@@ -199,7 +272,7 @@ open class AircraftController(
             Log.d(TAG, "virtual stick advanced mode not enabled")
             Log.d(TAG, "enabling virtual stick advanced mode...")
             stickVM.enableVirtualStickAdvancedMode()
-            delay(waitForMillis) // Give some time for DJI to enable the advanced mode
+            delay(waitFor) // Give some time for DJI to enable the advanced mode
             if (!isVirtualStickAdvancedModeEnabled()) {
                 Log.d(TAG, "virtual stick advanced mode failed to enable")
                 onFailure()
@@ -210,11 +283,11 @@ open class AircraftController(
     }
 
 
-    var flightJob: Job? = null
+    private var flightJob: Job? = null
 
     fun fly(
-        callback: CompletionCallback = DEFAULT_CALLBACK,
-        scope: CoroutineScope = flightScope,
+        callback: CompletionCallback? = DEFAULT_CALLBACK,
+        scope: CoroutineScope = this@AircraftController.scope,
         block: suspend AircraftController.(CompletionCallback) -> Unit
     ) {
         flightJob?.cancel()
@@ -223,32 +296,42 @@ open class AircraftController(
                 requireVirtualStickAdvancedMode()
                 block(object : CompletionCallback {
                     override fun onSuccess() {} // we'll trigger success ourselves later
-                    override fun onFailure(error: IDJIError) = callback.onFailure(error)
+                    override fun onFailure(error: IDJIError) {
+                        callback?.onFailure(error)
+                    }
                 })
             }.onFailure { e ->
                 when (e) {
                     is CancellationException -> {
-                        Log.w(TAG, "mission cancelled")
+                        Log.w(TAG, "cancellation in flight")
                         brake()
+                    }
+
+                    is DJIErrorException -> {
+                        val error = e.error
+                        Log.w(
+                            TAG,
+                            "${error.errorType()} error in flight: ${error.errorCode()}, ${error.description()}"
+                        )
+                        callback?.onFailure(error)
+                        brake(true)
                     }
 
                     else -> {
                         Log.w(
                             TAG,
-                            "mission flight caught exception: ${e.toString()}: ${e.message.toString()}"
+                            "exception in flight: ${e.toString()}: ${e.message.toString()}"
                         )
                         e.printStackTrace()
                         brake(true)
-                        callback.onFailure(DJICoreError().build("${e.toString()}: ${e.message.toString()}"))
-                        delay(1000)
-                        land()
+                        callback?.onFailure(DJICoreError().build("${e.toString()}: ${e.message.toString()}"))
                     }
                 }
             }.onSuccess {
                 if (!coroutineContext.job.isCancelled) {
-                    Log.d(TAG, "mission success")
+                    Log.d(TAG, "flight mission success")
                     brake()
-                    callback.onSuccess()
+                    callback?.onSuccess()
                 }
             }
             // Clear job
@@ -258,33 +341,20 @@ open class AircraftController(
         this.flightJob = flightJob
     }
 
-    private suspend fun sendStickParamForDuration(
-        durationSec: Double,
-        flightControlParam: VirtualStickFlightControlParam
-    ) {
-        requireVirtualStickAdvancedMode()
-
-        val iterations = ((durationSec * 1000) / TRANSMISSION_INTERVAL).toInt()
-
-        repeat(iterations) {
-            if (!coroutineContext.isActive) return@repeat
-            stickVM.sendVirtualStickAdvancedParam(flightControlParam)
-            delay(TRANSMISSION_INTERVAL)
-        }
-    }
-
     fun brake(returnStickControl: Boolean = false) {
         Log.d(TAG, "braking")
         stickVM.setLeftPosition(0, 0)
         stickVM.setRightPosition(0, 0)
-        if (returnStickControl) {
-            Log.d(TAG, "returning stick control")
-            Log.d(TAG, "disabling virtual stick...")
-            stickVM.disableVirtualStick(DEFAULT_CALLBACK)
-        }
+        if (returnStickControl) returnStickControl()
     }
 
-    fun stopMissions() {
+    suspend fun brakeFor(duration: Duration, returnStickControl: Boolean = false) = coroutineScope {
+        brake(returnStickControl)
+        delay(duration)
+    }
+
+
+    private fun stopIntelligentMissions() {
         Log.d(TAG, "stopping missions")
         IntelligentFlightManager.getInstance().flyToMissionManager.stopMission(DEFAULT_CALLBACK)
         IntelligentFlightManager.getInstance().spotLightManager.stopMission(DEFAULT_CALLBACK)
@@ -295,66 +365,139 @@ open class AircraftController(
             ?.cancel() ?: Log.d(TAG, "no flight job to cancel")
     }
 
-    fun stop(returnStickControl: Boolean = true) {
-        Log.d(TAG, "stopping")
+    fun stop(emergency: Boolean = true) {
+        Log.d(TAG, "stopping" + if (emergency) " (emergency)" else "")
 
-        stopMissions()
+        stopIntelligentMissions()
 
-        if (returnStickControl) {
-            Log.d(TAG, "emergency stop")
+        if (emergency) {
+            Log.d(TAG, "emergency stopping")
             FlightControllerKey.KeyStopAutoLanding.create().action()
             FlightControllerKey.KeyEmergencyStop.create().action()
         }
         FlightControllerKey.KeyStopTakeoff.create().action()
 
-        brake(returnStickControl)
+        brake(emergency)
     }
+
 
     suspend fun takeoff(
         callback: CompletionCallbackWithParam<EmptyMsg> = DEFAULT_CALLBACK_PARAM,
-        takeStickControl: Boolean = true
+        takeStickControl: Boolean = true,
+        awaitStabilisation: Boolean = true,
     ) {
-        if (takeStickControl)
-            requireVirtualStick()
-        suspendCancellableCoroutine { cont ->
-            acVM.startTakeOff(object : CompletionCallbackWithParam<EmptyMsg> {
-                override fun onSuccess(msg: EmptyMsg?) {
-                    Log.d(TAG, "takeoff success")
-                    if (takeStickControl) {
-                        Log.d(TAG, "post takeoff, taking stick control...")
-                        activate(object : CompletionCallback {
-                            override fun onSuccess() {
-                                Log.d(TAG, "took control")
-                                callback.onSuccess(msg)
-                            }
+        Log.d(TAG, "takeoff")
 
-                            override fun onFailure(error: IDJIError) = callback.onFailure(error)
-                        })
-                        return
+        if (takeStickControl) requireVirtualStick()
+        if (FlightControllerKey.KeyIsFlying.create().get(false)) {
+            Log.d(TAG, "already flying")
+            callback.onSuccess(EmptyMsg())
+            return
+        }
+
+        try {
+            // Start takeoff
+            Log.d(TAG, "starting takeoff")
+            val msg = suspendCancellableCoroutine { cont ->
+                acVM.startTakeOff(object : CompletionCallbackWithParam<EmptyMsg> {
+                    override fun onSuccess(msg: EmptyMsg?) {
+                        Log.d(TAG, "takeoff success")
+                        cont.resume(msg)
                     }
-                    callback.onSuccess(msg)
-                    cont.resumeWith(Result.success(Unit))
-                }
 
-                override fun onFailure(error: IDJIError) {
-                    Log.d(TAG, "takeoff fail ${error.description()}")
-                    callback.onFailure(error)
-                    cont.cancel()
-                }
-            })
+                    override fun onFailure(error: IDJIError) {
+                        Log.d(TAG, "takeoff fail ${error.description()}")
+                        cont.resumeWithException(DJIErrorException(error))
+                    }
+                })
+            }
+            Log.d(TAG, "post takeoff")
+            // Take stick control if required
+            if (takeStickControl) requireVirtualStick()
+            // Wait for aircraft stabilisation
+            if (awaitStabilisation) {
+                val takeoffStabilisationDelay = 6.seconds
+                Log.d(TAG, "delaying for takeoff stabilisation...")
+                delay(takeoffStabilisationDelay)
+            }
+
+            Log.d(TAG, "takeoff on success")
+            callback.onSuccess(msg)
+        } catch (e: DJIErrorException) {
+            Log.d(TAG, "takeoff on failure")
+            callback.onFailure(e.error)
         }
     }
 
     fun land(
         callback: CompletionCallbackWithParam<EmptyMsg> = DEFAULT_CALLBACK_PARAM
     ) {
+        Log.d(TAG, "land")
         stop(false)
+        Log.d(TAG, "starting landing")
         acVM.startLanding(callback)
+    }
+
+    private var flightParamTransmissionJob: Job? = null
+    private val flightParamFlow = MutableSharedFlow<FlightParam>(
+        extraBufferCapacity = 16,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+
+    private fun startFlightParamTransmission() {
+        Log.d(TAG, "starting flight param transmission job")
+        flightParamTransmissionJob?.cancel()
+        flightParamTransmissionJob = scope.launch {
+            val buffer = mutableListOf<FlightParam>()
+            val collectJob = launch { flightParamFlow.collect { buffer += it } }
+
+            while (isActive) {
+                // Collect all commands and stop after interval (collect alone blocks forever)
+                delay(TRANSMISSION_INTERVAL)
+                if (buffer.isNotEmpty()) {
+                    if (buffer.size > 2) Log.i(TAG, "reducing ${buffer.size} flight params")
+                    val combinedParam = buffer.reduce { param1, param2 -> param1.merge(param2) }
+                    stickVM.sendVirtualStickAdvancedParam(combinedParam.build())
+                    buffer.clear()
+                }
+            }
+
+            collectJob.cancelAndJoin()
+            Log.d(TAG, "flight param transmission job cancelled")
+        }
+    }
+
+    private fun stopFlightParamTransmission() {
+        Log.d(TAG, "cancelling flight param transmission job")
+        flightParamTransmissionJob?.cancel() ?: Log.d(
+            TAG,
+            "no flight param transmission job to cancel"
+        )
+        flightParamTransmissionJob = null
+    }
+
+    fun sendFlightParam(flightParam: FlightParam) {
+        scope.launch { flightParamFlow.emit(flightParam) }
+    }
+
+    private suspend fun sendStickParamForDuration(
+        duration: Duration,
+        flightControlParam: FlightParam
+    ) {
+        requireVirtualStickAdvancedMode()
+
+        val iterations = ((duration.inWholeMilliseconds) / TRANSMISSION_INTERVAL).toInt()
+
+        repeat(iterations) {
+            if (!currentCoroutineContext().isActive) return@repeat
+            sendFlightParam(flightControlParam)
+            delay(TRANSMISSION_INTERVAL)
+        }
     }
 
     fun flyToIntelligent(
         target: LocationCoordinate3D,
-        callback: CompletionCallbackWithParam<LocationCoordinate3D?>? = null,
+        callback: CompletionCallbackWithParam<LocationCoordinate3D>? = null,
     ) {
         if (!isMissionSupported(MissionType.FLY_TO)) {
             ToastUtils.showToast("FlyTo unsupported")
@@ -394,7 +537,7 @@ open class AircraftController(
         altitudeMeters: Int = 30,
         speedMps: Double = 5.0,
         kmzDirPath: String,
-        callback: CompletionCallbackWithParam<LocationCoordinate3D?>? = null
+        callback: CompletionCallbackWithParam<LocationCoordinate3D>? = null
     ) {
         val current = location.value
         if (current == null || current.latitude == 0.0 && current.longitude == 0.0) {
@@ -452,44 +595,86 @@ open class AircraftController(
         wayPointV3VM.pushKMZFileToAircraft(kmzOutPath)*/
     }
 
+    fun smoothVelocity(
+        startLocation: LocationCoordinate3D,
+        currentLocation: LocationCoordinate3D,
+        endLocation: LocationCoordinate3D,
+        curYaw: Double,
+        maxVelocity: Double,
+        minVelocity: Double = 0.5,
+        accelerationDist: Double, decelerationDist: Double,
+    ): Triple<Double, Double, Double> {
+        require(maxVelocity > 0) { "maxVelocity must be positive" }
+        require(minVelocity > 0) { "minVelocity must be positive" }
+        require(accelerationDist >= 0) { "accelerationDist must be non-negative" }
+        require(decelerationDist >= 0) { "decelerationDist must be non-negative" }
+
+        val (x, y, z) = vectorToTarget(currentLocation, endLocation, curYaw)
+
+        val distToTarget = currentLocation.distanceTo(endLocation)
+        val distFromStart = startLocation.distanceTo(currentLocation)
+
+        val decelerationFactor = if (decelerationDist > 0) {
+            if (distToTarget < decelerationDist)
+                distToTarget / decelerationDist
+            else 1.0
+        } else 0.0
+
+        val accelFactor = if (accelerationDist > 0) {
+            if (distFromStart < accelerationDist)
+                max(
+                    minVelocity,
+                    distFromStart / accelerationDist
+                ) else 1.0
+        } else 1.0
+
+        val speedFactor = min(accelFactor, decelerationFactor)
+
+        val scaledSpeed = maxVelocity * speedFactor
+        val v = scaledSpeed.coerceIn(minVelocity, maxVelocity)
+
+        return Triple(x * v, y * v, z * v)
+    }
+
     suspend fun flyToSticks(
         target: LocationCoordinate3D,
-        callback: CompletionCallbackWithParam<LocationCoordinate3D?>? = null,
+        callback: CompletionCallbackWithParam<LocationCoordinate3D>? = null,
         maxVelocity: Double = 1.0,
-        approachTolerance: Double = 4.0,
+        accelerationDist: Double = 2.0,
+        decelerationDist: Double = 5.0,
+        approachTolerance: Double = 1.0,
     ) = coroutineScope {
+        val start = location.value!!
+
         while (isActive) {
             delay(TRANSMISSION_INTERVAL)
 
             val cur = location.value ?: continue
             val curYaw = attitude.value?.yaw ?: continue
 
-            val curTarget = target
-
             // Distance check (3D)
-            val dist3D = cur.distanceTo(curTarget)
+            val dist3D = cur.distanceTo(target)
             if (dist3D <= approachTolerance) break
 
             // Calculate velocity towards target
-            val (vx, vy, vz) = LocationUtils.calculateVelocityToTarget(
+            val (vx, vy, vz) = smoothVelocity(
+                start,
                 cur,
-                curTarget,
+                target,
                 curYaw,
-                maxVelocity
+                maxVelocity,
+                accelerationDist = accelerationDist,
+                decelerationDist = decelerationDist,
             )
 
-            val convergeParam = VirtualStickFlightControlParam()
+            val convergeParam = FlightParam()
             convergeParam.apply {
                 pitch = vy
                 roll = vx
                 yaw = 0.0
                 verticalThrottle = vz
-                rollPitchControlMode = RollPitchControlMode.VELOCITY
-                verticalControlMode = VerticalControlMode.VELOCITY
-                yawControlMode = YawControlMode.ANGULAR_VELOCITY
-                rollPitchCoordinateSystem = FlightCoordinateSystem.BODY
             }
-            stickVM.sendVirtualStickAdvancedParam(convergeParam)
+            sendFlightParam(convergeParam)
         }
 
         callback?.onSuccess(location.value)
@@ -498,9 +683,12 @@ open class AircraftController(
     suspend fun followSticks(
         target: LiveData<LocationCoordinate3D>,
         maxVelocity: Double = 1.0,
+        accelerationDist: Double = 2.0,
+        decelerationDist: Double = 5.0,
         approachTolerance: Double = 3.0,
         escapeBuffer: Double = 1.0
     ) = coroutineScope {
+        var start = location.value!!
         var curTarget: LocationCoordinate3D? = target.value
         var withinBuffer = false
 
@@ -521,60 +709,59 @@ open class AircraftController(
 
             // If we're within range, don't move (minimise jitter)
             if (withinBuffer) {
+                start = cur
                 delay(1000)
                 continue
             }
 
             // Calculate velocity towards target
-            val (vx, vy, vz) = LocationUtils.calculateVelocityToTarget(
+            val (vx, vy, vz) = smoothVelocity(
+                start,
                 cur,
                 curTarget,
                 curYaw,
-                maxVelocity
+                maxVelocity,
+                accelerationDist = accelerationDist,
+                decelerationDist = decelerationDist,
             )
 
-            val convergeParam = VirtualStickFlightControlParam()
+            val convergeParam = FlightParam()
             convergeParam.apply {
                 pitch = vy
                 roll = vx
                 yaw = 0.0
                 verticalThrottle = vz
-                rollPitchControlMode = RollPitchControlMode.VELOCITY
-                verticalControlMode = VerticalControlMode.VELOCITY
-                yawControlMode = YawControlMode.ANGULAR_VELOCITY
-                rollPitchCoordinateSystem = FlightCoordinateSystem.BODY
             }
-            stickVM.sendVirtualStickAdvancedParam(convergeParam)
+            sendFlightParam(convergeParam)
         }
     }
 
     suspend fun flyBySticks(
         direction: LocationUtils.RelativeDirection, distance: Double,
-        velocity: Double = 0.5, maxVelocity: Double = 1.0,
+        velocity: Double = 0.5,
         coordinateSystem: FlightCoordinateSystem = FlightCoordinateSystem.BODY,
         callback: CompletionCallback = DEFAULT_CALLBACK
     ) = coroutineScope {
-        var v = minOf(velocity, maxVelocity)
-        require(v > 0) { "Speed must be positive" }
+        require(velocity >= 0) { "velocity must be positive" }
+        if (velocity == 0.0) {
+            callback.onSuccess()
+            return@coroutineScope
+        }
 
-        val durationSec = abs(distance / v)
+        val travelTime = abs(distance / velocity)
 
         val signDist = sign(distance)
         val signDir = direction.sign
 
-        v *= signDir * signDist
+        val v = signDir * signDist * velocity
 
-        val flightControlParam = VirtualStickFlightControlParam().apply {
+        val flightControlParam = FlightParam().apply {
             pitch = 0.0
             roll = 0.0
             yaw = 0.0
             verticalThrottle = 0.0
 
-            rollPitchCoordinateSystem = coordinateSystem
-
-            rollPitchControlMode = RollPitchControlMode.VELOCITY
-            verticalControlMode = VerticalControlMode.VELOCITY
-            yawControlMode = YawControlMode.ANGULAR_VELOCITY
+            this.coordinateSystem = coordinateSystem
 
             when (direction) {
                 LocationUtils.RelativeDirection.FORWARD -> roll = v
@@ -586,15 +773,18 @@ open class AircraftController(
             }
         }
 
-        Log.i(TAG, "flying by sticks ${direction.name} for $durationSec seconds")
+        Log.i(
+            TAG,
+            "flying by sticks ${if (signDir < 0) "-" else ""}${direction.name} for $travelTime seconds"
+        )
 
-        sendStickParamForDuration(durationSec, flightControlParam)
+        sendStickParamForDuration(travelTime.seconds, flightControlParam)
         callback.onSuccess()
     }
 
     fun flyTo(
         location: LocationCoordinate3D,
-        callback: CompletionCallbackWithParam<LocationCoordinate3D?>? = null
+        callback: CompletionCallbackWithParam<LocationCoordinate3D>? = null
     ) {
         when {
             isMissionSupported(MissionType.FLY_TO) -> flyToIntelligent(location, callback)
@@ -612,14 +802,42 @@ open class AircraftController(
         }
     }
 
-    suspend fun ascendBy(distance: Double) =
-        flyBySticks(LocationUtils.RelativeDirection.UP, distance)
+    suspend fun ascendBy(distance: Double, velocity: Double = 0.5) =
+        flyBySticks(LocationUtils.RelativeDirection.UP, distance, velocity)
 
-    suspend fun forwardBy(distance: Double) =
-        flyBySticks(LocationUtils.RelativeDirection.FORWARD, distance)
+    suspend fun ascendTo(
+        altitude: Double,
+        velocity: Double = 0.5,
+    ) = coroutineScope {
+        require(velocity >= 0) { "velocity must be positive" } // Safety check
 
-    suspend fun leftBy(distance: Double) =
-        flyBySticks(LocationUtils.RelativeDirection.LEFT, distance)
+        val h = height.value!!
+        val direction = if (altitude > h) 1 else -1
+        val goingUp = direction >= 0
+        val vy = velocity * direction
+
+        while (isActive) {
+            delay(TRANSMISSION_INTERVAL)
+
+            val h = height.value ?: continue
+            val dy = altitude - h
+
+            // Overshoot check
+            if (goingUp && dy < 0) break
+            if (!goingUp && dy > 0) break
+
+            // Send param
+            val verticalParam = FlightParam().apply { verticalThrottle = vy }
+            sendFlightParam(verticalParam)
+        }
+        sendFlightParam(FlightParam().apply { verticalThrottle = 0.0 })
+    }
+
+    suspend fun forwardBy(distance: Double, velocity: Double = 1.0) =
+        flyBySticks(LocationUtils.RelativeDirection.FORWARD, distance, velocity)
+
+    suspend fun leftBy(distance: Double, velocity: Double = 1.0) =
+        flyBySticks(LocationUtils.RelativeDirection.LEFT, distance, velocity)
 
     suspend fun spinBy(
         angleDegrees: Double,
@@ -637,8 +855,6 @@ open class AircraftController(
         var cumulativeYaw = 0.0
         var lastYaw = attitude.value?.yaw ?: 0.0
         val totalAngle = abs(angleDegrees)
-
-        Log.i(TAG, "spinning by $angleDegrees degrees")
 
         while (isActive) {
             delay(TRANSMISSION_INTERVAL)
@@ -663,83 +879,70 @@ open class AircraftController(
             val rampDownFraction = (remaining / rampAngleDegrees).coerceIn(0.0, 1.0)
             val velocityFactor = minOf(rampUpFraction, rampDownFraction)
             val currentVelocity =
-                (minVelocity + (velocity - minVelocity) * velocityFactor).coerceAtLeast(minVelocity)
+                (minVelocity + (velocity - minVelocity) * velocityFactor)
+                    .coerceAtLeast(minVelocity)
 
-            val flightParam = VirtualStickFlightControlParam().apply {
-                // TODO: test if this works still without full param specification,
-                //  and if this stops conflicts with other params
+
+            val flightParam = FlightParam().apply {
                 yaw = currentVelocity * spinSign
-                yawControlMode = YawControlMode.ANGULAR_VELOCITY
             }
-            stickVM.sendVirtualStickAdvancedParam(flightParam)
+            sendFlightParam(flightParam)
         }
 
         callback.onSuccess()
     }
 
+    enum class CircleFaceMode {
+        CENTER,
+        OUTER,
+        TANGENT,
+        TANGENT_BACK
+    }
+
     suspend fun flyCircle(
         radius: Double, velocity: Double, count: Double = 1.0,
         clockwise: Boolean = true,
+        faceMode: CircleFaceMode = CircleFaceMode.CENTER,
         fromCenter: Boolean = true,
-        faceCenter: Boolean = true,
-        faceForward: Boolean = true,
         callback: CompletionCallback = DEFAULT_CALLBACK
     ) = coroutineScope {
         require(velocity > 0) { "velocity must be positive" }
 
-        val durationSec = 2 * Math.PI * count * radius / velocity
+        val travelDuration = 2.0 * Math.PI * count * radius / velocity
         val rotationSign = if (clockwise) 1 else -1
-        val direction = if (faceForward) 1 else -1
 
-        val circleMotionParam = VirtualStickFlightControlParam().apply {
-            when (faceCenter) {
-                true -> {
-                    pitch = velocity * -rotationSign * direction
-                    roll = 0.0
-                }
+        Log.i(TAG, "flying circle for $travelDuration seconds")
 
-                else -> {
-                    pitch = 0.0
-                    roll = velocity * rotationSign
-                }
+        val circleMotionParam = FlightParam().apply {
+            when (faceMode) {
+                CircleFaceMode.CENTER -> pitch = -velocity * rotationSign
+                CircleFaceMode.OUTER -> pitch = velocity * rotationSign
+                CircleFaceMode.TANGENT -> roll = velocity
+                CircleFaceMode.TANGENT_BACK -> roll = -velocity
             }
 
             yaw = (velocity / radius).toDegrees() * rotationSign
-
-            rollPitchControlMode = RollPitchControlMode.VELOCITY
-            yawControlMode = YawControlMode.ANGULAR_VELOCITY
-
-            rollPitchCoordinateSystem = FlightCoordinateSystem.BODY
-
-            verticalThrottle = 0.0
-            verticalControlMode = VerticalControlMode.VELOCITY
         }
 
         val posDelay = 1000L
         if (fromCenter) {
-            flyBySticks(
-                LocationUtils.RelativeDirection.FORWARD,
-                radius,
-                velocity
-            ) // fly out from center
-            if (faceForward) {
-                delay(posDelay)
-                spinBy(180.0) // spin to face center
-            }
+            forwardBy(radius, velocity) // fly out from center
+            delay(posDelay)
         }
-        if (!faceCenter) spinBy(90.0 * direction) // spin to face travel
-        sendStickParamForDuration(durationSec, circleMotionParam) // send circle motion
-        if (!faceCenter) spinBy(-90.0 * direction) // spin back to face center
+        val spinAmount = (
+                when (faceMode) {
+                    CircleFaceMode.CENTER -> 180.0 // spin to face center
+                    CircleFaceMode.OUTER -> 0.0 // remain facing outwards
+                    CircleFaceMode.TANGENT -> 90.0 * rotationSign // spin to face tangent
+                    CircleFaceMode.TANGENT_BACK -> -90.0 * rotationSign // spin to face tangent backwards
+                } + if (!fromCenter) 180.0 else 0.0
+                ).normalizeAngle()
+        spinBy(spinAmount) // spin to face circle direction
+        sendStickParamForDuration(travelDuration.seconds, circleMotionParam) // send circle motion
+        spinBy(-spinAmount) // spin back to face starting direction
         if (fromCenter) {
-            if (faceForward) {
-                spinBy(180.0) // spin back to face outside circle
-                delay(posDelay)
-            }
-            flyBySticks(
-                LocationUtils.RelativeDirection.BACKWARD,
-                radius,
-                velocity
-            ) // return to center
+            delay(posDelay)
+            forwardBy(-radius, velocity) // return to center
         }
         callback.onSuccess()
     }
@@ -747,18 +950,18 @@ open class AircraftController(
     suspend fun scanGround(
         scanRadius: Double,
         velocity: Double,
-        faceCenter: Boolean = true,
+        faceMode: CircleFaceMode = CircleFaceMode.CENTER,
         clockwise: Boolean = true,
         callback: CompletionCallback = DEFAULT_CALLBACK
     ) = coroutineScope {
         camGimbalVM.setCameraGimbalMode(GimbalMode.YAW_FOLLOW)
-        camGimbalVM.lookAt(scanRadius, -height.value!! * .75)
+        camGimbalVM.lookTo(scanRadius, -height.value!! * .75)
         flyCircle(
             scanRadius,
             velocity,
             clockwise = clockwise,
             fromCenter = true,
-            faceCenter = faceCenter,
+            faceMode = faceMode,
             callback = callback
         )
     }
@@ -805,35 +1008,40 @@ open class AircraftController(
     fun setCameraGimbalMode(mode: GimbalMode) = camGimbalVM.setCameraGimbalMode(mode)
 
 
-    suspend fun lookAtWithSpin(target: LocationCoordinate2D, height: Double) {
+    suspend fun lookAtWithSpin(
+        target: LocationCoordinate2D,
+        height: Double,
+        angleOffset: Double = 0.0
+    ) {
         val currentLocation =
-            this.location.value?.as2D() ?: throw IllegalStateException("can't get location")
+            this.location.value ?: throw IllegalStateException("can't get location")
         val heading = this.heading.value ?: throw IllegalStateException("can't get heading")
         val currentHeight = this.height.value ?: throw IllegalStateException("can't get height")
 
         // turn the aircraft to face the location (look straight ahead at it)
-        val headingDiff = (currentLocation.bearingTo(target)
+        val headingDiffToTarget = (currentLocation.as2D.bearingTo(target)
                 - heading.normalizeAngle()
                 ).wrap180()
-        Log.d(TAG, "spinning to look at target, headingDiff: $headingDiff")
-        spinBy(headingDiff)
+        spinBy(headingDiffToTarget + angleOffset)
 
         // aim the camera at the location
-        camGimbalVM.lookAt(currentLocation.distanceTo(target), height - currentHeight)
+        camGimbalVM.lookTo(currentLocation.as2D.distanceTo(target), height - currentHeight)
     }
 
-    suspend fun lookAtAndFollow(
+    suspend fun lookAtAndTrack(
         liveTargetLocation: LiveData<LocationCoordinate3D>,
-        updateInterval: Long = 1000,
+        angleOffset: Double = 0.0,
+        updateInterval: Duration = 1.seconds,
     ) = coroutineScope {
         while (isActive) {
-            delay((1.0 / updateInterval).toLong())
+            delay((1.0 / updateInterval.inWholeMilliseconds).toLong())
 
             val targetLocation = liveTargetLocation.value ?: continue
 
             lookAtWithSpin(
-                targetLocation.as2D(),
-                targetLocation.altitude
+                targetLocation.as2D,
+                targetLocation.altitude,
+                angleOffset
             )
         }
     }
@@ -880,40 +1088,60 @@ open class AircraftController(
         delay(scanDurationMs)
     }
 
+    suspend fun flyToWithPoi(
+        target: LiveData<LocationCoordinate3D>,
+        poi: LiveData<LocationCoordinate3D> = target,
+        maxVelocity: Double = 3.0,
+        approachTolerance: Double = 1.0,
+        escapeBuffer: Double = 1.0,
+        poiHeadingOffset: Double,
+    ) = coroutineScope {
+        // Follow target location
+        launch { followSticks(target, maxVelocity, approachTolerance, escapeBuffer) }
+        // Keep Eyes on poi location
+        launch { lookAtAndTrack(poi, poiHeadingOffset) }
+    }
+
     suspend fun perchShoulder(
         targetLocation: LiveData<LocationCoordinate3D>,
-        targetHeading: LiveData<Double>,
         perchHeight: Double,
-        perchDistance: Double
+        perchDistance: Double,
+        targetHeading: LiveData<Double>? = null,
+        faceTarget: Boolean = true,
     ) = coroutineScope {
         val perchLocation = MediatorLiveData<LocationCoordinate3D>().apply {
             fun update() {
-                val loc = targetLocation.value
-                val heading = targetHeading.value
-                if (loc != null && heading != null) {
-                    value = loc.translate(
-                        perchDistance,
-                        LocationUtils.RelativeDirection.BACKWARD,
-                        heading
-                    ).apply { altitude = perchHeight }
-                }
+                val tl = targetLocation.value ?: return
+                val al = location.value ?: return
+
+                // If live target heading is not specified, simply calc the heading to target (facing away from us).
+                val heading = targetHeading?.value ?: al.as2D.bearingTo(tl.as2D)
+
+                // Adjust perch location to target location moved "back" (towards aircraft) by perch distance.
+                value = tl.translate(
+                    perchDistance,
+                    LocationUtils.RelativeDirection.BACKWARD,
+                    heading
+                ).apply { altitude = perchHeight }
             }
 
             addSource(targetLocation) { update() }
-            addSource(targetHeading) { update() }
+            targetHeading?.let { addSource(it) { update() } }
             update()
         }
 
-        // Follow perch location
-        launch { followSticks(perchLocation) }
-        // Keep Eyes on target location
-        launch { lookAtAndFollow(targetLocation) }
+        flyToWithPoi(
+            perchLocation,
+            targetLocation,
+            poiHeadingOffset = if (faceTarget) 0.0 else 180.0
+        )
     }
 
     suspend fun trailShoulder(
         targetLocation: LiveData<LocationCoordinate3D>,
         perchHeight: Double,
         tailDistance: Double,
+        faceTarget: Boolean = true,
         maxVelocity: Double = 1.0,
         approachTolerance: Double = 1.0,
         verticalTolerance: Double = 0.5,
@@ -929,12 +1157,16 @@ open class AircraftController(
             val current = location.value ?: continue
 
             // face target
-            lookAtWithSpin(target.as2D(), target.altitude)
+            lookAtWithSpin(
+                target.as2D,
+                target.altitude,
+                angleOffset = if (faceTarget) 0.0 else 180.0
+            )
 
             // signed deltas
             val dz = perchHeight - current.altitude
             val vSign = if (dz >= 0) 1 else -1
-            val dh = current.as2D().distanceTo(target.as2D()) - tailDistance
+            val dxy = current.as2D.distanceTo(target.as2D) - tailDistance
 
             // Vertical: smooth to zero at perch height
             val vz =
@@ -943,21 +1175,15 @@ open class AircraftController(
 
             // Forward: smooth to zero at perch distance
             val vf =
-                if (abs(dh) <= approachTolerance) 0.0
-                else (dh.pow(2) / (abs(dh) + 1.0)).coerceAtMost(maxVelocity)
+                if (abs(dxy) <= approachTolerance) 0.0
+                else (dxy.pow(2) / (abs(dxy) + 1.0)).coerceAtMost(maxVelocity)
 
-            val param = VirtualStickFlightControlParam().apply {
-                pitch = 0.0
+            val param = FlightParam().apply {
                 roll = vf
-                yaw = 0.0
                 verticalThrottle = vz
-                rollPitchControlMode = RollPitchControlMode.VELOCITY
-                verticalControlMode = VerticalControlMode.VELOCITY
-                yawControlMode = YawControlMode.ANGULAR_VELOCITY
-                rollPitchCoordinateSystem = FlightCoordinateSystem.BODY
             }
 
-            stickVM.sendVirtualStickAdvancedParam(param)
+            sendFlightParam(param)
         }
     }
 }
