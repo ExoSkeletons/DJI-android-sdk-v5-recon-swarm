@@ -53,7 +53,7 @@ class LiveLocationProvider(
         // User has returned from the location settings screen.
         // We re-check if location is enabled and try to start updates.
         Log.d(TAG, "Returned from location settings.")
-        enable() // FIXME: if user does not enable location in settings, this causes a settings loop
+        startRequesting() // FIXME: if user does not enable location in settings, this causes a settings loop
     }
     private val requestLocationPermissionLauncher = fragment.registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -77,7 +77,7 @@ class LiveLocationProvider(
         // Location permissions granted.
         Log.d(TAG, "Location permissions request granted.")
         // Try to start location updates.
-        enable()
+        startRequesting()
     }
 
 
@@ -126,14 +126,13 @@ class LiveLocationProvider(
     }
 
 
-    fun enabled(): Boolean = requestingEnabled
+    fun isRequesting(): Boolean = requestingEnabled
 
-    fun enable() {
-        if (enabled()) return
+    fun startRequesting() {
+        if (isRequesting()) return
 
         // Check permissions granted
         val locationPerms = arrayOf(
-            Manifest.permission.ACCESS_BACKGROUND_LOCATION,
             Manifest.permission.INTERNET,
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION
@@ -180,7 +179,7 @@ class LiveLocationProvider(
         Log.d(TAG, "Started location updates")
     }
 
-    fun disable() {
+    fun stopRequesting() {
         if (requestingEnabled) {
             mLocationProviderClient.removeLocationUpdates(mLocationCallback)
             requestingEnabled = false

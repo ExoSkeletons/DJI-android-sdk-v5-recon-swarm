@@ -13,8 +13,8 @@
 
     <fragment
         android:id="@+id/virtual_stick_page_vocom"
-        android:name="com.kcg.dr.VirtualStickFragmentVoCom"
-        android:label="virtual_stick_page_ariel" />
+        android:name="com.kcg.dr.vocom.VirtualStickFragmentVoCom"
+        android:label="virtual_stick_vocom_page" />
     <fragment
         android:id="@+id/flight_record_page"
         android:name="dji.sampleV5.aircraft.pages.FlightRecordFragment"
