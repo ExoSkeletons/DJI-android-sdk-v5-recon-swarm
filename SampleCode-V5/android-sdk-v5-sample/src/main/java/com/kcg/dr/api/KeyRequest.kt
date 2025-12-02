@@ -12,16 +12,17 @@
 */
 @file:OptIn(InternalSerializationApi::class)
 
-package com.kcg.dr.remote_api
+package com.kcg.dr.api
 
 import android.util.Log
+import com.google.gson.annotations.SerializedName
+import com.kcg.dr.DJIErrorException
 import dji.sdk.keyvalue.key.DJIActionKeyInfo
 import dji.sdk.keyvalue.key.DJIKey
 import dji.sdk.keyvalue.key.DJIKeyInfo
 import dji.sdk.keyvalue.key.FlightControllerKey
 import dji.sdk.keyvalue.key.GimbalKey
 import dji.sdk.keyvalue.value.base.DJIValue
-import dji.v5.common.error.IDJIError
 import dji.v5.et.action
 import dji.v5.et.create
 import dji.v5.et.get
@@ -37,6 +38,8 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import org.json.JSONArray
 import org.json.JSONObject
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 
 @Serializable
@@ -44,18 +47,15 @@ enum class DJIKeyFunc { GET, SET, ACTION }
 
 @Serializable
 data class DJIKeyRequest(
+    @SerializedName("group")
     val group: String,
-    val name: String,
-    val func: DJIKeyFunc? = null,
+    @SerializedName("key")
+    val key: String,
+    @SerializedName("func")
+    val keyType: DJIKeyFunc? = null,
+    @SerializedName("args")
     val param: JsonObject? = null,
 )
-
-fun errorResponse(error: String) = Response(ok = false, error = error, errorCode = "")
-fun exceptionResponse(t: Throwable) =
-    Response(ok = false, error = t.message, errorCode = "${t.javaClass.simpleName}")
-
-fun errorResponseDji(error: IDJIError) =
-    Response(ok = false, error = error.errorCode(), errorCode = error.errorCode())
 
 
 @Suppress("UNCHECKED_CAST")
@@ -63,14 +63,12 @@ class KeyItem<P, R>(
     val djiKey: DJIKey<R>,
     val djiKeySet: DJIKey<P> = djiKey as DJIKey<P>
 ) {
-
     fun toElement(value: Any?): JsonElement = when (value) {
         null -> JsonNull
         is JSONArray -> {
             val list = mutableListOf<JsonElement>()
-            for (i in 0 until value.length()) {
+            for (i in 0 until value.length())
                 list += toElement(value.opt(i))
-            }
             JsonArray(list)
         }
 
@@ -81,7 +79,8 @@ class KeyItem<P, R>(
         else -> JsonPrimitive(value.toString()) // fallback
     }
 
-    fun JSONObject.toJsonObject(): JsonObject {
+    fun JSONObject?.toJsonObject(): JsonElement {
+        if (this == null) return JsonNull
         val content = mutableMapOf<String, JsonElement>()
         for (key in this.keys())
             content[key] = toElement(this.opt(key))
@@ -91,59 +90,51 @@ class KeyItem<P, R>(
     fun fromJson(jsonObject: JsonObject?): P? =
         djiKey.keyInfo.typeConverter.fromStr(jsonObject.toString()) as P?
 
-    suspend fun get(): Response = suspendCancellableCoroutine { cont ->
+    suspend fun get(): JsonElement = suspendCancellableCoroutine { cont ->
         djiKey.get(
             {
-                cont.resumeWith(
-                    Result.success(
-                        Response(
-                            result = when (it) {
-                                null -> JsonNull
-                                is DJIValue -> it.toJson().toJsonObject()
-                                else -> toElement(it)
-                            }
-                        )
-                    )
+                cont.resume(
+                    when (it) {
+                        null -> JsonNull
+                        is DJIValue -> it.toJson().toJsonObject()
+                        else -> toElement(it)
+                    }
                 )
             },
-            { cont.resumeWith(Result.success(errorResponseDji(it))) }
+            { cont.resumeWithException(DJIErrorException(it)) }
         )
     }
 
-    suspend fun set(jsonParam: JsonObject?): Response {
+    suspend fun set(jsonParam: JsonObject?): JsonElement {
         val p: P? = fromJson(jsonParam)
-        if (p == null) return Response(ok = false, error = "Parameter cannot be null")
+        require(p != null) { "Parameter cannot be null" }
 
         return suspendCancellableCoroutine { cont ->
             djiKeySet.set(
                 p,
-                { cont.resumeWith(Result.success(Response())) },
-                { cont.resumeWith(Result.success(errorResponseDji(it))) }
+                { cont.resume(JsonNull) },
+                { cont.resumeWithException(DJIErrorException(it)) }
             )
         }
     }
 
-    suspend fun action(jsonParam: JsonObject?): Response {
+    suspend fun action(jsonParam: JsonObject?): JsonElement {
         val p: P? = fromJson(jsonParam)
-        if (p == null) return errorResponse("Parameter cannot be null")
+        require(p != null) { "Parameter cannot be null" }
 
         return suspendCancellableCoroutine { cont ->
             (djiKey as DJIKey.ActionKey<P, R>).action(
                 p,
                 {
-                    cont.resumeWith(
-                        Result.success(
-                            Response(
-                                result = when (it) {
-                                    null -> JsonNull
-                                    is DJIValue -> it.toJson().toJsonObject()
-                                    else -> toElement(it)
-                                }
-                            )
-                        )
+                    cont.resume(
+                        when (it) {
+                            null -> JsonNull
+                            is DJIValue -> it.toJson().toJsonObject()
+                            else -> toElement(it)
+                        }
                     )
                 },
-                { cont.resumeWith(Result.success(errorResponseDji(it))) }
+                { cont.resumeWithException(DJIErrorException(it)) }
             )
         }
     }
@@ -205,20 +196,16 @@ object KeyActivator {
         registerKey("GimbalKey", "KeyGimbalMode", GimbalKey.KeyGimbalMode)
     }
 
-    suspend fun handleKeyRequest(jsonObject: JsonObject): Response {
+    suspend fun handleKeyRequest(element: JsonElement): JsonElement {
         // Decode serialised key request
-        val keyDTO = try {
-            Json.decodeFromString<DJIKeyRequest>(jsonObject.toString())
-        } catch (e: Exception) {
-            return exceptionResponse(e)
-        }
+        val keyDTO = Json.decodeFromString<DJIKeyRequest>(element.toString())
 
         Log.d("KeyExecutor", "Executing key $keyDTO")
         Log.d("KeyExecutor", "Registry: $registry")
 
         // Lookup key in registry
-        val keyItem = registry[Pair(keyDTO.group.normaliseKey(), keyDTO.name.normaliseKey())]
-        if (keyItem == null) return errorResponse("Key not found")
+        val keyItem = registry[Pair(keyDTO.group.normaliseKey(), keyDTO.key.normaliseKey())]
+        if (keyItem == null) throw IllegalArgumentException("Key not found")
 
         Log.d("KeyExecutor", "Matched key ${keyItem.djiKey}")
 
@@ -226,37 +213,33 @@ object KeyActivator {
 
         // Verify key's functionality support
         when {
-            keyDTO.func == DJIKeyFunc.GET && !keyInfo.isCanGet -> return errorResponse(
-                "key ${keyDTO.name} does not support GET"
+            keyDTO.keyType == DJIKeyFunc.GET && !keyInfo.isCanGet -> throw UnsupportedOperationException(
+                "key ${keyDTO.key} does not support GET"
             )
 
-            keyDTO.func == DJIKeyFunc.SET && !keyInfo.isCanSet -> return errorResponse(
-                error = "key ${keyDTO.name} does not support SET"
+            keyDTO.keyType == DJIKeyFunc.SET && !keyInfo.isCanSet -> throw UnsupportedOperationException(
+                "key ${keyDTO.key} does not support SET"
             )
 
-            keyDTO.func == DJIKeyFunc.ACTION && !keyInfo.isCanPerformAction -> return errorResponse(
-                error = "key ${keyDTO.name} does not support ACTION"
+            keyDTO.keyType == DJIKeyFunc.ACTION && !keyInfo.isCanPerformAction -> throw UnsupportedOperationException(
+                "key ${keyDTO.key} does not support ACTION"
             )
         }
 
-        val func: DJIKeyFunc = keyDTO.func
+        val func: DJIKeyFunc = keyDTO.keyType
             ?: when {
                 keyInfo.isCanPerformAction -> DJIKeyFunc.ACTION // Prioritise action
                 keyDTO.param == null && keyInfo.isCanGet -> DJIKeyFunc.GET // If no param given - prioritise get
                 keyInfo.isCanSet -> DJIKeyFunc.SET
                 keyInfo.isCanGet -> DJIKeyFunc.GET
-                else -> return errorResponse("key ${keyDTO.name} does not support any function")
+                else -> throw UnsupportedOperationException("key ${keyDTO.key} does not support any known operation")
             }
 
         // Execute (keyItem get/set/action owns it's parameter Typing)
-        return try {
-            when (func) {
-                DJIKeyFunc.GET -> keyItem.get()
-                DJIKeyFunc.SET -> keyItem.set(keyDTO.param)
-                DJIKeyFunc.ACTION -> keyItem.action(keyDTO.param)
-            }
-        } catch (e: Exception) {
-            exceptionResponse(e)
+        return when (func) {
+            DJIKeyFunc.GET -> keyItem.get()
+            DJIKeyFunc.SET -> keyItem.set(keyDTO.param)
+            DJIKeyFunc.ACTION -> keyItem.action(keyDTO.param)
         }
     }
 }
