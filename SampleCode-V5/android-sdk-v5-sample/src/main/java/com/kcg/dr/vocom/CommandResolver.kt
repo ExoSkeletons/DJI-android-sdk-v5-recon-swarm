@@ -12,16 +12,27 @@ class CommandResolver(val config: ParseConfig) {
     data class Command(
         val name: String,
         val promptsStringId: Int,
-        val func: () -> Unit = { }
+        val responseFmtStringId: Int? = null,
+        val func: (String) -> Unit = { }
     ) {
         fun strings(resources: Resources): List<String> {
             return resources.getString(promptsStringId).split("|")
+        }
+
+        fun response(resources: Resources): String {
+            val arg = strings(resources).firstOrNull() ?: name
+            return if (responseFmtStringId == null) arg
+            else resources.getString(responseFmtStringId, arg)
         }
     }
 
     val commands = mutableListOf<Command>()
 
-    fun resolve(speech: String, resources: Resources, locale: Locale = Locale.getDefault()): Command? {
+    fun resolve(
+        speech: String,
+        resources: Resources,
+        locale: Locale = Locale.getDefault()
+    ): Command? {
         val matchedCommandContained = mutableSetOf<Command>()
         val matchedCommandExact = mutableSetOf<Command>()
 
