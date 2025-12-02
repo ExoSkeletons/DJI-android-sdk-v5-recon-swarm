@@ -503,20 +503,26 @@ More refer to the release notes." </string>
     <string name="english">English</string>
     <string name="hebrew">Hebrew</string>
 
-    <string name="commands_stop">stop|halt|quit|end</string>
-    <string name="commands_takeoff">takeoff|fly|sky|liftoff|wakeup|sunshine|morning</string>
-    <string name="commands_land">land|ground|down|fall|perch|floor|shutdown|shut down|night|off|turn off|sleep|sunset|plan|planned</string>
     <string name="speech_prompt">Click to Activate listening</string>
     <string name="speech_prompt_listening">Listening for Command…</string>
     <string name="error_speech_unrecognised">No speech recognized.</string>
+
+    <string name="commands_response_fmt_accepted">got it</string>
+    <string name="commands_response_fmt_executing">executing %s</string>
+    <string name="commands_response_fmt_going">going %s</string>
+
+    <string name="commands_stop">stop|halt|quit|end</string>
+    <string name="commands_takeoff">takeoff|fly|sky|liftoff|wakeup|sunshine|morning</string>
+    <string name="commands_land">land|ground|down|fall|perch|floor|shutdown|shut down|night|off|turn off|sleep|sunset|plan|planned</string>
+
     <string name="commands_return_home">home|safe|house|run|ron|escape|evac|evacuate</string>
     <string name="commands_follow_target">follow|follow target|follow him|target</string>
     <string name="commands_follow_me">follow me|me</string>
     <string name="commands_fly_waypoint">goto|go to|waypoint|go to waypoint|waypoint</string>
 
     <string name="commands_mission_scan_above">scan|go scan|search|scan around|eagle</string>
-    <string name="commands_mission_recon">recon</string>
-    <string name="commands_mission_far_recon">far scan|long|far</string>
+    <string name="commands_mission_recon">reconnaissance|recon</string>
+    <string name="commands_mission_far_recon">far reconnaissance|far recon|long|far</string>
 
     <string name="command_hello">hello|hi|heya|hiya|hey|wave</string>
     <string name="commands_circle">circle|loop|circling|orbit</string>
