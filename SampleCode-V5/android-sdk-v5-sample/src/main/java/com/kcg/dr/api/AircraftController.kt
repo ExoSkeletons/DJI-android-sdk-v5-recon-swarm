@@ -1,6 +1,6 @@
 @file:OptIn(InternalSerializationApi::class)
 
-package com.kcg.dr.remote_api
+package com.kcg.dr.api
 
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.Serializable
