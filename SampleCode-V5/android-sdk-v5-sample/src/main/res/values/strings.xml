@@ -495,8 +495,8 @@ More refer to the release notes." </string>
     <string name="btn_install_test_app">Install Test App</string>
 
     <!-- STT commands -->
-    <string name="item_ariel_title">Bean Ltd.</string>
-    <string name="item_ariel_description">Bean factory makes beans</string>
+    <string name="item_vocom_title">Recon Swarm</string>
+    <string name="item_vocom_description">Voice Control &amp; Reconnaissance</string>
 
     <string name="current_locale">Current Locale</string>
     <string name="language">Language</string>
