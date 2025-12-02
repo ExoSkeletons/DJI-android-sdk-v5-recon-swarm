@@ -4,7 +4,6 @@ import android.location.Location
 import dji.sdk.keyvalue.value.common.LocationCoordinate2D
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
 import kotlin.math.cos
-import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
@@ -29,7 +28,10 @@ private fun Triple<Double, Double, Double>.normalized(): Triple<Double, Double, 
     return Triple(vx / mag, vy / mag, vz / mag)
 }
 
-fun LocationCoordinate3D.as2D() = LocationCoordinate2D(this.latitude, this.longitude)
+inline val LocationCoordinate3D.as2D get() = LocationCoordinate2D(this.latitude, this.longitude)
+
+fun LocationCoordinate2D.as3D(altitude: Double) =
+    LocationCoordinate3D(this.latitude, this.longitude, altitude)
 
 
 object LocationUtils {
@@ -125,7 +127,7 @@ object LocationUtils {
     }
 
     fun LocationCoordinate3D.distanceTo(other: LocationCoordinate3D): Double {
-        val horizontal = this.as2D().distanceTo(other.as2D())
+        val horizontal = this.as2D.distanceTo(other.as2D)
         val vertical = other.altitude - this.altitude
         return sqrt(horizontal * horizontal + vertical * vertical)
     }
@@ -143,27 +145,23 @@ object LocationUtils {
         return l1.bearingTo(l2).toDouble().normalizeAngle()
     }
 
-    fun calculateVelocityToTarget(
+    fun vectorToTarget(
         cur: LocationCoordinate3D,
         target: LocationCoordinate3D,
         curYaw: Double, // degrees clockwise from North
-        maxVelocity: Double
     ): Triple<Double, Double, Double> {
-        val bearingToTarget = cur.as2D().bearingTo(target.as2D())
-        val vz = target.altitude - cur.altitude
+        val dh = cur.as2D.distanceTo(target.as2D)
+        val dz = target.altitude - cur.altitude
 
-        // relative bearing (target direction relative to aircraft’s heading)
+        val bearingToTarget = cur.as2D.bearingTo(target.as2D)
         val relBearingRad = Math.toRadians((bearingToTarget - curYaw).normalizeAngle())
 
-        // body-frame directions (x = forward, y = right)
-        val vx = cos(relBearingRad)
-        val vy = sin(relBearingRad)
+        val dx = dh * cos(relBearingRad)
+        val dy = dh * sin(relBearingRad)
 
-        // normalize and scale
-        val mag = sqrt(vx * vx + vy * vy + vz * vz)
-        val scale = if (mag > 1e-6) min(maxVelocity, mag) / mag else 0.0
-
-        return Triple(vx * scale, vy * scale, vz * scale)
+        val mag = sqrt(dx * dx + dy * dy + dz * dz)
+        if (mag < 1e-6) return Triple(0.0, 0.0, 0.0)
+        return Triple(dx / mag, dy / mag, dz / mag)
     }
 
 
