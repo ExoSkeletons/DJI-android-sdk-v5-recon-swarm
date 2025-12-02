@@ -519,6 +519,11 @@ More refer to the release notes." </string>
     <string name="commands_follow_target">follow|follow target|follow him|target</string>
     <string name="commands_follow_me">follow me|me</string>
     <string name="commands_fly_waypoint">goto|go to|waypoint|go to waypoint|waypoint</string>
+    <array name="commands_mission_far_recon_targets">
+        <item>park|parking|one|1</item>
+        <item>house|two|2</item>
+        <item>building|three|3</item>
+    </array>
 
     <string name="commands_mission_scan_above">scan|go scan|search|scan around|eagle</string>
     <string name="commands_mission_recon">reconnaissance|recon</string>

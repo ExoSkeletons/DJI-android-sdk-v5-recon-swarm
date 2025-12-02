@@ -126,7 +126,7 @@ class CameraGimbalVM : DJIViewModel() {
         callback = callback
     )
 
-    fun lookAt(
+    fun lookTo(
         forwardOffset: Double,
         verticalOffset: Double,
         callback: CommonCallbacks.CompletionCallback? = null
@@ -135,7 +135,7 @@ class CameraGimbalVM : DJIViewModel() {
         callback = callback
     )
 
-    fun lookAt(
+    fun lookTo(
         forwardOffset: Double,
         verticalOffset: Double,
         horizontalOffset: Double,

@@ -27,6 +27,11 @@
     <string name="commands_mission_scan_above">סריקה|סרוק|זרוק|רוק|צחוק|ספיקה|סליקה|שריטה</string>
     <string name="commands_mission_recon">חקירה|חקור|אור</string>
     <string name="commands_mission_far_recon">סריקה רחוקה|לך|אל|לך אל|טוס אל|לך ל|טוס ל|רחוק|סרוק רחוק</string>
+    <array name="commands_mission_far_recon_targets">
+        <item>חניון|אחד|1</item>
+        <item>בית|שתיים|שתים|2</item>
+        <item>בניין|שלוש|3</item>
+    </array>
 
     <string name="command_hello">שלום|הי|היי|הלו|מה נשמע|מה קורה|אהלן|נפנוף|נפנף</string>
     <string name="commands_square">ריבוע|קיבוע|ריבוי</string>
