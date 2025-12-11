@@ -136,24 +136,9 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     private lateinit var waypointAdapter: LocationAdapter
     private lateinit var waypointRepo: WPLocationRepository
 
-    // Config
-    private val followCallback = object : CommonCallbacks.CompletionCallback {
-        override fun onSuccess() {
-            ToastUtils.showToast("mission complete, success")
-            followMe()
-        }
-
-        override fun onFailure(p0: IDJIError) {
-            ToastUtils.showToast("mission error\n${p0.errorCode()}")
-            followMe()
-        }
-    }
-
     class DemoFlightConfig(
         val humanHeight: Double = 2.0,
         val preferredAlt: Double,
-
-        val cc: CommonCallbacks.CompletionCallback? = null,
 
         val scanHeightHigh: Double,
         val scanRadiusHigh: Double,
@@ -193,8 +178,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         preferredAlt = 5.0,
         followDistance = 3.5,
 
-        cc = followCallback,
-
         scanHeightHigh = 5.0,
         scanRadiusHigh = 1.5,
 
@@ -210,12 +193,10 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         preferredAlt = 20.0,
         followDistance = 12.0,
 
-        cc = followCallback,
+        scanHeightHigh = 30.0,
+        scanRadiusHigh = 10.0,
 
-        scanHeightHigh = 25.0,
-        scanRadiusHigh = 15.0,
-
-        scanHeightLow = 15.0,
+        scanHeightLow = 10.0,
         scanRadiusLow = 8.0,
 
         ascendVelocity = 4.0,
