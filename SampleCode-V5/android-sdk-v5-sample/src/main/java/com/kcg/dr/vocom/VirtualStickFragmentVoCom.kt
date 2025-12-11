@@ -138,7 +138,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
     class DemoFlightConfig(
         val humanHeight: Double = 2.0,
-        val preferredAlt: Double,
+        val cruiseHeight: Double,
 
         val scanHeightHigh: Double,
         val scanRadiusHigh: Double,
@@ -163,7 +163,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     )
 
     private val indoorsConfig = DemoFlightConfig(
-        preferredAlt = 1.5,
+        cruiseHeight = 1.5,
         followDistance = 0.0,
 
         scanHeightHigh = 1.0,
@@ -175,7 +175,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         scanVelocity = 0.25,
     )
     private val denseLotConfig = DemoFlightConfig(
-        preferredAlt = 5.0,
+        cruiseHeight = 5.0,
         followDistance = 3.5,
 
         scanHeightHigh = 5.0,
@@ -190,7 +190,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     )
     private val emptyLotConfig = DemoFlightConfig(
         humanHeight = 3.0,
-        preferredAlt = 20.0,
+        cruiseHeight = 20.0,
         followDistance = 12.0,
 
         scanHeightHigh = 30.0,
@@ -1184,7 +1184,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
         // If aircraft is far from a perch position, move closer
         val dl = deviceLocation.value!!
-        val pl = dl.apply { altitude = cfg.preferredAlt }
+        val pl = dl.apply { altitude = cfg.cruiseHeight }
         if (abs(
                 location.value!!.as2D.distanceTo(dl.as2D)
                         - cfg.followDistance
@@ -1211,7 +1211,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             withTimeoutOrNull(cfg.watch12Time) {
                 perchShoulder(
                     deviceLocation,
-                    cfg.preferredAlt, cfg.followDistance,
+                    cfg.cruiseHeight, cfg.followDistance,
                     faceTarget = true
                 )
                 // trailShoulder(deviceLocation, cfg.preferredAlt, cfg.perchDistance)
