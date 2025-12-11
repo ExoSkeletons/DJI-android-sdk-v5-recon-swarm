@@ -340,7 +340,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             binding?.btnWaypointAddAircraft?.isEnabled = it != null
         }
         deviceLocation.observe(viewLifecycleOwner) {
-            binding?.btnWaypointAddAircraft?.isEnabled = it != null
+            binding?.btnWaypointAddDevice?.isEnabled = it != null
         }
         binding?.btnWaypointAddAircraft?.setOnClickListener {
             controller.location.value?.let {
