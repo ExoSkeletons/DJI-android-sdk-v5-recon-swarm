@@ -1,28 +1,24 @@
 package com.kcg.dr.vocom
 
 import android.content.res.Resources
-import java.util.Locale
 
-class CommandResolver(val config: ParseConfig) {
-    data class ParseConfig(
-        val matchContained: Boolean = true,
-        val noSpaces: Boolean = true,
-    )
-
+class CommandResolver {
     data class Command(
-        val name: String,
-        val promptsStringId: Int,
+        val promptRegexStringId: Int,
         val responseFmtStringId: Int? = null,
-        val func: (String) -> Unit = { }
+        val nameStringId: Int? = null,
+        val func: (MatchResult) -> Unit = { }
     ) {
-        fun strings(resources: Resources): List<String> {
-            return resources.getString(promptsStringId).split("|")
+        fun response(resources: Resources): String {
+            val name = name(resources)
+            return responseFmtStringId?.let { resources.getString(it, name) } ?: name
         }
 
-        fun response(resources: Resources): String {
-            val arg = strings(resources).firstOrNull() ?: name
-            return if (responseFmtStringId == null) arg
-            else resources.getString(responseFmtStringId, arg)
+        fun name(resources: Resources): String {
+            nameStringId?.let { return resources.getString(it) }
+            return resources.getString(promptRegexStringId).let {
+                it.split("|").firstOrNull() ?: it
+            }
         }
     }
 
@@ -30,33 +26,15 @@ class CommandResolver(val config: ParseConfig) {
 
     fun resolve(
         speech: String,
-        resources: Resources,
-        locale: Locale = Locale.getDefault()
-    ): Command? {
-        val matchedCommandContained = mutableSetOf<Command>()
-        val matchedCommandExact = mutableSetOf<Command>()
-
-        var cleanedSpeech = speech
-
+        resources: Resources
+    ): Pair<Command, MatchResult>? {
         commands.forEach { com ->
-            // TODO: replace | with regex string res
-            com.strings(resources).forEach { comTxt ->
-                var matchCom = comTxt
-                if (config.noSpaces) {
-                    matchCom = matchCom.replace(" ", "")
-                    cleanedSpeech = cleanedSpeech.replace(" ", "")
-                }
-                val contained = cleanedSpeech.lowercase(locale).contains(matchCom)
-                val exact = cleanedSpeech.lowercase(locale).contentEquals(matchCom)
-                if (contained) matchedCommandContained += com
-                if (exact) matchedCommandExact += com
-            }
+            val regex = resources.getString(com.promptRegexStringId)
+                .toRegex(RegexOption.IGNORE_CASE)
+            val match = regex.find(speech)
+            if (match != null)
+                return com to match
         }
-
-        return when {
-            matchedCommandExact.isNotEmpty() -> matchedCommandExact.first()
-            matchedCommandContained.isNotEmpty() && config.matchContained -> matchedCommandContained.first()
-            else -> null
-        }
+        return null
     }
 }

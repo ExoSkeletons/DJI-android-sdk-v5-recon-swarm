@@ -3,7 +3,6 @@ package com.kcg.dr.vocom
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Typeface
-import android.os.Build
 import android.os.Bundle
 import android.speech.RecognizerIntent
 import android.util.Log
@@ -50,18 +49,17 @@ class VoiceFragment : Fragment() {
 
         override fun onBindViewHolder(holder: CommandViewHolder, position: Int) {
             val command = commandList[position]
-            val strings = command.strings(
-                holder.itemView.context
-                    .getLocalizedResources(fragment.locale)
-            )
 
-            holder.commandButton.setOnClickListener { fragment.execCom(command) }
-            holder.commandButton.text = buildString {
-                append(strings.first())
-                append("\t (")
-                append(command.name)
-                append(")")
+            fragment.context?.getLocalizedResources(fragment.locale)?.let { it ->
+                val strings = it.getStringArray(command.promptRegexStringId)
+                holder.commandButton.text = buildString {
+                    append(command.name(it))
+                    append("\t (")
+                    append(strings)
+                    append(")")
+                }
             }
+            holder.commandButton.setOnClickListener { fragment.execCom(command) }
             holder.commandButton.setTypeface(
                 null,
                 if (command == selectedCom) Typeface.BOLD_ITALIC
@@ -106,7 +104,7 @@ class VoiceFragment : Fragment() {
         val recyclerView = rootView.findViewById<RecyclerView>(R.id.command_list)
 
         comListAdapter = CommandAdapter(this)
-        controller = CommandResolver(CommandResolver.ParseConfig())
+        controller = CommandResolver()
 
         rootView.findViewById<ImageButton>(R.id.btnMic).setOnClickListener { startListening() }
 
@@ -136,14 +134,6 @@ class VoiceFragment : Fragment() {
                 RecognizerIntent.EXTRA_PROMPT,
                 getString(R.string.speech_prompt_listening)
             )
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                val bias = listOf<Command>()
-                    .flatMap {
-                        it.strings(requireContext().getLocalizedResources(locale))
-                    }
-                putExtra(RecognizerIntent.EXTRA_BIASING_STRINGS, ArrayList(bias))
-            }
         }
 
         try {
@@ -158,16 +148,16 @@ class VoiceFragment : Fragment() {
     private fun onHearText(spokenText: String) {
         root.findViewById<TextView>(R.id.txtSpeechResult).text = spokenText
 
-        val com = controller.resolve(
+        val res = controller.resolve(
             spokenText,
             requireContext().getLocalizedResources(locale)
         )
-        com?.let { execCom(it) }
+        res?.let { execCom(it.first) }
     }
 
     private fun execCom(command: Command) {
-        root.findViewById<TextView>(R.id.commandResult).text = command.name
-
+        root.findViewById<TextView>(R.id.commandResult).text =
+            command.name(requireContext().getLocalizedResources(locale))
         comListAdapter.selectedCom = command
         comListAdapter.notifyDataSetChanged()
 

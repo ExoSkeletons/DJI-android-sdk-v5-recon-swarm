@@ -5,7 +5,6 @@ import android.app.Activity
 import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Color
-import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.speech.RecognizerIntent
@@ -39,6 +38,7 @@ import com.kcg.dr.SFXManager
 import com.kcg.dr.api.ApiServerService
 import com.kcg.dr.api.KeyActivator
 import com.kcg.dr.as2D
+import com.kcg.dr.as3D
 import com.kcg.dr.controller.AircraftController
 import com.kcg.dr.controller.AircraftController.CircleFaceMode
 import com.kcg.dr.vocom.CommandResolver.Command
@@ -106,7 +106,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     private val liveStreamVM: LiveStreamVM by activityViewModels()
 
     private lateinit var controller: AircraftController
-    private val commandResolver: CommandResolver = CommandResolver(CommandResolver.ParseConfig())
+    private val commandResolver: CommandResolver = CommandResolver()
 
     private var binding: FragVirtualStickVocomPageBinding? = null
 
@@ -306,10 +306,13 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         liveLocation.startRequesting()
 
         waypointRepo = WPLocationRepository(requireContext())
+        val waypointLocations = waypointRepo.locations.toMutableList()
+        val waypointNames = requireContext().getLocalizedResources(locale)
+            .getStringArray(R.array.commands_mission_targets)
+            .toMutableList()
         waypointAdapter = LocationAdapter(
-            waypointRepo.locations.toMutableList(), // Create Copy
-            requireContext().getLocalizedResources(locale)
-                .getStringArray(R.array.commands_mission_far_recon_targets).toList(),
+            waypointLocations,
+            waypointNames,
             onFlyTo = { loc ->
                 controller.fly {
                     flyToSticks(
@@ -887,8 +890,8 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         commandResolver.commands.clear()
         commandResolver.commands.addAll(
             arrayOf(
-                Command("STOP", R.string.commands_stop) { controller.stop() },
-                Command("TAKE OFF", R.string.commands_takeoff) {
+                Command(R.string.commands_stop) { controller.stop() },
+                Command(R.string.commands_takeoff) {
                     controller.fly {
                         try {
                             val response = KeyActivator.handleKeyRequest(
@@ -907,47 +910,25 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                         //takeoff()
                     }
                 },
-                Command("LAND", R.string.commands_land) { controller.fly { land() } },
+                Command(R.string.commands_land) { controller.fly { land() } },
 
                 Command(
-                    "RETURN HOME",
                     R.string.commands_return_home,
                     respFmtExId
                 ) { toMe() },
                 Command(
-                    "FOLLOW TARGET",
                     R.string.commands_follow_target,
                     respFmtExId
                 ) { track() },
 
                 Command(
-                    "FOLLOW ME",
                     R.string.commands_follow_me,
                     respFmtExId
                 ) { followMe() },
                 Command(
-                    "SCAN ABOVE",
-                    R.string.commands_mission_scan_above,
-                    respFmtExId
-                ) {
-                    controller.fly {
-                        takeoff()
-                        ascendTo(cfg.scanHeightHigh, cfg.ascendVelocity)
-                        delay(1.seconds)
-                        scanGround(
-                            cfg.scanRadiusHigh,
-                            cfg.scanVelocity,
-                            faceMode = CircleFaceMode.OUTER
-                        )
-                        delay(1.seconds)
-                        speakText(demoScanSusInfo)
-                        ascendTo(cfg.preferredAlt, cfg.descendVelocity)
-                    }
-                },
-                Command(
-                    "RECON DOWN",
                     R.string.commands_mission_recon,
-                    respFmtExId
+                    respFmtExId,
+                    R.string.commands_mission_recon_name
                 ) {
                     controller.fly {
                         val startHeight = height.value!!
@@ -960,40 +941,66 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                     }
                 },
                 Command(
-                    "FLY WAYPOINT",
-                    R.string.commands_mission_far_recon,
-                    R.string.commands_response_fmt_executing
-                ) { spokenText ->
-                    if (waypointRepo.locations.isEmpty()) throw RuntimeException("no waypoints")
+                    R.string.commands_mission_scan,
+                    R.string.commands_response_fmt_executing,
+                    R.string.commands_mission_scan_name
+                ) { match ->
+                    // extract the scan target from the spoken text
+                    val args = match.groups[1]?.value ?: ""
 
-                    // extract the target from the spoken text
-                    val targets = requireContext().getLocalizedResources(locale)
-                        .getStringArray(R.array.commands_mission_far_recon_targets)
+                    val waypoints = waypointRepo.locations
+                    val dl = deviceLocation.value?.as2D?.as3D(cfg.scanHeightHigh)
+
+                    val waypointAliases = requireContext().getLocalizedResources(locale)
+                        .getStringArray(R.array.commands_mission_targets).toMutableList()
+                    val deviceAliases = requireContext().getLocalizedResources(locale)
+                        .getString(R.string.commands_mission_target_device)
+
                     var index: Int = -1
-                    targets.forEachIndexed { i, aliases ->
-                        Log.i("Waypoint Resolver", "searching in aliases $aliases")
-                        aliases.split("|").forEach { alias ->
-                            Log.i("Waypoint Resolver", "$spokenText contains $alias?")
-                            if (spokenText.contains(alias)) {
-                                Log.i("Waypoint Resolver", "found $alias")
-                                index = i
-                                return@forEachIndexed
+                    val target = when {
+                        args.isBlank() -> null
+                        else -> when {
+                            deviceAliases.toRegex().containsMatchIn(args) ->
+                                dl ?: throw RuntimeException("device location unavailable")
+
+                            else -> {
+                                waypointAliases.forEachIndexed { i, aliases ->
+                                    if (i >= waypoints.size) return@forEachIndexed
+
+                                    Log.i(
+                                        "LocationResolver",
+                                        "matching aliases $aliases to args $args:"
+                                    )
+                                    if (aliases.toRegex().containsMatchIn(args)) {
+                                        index = i
+                                        Log.i("LocationResolver", "matched. index=$index")
+                                        return@forEachIndexed
+                                    }
+                                    Log.i("LocationResolver", "index $index")
+                                }
+                                if (index < 0) {
+                                    speakText("no such target:\n $args")
+                                    throw RuntimeException("no match for $args")
+                                }
+                                waypoints[index]
                             }
                         }
                     }
-                    if (index < 0) throw RuntimeException("no target found")
 
-                    val target = waypointRepo.locations[index]
-                    ToastUtils.showToast("flying to ${index + 1}:\n$target")
+                    ToastUtils.showToast("scanning${target?.let { " " + if (it == dl) "you" else "$index:$it" } ?: ""}")
+
+                    return@Command
 
                     controller.fly {
                         takeoff()
-                        flyToSticks(
-                            target,
-                            maxVelocity = cfg.maxVelocity,
-                            accelerationDist = cfg.accelerationDist,
-                            decelerationDist = cfg.decelerationDist
-                        )
+                        target?.let {
+                            flyToSticks(
+                                target,
+                                maxVelocity = cfg.maxVelocity,
+                                accelerationDist = cfg.accelerationDist,
+                                decelerationDist = cfg.decelerationDist
+                            )
+                        } ?: ascendTo(cfg.scanHeightHigh, cfg.ascendVelocity)
                         delay(1.seconds)
                         scanGround(
                             cfg.scanRadiusHigh,
@@ -1005,59 +1012,47 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                 },
 
                 Command(
-                    "WAVE",
                     R.string.command_hello
                 ) { controller.fly { wave() } },
                 Command(
-                    "CIRCLE",
                     R.string.commands_circle
                 ) { controller.fly { flyCircle(1.0, velocity = 0.5) } },
                 Command(
-                    "SQUARE",
                     R.string.commands_square
                 ) { controller.fly { flySquare(5.0, velocity = 2.5) } },
                 Command(
-                    "FAN",
                     R.string.commands_cam_fan
                 ) { controller.fly { gimbalFan() } },
                 Command(
-                    "SPIN",
                     R.string.commands_spin
                 ) { controller.fly { spinBy(360.0, velocity = 50.0) } },
 
                 Command(
-                    "ASCEND",
                     R.string.command_go_up,
                     respFmtGoId
                 ) { controller.fly { ascendBy(1.0) } },
                 Command(
-                    "DESCEND",
                     R.string.command_go_down,
                     respFmtGoId
                 ) { controller.fly { ascendBy(-1.0) } },
                 Command(
-                    "FORWARD",
                     R.string.command_go_forward,
                     respFmtGoId
                 ) { controller.fly { forwardBy(1.0) } },
                 Command(
-                    "BACKWARDS",
                     R.string.command_go_backward,
                     respFmtGoId
                 ) { controller.fly { forwardBy(-0.5) } },
                 Command(
-                    "LEFT",
                     R.string.command_go_left,
                     respFmtGoId
                 ) { controller.fly { leftBy(0.5) } },
                 Command(
-                    "RIGHT",
                     R.string.command_go_right,
                     respFmtGoId
                 ) { controller.fly { leftBy(-0.5) } },
 
                 Command(
-                    "STEALTH",
                     R.string.commands_silence
                 ) { silent.postValue(silent.value != true) },
             )
@@ -1083,13 +1078,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                 RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS,
                 maxSilenceDurationMillis
             )
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                val commands = commandResolver.commands.flatMap {
-                    it.strings(requireContext().getLocalizedResources(locale))
-                }
-                putExtra(RecognizerIntent.EXTRA_BIASING_STRINGS, ArrayList(commands))
-            }
         }
 
         try {
@@ -1101,28 +1089,30 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     }
 
     private fun onHearText(spokenText: String) {
-        val com = commandResolver.resolve(
+        val res = commandResolver.resolve(
             spokenText,
             requireContext().getLocalizedResources(locale)
         )
 
-        when (com) {
+        when (res) {
             null -> binding?.commandResult?.text =
                 requireContext().getString(R.string.error_speech_unrecognised)
 
             else -> {
+                val (com, match) = res
                 try {
-                    com.func(spokenText)
+                    com.func(match)
                     SFXManager.playSfx(SFXManager.SFX.ACTION_CONFIRM)
                     val response =
                         requireContext().getLocalizedResources(locale)
                             .getString(R.string.commands_response_fmt_accepted) + ". " +
                                 com.response(requireContext().getLocalizedResources(locale))
                     speakText(response)
-                    binding?.commandResult?.text = com.name
+                    binding?.commandResult?.text =
+                        com.name(requireContext().getLocalizedResources(locale))
                 } catch (e: Exception) {
                     SFXManager.playSfx(SFXManager.SFX.NOTIFY_TECHNICAL)
-                    ToastUtils.showToast("${e.message}")
+                    ToastUtils.showToast(e.message ?: e.toString())
                 }
             }
         }
@@ -1229,9 +1219,9 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             brakeFor(100.milliseconds)
 
             ToastUtils.showToast("watching 6")
-            spinBy(180.0, velocity = 110.0)
+            spinBy(180.0, velocity = 140.0)
             delay(cfg.watch6Time)
-            spinBy(180.0, velocity = 110.0)
+            spinBy(180.0, velocity = 140.0)
             /*withTimeoutOrNull(cfg.frontTime) {
                 perchShoulder(
                     deviceLocation,
