@@ -208,6 +208,8 @@ open class AircraftController(
         KeyManager.getInstance().cancelListen(this)
     }
 
+    fun isFlying(): Boolean = FlightControllerKey.KeyIsFlying.create().get(false) == true
+
     fun isVirtualStickEnabled() =
         stickVM.currentVirtualStickStateInfo.value?.state?.isVirtualStickEnable == true
 
