@@ -375,8 +375,7 @@ open class AircraftController(
         IntelligentFlightManager.getInstance().poiMissionManager.stopMission(callback)
 
         Log.d(TAG, "stopping flight mission job...")
-        flightJob?.takeIf { it.isActive }
-            ?.cancel() ?: Log.d(TAG, "no flight job to cancel")
+        flightJob?.takeIf { it.isActive }?.cancel()
     }
 
     fun stop(emergency: Boolean = true) {
@@ -425,20 +424,19 @@ open class AircraftController(
                     }
                 })
             }
-            Log.d(TAG, "post takeoff")
             // Take stick control if required
             if (takeStickControl) requireVirtualStick()
             // Wait for aircraft stabilisation
             if (awaitStabilisation) {
                 val takeoffStabilisationDelay = 6.seconds
-                Log.d(TAG, "delaying for takeoff stabilisation...")
+                Log.i(TAG, "delaying for takeoff stabilisation...")
                 delay(takeoffStabilisationDelay)
             }
 
-            Log.d(TAG, "takeoff on success")
+            Log.i(TAG, "takeoff on success")
             callback.onSuccess(msg)
         } catch (e: DJIErrorException) {
-            Log.d(TAG, "takeoff on failure")
+            Log.i(TAG, "takeoff on failure")
             callback.onFailure(e.error)
         }
     }
@@ -1028,8 +1026,10 @@ open class AircraftController(
 
     suspend fun lookAtWithSpin(
         target: LocationCoordinate2D,
-        height: Double,
-        angleOffset: Double = 0.0
+        height: Double? = null,
+        spinVelocity: Double = 100.0,
+        fovTolerance: Double = 0.0,
+        angleOffset: Double = 0.0,
     ) {
         val currentLocation =
             this.location.value ?: throw IllegalStateException("can't get location")
@@ -1040,26 +1040,36 @@ open class AircraftController(
         val headingDiffToTarget = (currentLocation.as2D.bearingTo(target)
                 - heading.normalizeAngle()
                 ).wrap180()
-        spinBy(headingDiffToTarget + angleOffset)
+        if (abs(headingDiffToTarget) > fovTolerance / 2.0) // if fov = \|/ then angle tolerance = abs \|
+            spinBy(headingDiffToTarget + angleOffset, velocity = spinVelocity)
 
-        // aim the camera at the location
-        camGimbalVM.lookTo(currentLocation.as2D.distanceTo(target), height - currentHeight)
+        height?.let {
+            // aim the camera at the location
+            camGimbalVM.lookTo(
+                currentLocation.as2D.distanceTo(target),
+                it - currentHeight
+            )
+        }
     }
 
     suspend fun lookAtAndTrack(
         liveTargetLocation: LiveData<LocationCoordinate3D>,
+        spinVelocity: Double = 100.0,
+        fovTolerance: Double = 0.0,
         angleOffset: Double = 0.0,
         updateInterval: Duration = 1.seconds,
     ) = coroutineScope {
         while (isActive) {
-            delay((1.0 / updateInterval.inWholeMilliseconds).toLong())
+            delay(updateInterval)
 
             val targetLocation = liveTargetLocation.value ?: continue
 
             lookAtWithSpin(
                 targetLocation.as2D,
                 targetLocation.altitude,
-                angleOffset
+                spinVelocity = spinVelocity,
+                fovTolerance = fovTolerance,
+                angleOffset = angleOffset,
             )
         }
     }
@@ -1106,7 +1116,7 @@ open class AircraftController(
         delay(scanDurationMs)
     }
 
-    suspend fun flyToWithPoi(
+    suspend fun followWithPoi(
         target: LiveData<LocationCoordinate3D>,
         poi: LiveData<LocationCoordinate3D> = target,
 
@@ -1117,13 +1127,21 @@ open class AircraftController(
         spinVelocity: Double = 100.0,
 
         approachTolerance: Double = 1.0,
-        escapeBuffer: Double = 1.0,
+        escapeTolerance: Double = 1.0,
+
         poiHeadingOffset: Double,
     ) = coroutineScope {
         // Follow target location
-        launch { followSticks(target, maxVelocity, approachTolerance, escapeBuffer) }
+        launch {
+            followSticks(
+                target, null,
+                followVelocity,
+                accelerationDist, decelerationDist,
+                approachTolerance, escapeTolerance
+            )
+        }
         // Keep Eyes on poi location
-        launch { lookAtAndTrack(poi, poiHeadingOffset) }
+        launch { lookAtAndTrack(poi, spinVelocity, angleOffset = poiHeadingOffset) }
     }
 
     suspend fun perchShoulder(
@@ -1155,7 +1173,7 @@ open class AircraftController(
             update()
         }
 
-        flyToWithPoi(
+        followWithPoi(
             perchLocation,
             targetLocation,
             followVelocity = followVelocity,
