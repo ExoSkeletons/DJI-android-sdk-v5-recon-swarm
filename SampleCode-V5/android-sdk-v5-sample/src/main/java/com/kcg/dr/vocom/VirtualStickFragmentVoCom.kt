@@ -1247,6 +1247,9 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     }
 
     private fun track() = controller.fly {
+        if (!isFlying()) throw IllegalStateException("aircraft must be flying")
+
+        awaitDeviceLocation()
         ToastUtils.showToast("camera tracking phone location")
         scope.launch {
             awaitDeviceLocation()

@@ -366,9 +366,13 @@ open class AircraftController(
 
     private fun stopIntelligentMissions() {
         Log.d(TAG, "stopping missions")
-        IntelligentFlightManager.getInstance().flyToMissionManager.stopMission(DEFAULT_CALLBACK)
-        IntelligentFlightManager.getInstance().spotLightManager.stopMission(DEFAULT_CALLBACK)
-        IntelligentFlightManager.getInstance().poiMissionManager.stopMission(DEFAULT_CALLBACK)
+        val callback = object : CompletionCallback {
+            override fun onSuccess() {}
+            override fun onFailure(error: IDJIError) {}
+        }
+        IntelligentFlightManager.getInstance().flyToMissionManager.stopMission(callback)
+        IntelligentFlightManager.getInstance().spotLightManager.stopMission(callback)
+        IntelligentFlightManager.getInstance().poiMissionManager.stopMission(callback)
 
         Log.d(TAG, "stopping flight mission job...")
         flightJob?.takeIf { it.isActive }
@@ -399,7 +403,7 @@ open class AircraftController(
         Log.d(TAG, "takeoff")
 
         if (takeStickControl) requireVirtualStick()
-        if (FlightControllerKey.KeyIsFlying.create().get(false)) {
+        if (isFlying()) {
             Log.d(TAG, "already flying")
             callback.onSuccess(EmptyMsg())
             return
