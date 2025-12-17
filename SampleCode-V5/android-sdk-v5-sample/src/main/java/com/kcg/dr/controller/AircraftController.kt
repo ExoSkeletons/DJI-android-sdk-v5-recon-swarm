@@ -1109,7 +1109,7 @@ open class AircraftController(
     suspend fun flyToWithPoi(
         target: LiveData<LocationCoordinate3D>,
         poi: LiveData<LocationCoordinate3D> = target,
-        maxVelocity: Double = 3.0,
+        followVelocity: Double = 3.0,
         approachTolerance: Double = 1.0,
         escapeBuffer: Double = 1.0,
         poiHeadingOffset: Double,
@@ -1124,6 +1124,7 @@ open class AircraftController(
         targetLocation: LiveData<LocationCoordinate3D>,
         perchHeight: Double,
         perchDistance: Double,
+        followVelocity: Double = 1.0,
         targetHeading: LiveData<Double>? = null,
         faceTarget: Boolean = true,
     ) = coroutineScope {
@@ -1151,6 +1152,7 @@ open class AircraftController(
         flyToWithPoi(
             perchLocation,
             targetLocation,
+            followVelocity = followVelocity,
             poiHeadingOffset = if (faceTarget) 0.0 else 180.0
         )
     }
