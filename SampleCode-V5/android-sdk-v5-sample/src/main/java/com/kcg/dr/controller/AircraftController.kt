@@ -1109,7 +1109,13 @@ open class AircraftController(
     suspend fun flyToWithPoi(
         target: LiveData<LocationCoordinate3D>,
         poi: LiveData<LocationCoordinate3D> = target,
+
         followVelocity: Double = 3.0,
+        accelerationDist: Double = 2.0,
+        decelerationDist: Double = 5.0,
+
+        spinVelocity: Double = 100.0,
+
         approachTolerance: Double = 1.0,
         escapeBuffer: Double = 1.0,
         poiHeadingOffset: Double,

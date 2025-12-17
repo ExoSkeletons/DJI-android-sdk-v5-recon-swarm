@@ -2,20 +2,21 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import dji.sampleV5.aircraft.R
-import dji.sampleV5.aircraft.databinding.ItemLocationBinding
+import dji.sampleV5.aircraft.databinding.ItemWaypointLocationBinding
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
 
 class LocationAdapter(
     private val locations: MutableList<LocationCoordinate3D>,
     private val aliases: List<String>,
     private val onFlyTo: (LocationCoordinate3D) -> Unit,
-    private val onDelete: (LocationCoordinate3D) -> Unit
+    private val onLookAt: (LocationCoordinate3D)->Unit,
+    private val onDelete: (LocationCoordinate3D) -> Unit,
 ) : RecyclerView.Adapter<LocationAdapter.LocationVH>() {
-    class LocationVH(val binding: ItemLocationBinding) : RecyclerView.ViewHolder(binding.root)
+    class LocationVH(val binding: ItemWaypointLocationBinding) : RecyclerView.ViewHolder(binding.root)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): LocationVH {
         val binding =
-            ItemLocationBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+            ItemWaypointLocationBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         return LocationVH(binding)
     }
 
@@ -32,6 +33,7 @@ class LocationAdapter(
         )
 
         holder.binding.btnGoto.setOnClickListener { onFlyTo(loc) }
+        holder.binding.btnLookAt.setOnClickListener { onLookAt(loc) }
         holder.binding.btnDelete.setOnClickListener { onDelete(loc) }
     }
 

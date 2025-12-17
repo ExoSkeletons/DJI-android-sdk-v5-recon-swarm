@@ -49,6 +49,12 @@
         android:src="@drawable/uxsdk_hsiview_aircraft" />
 
     <ImageButton
+        android:id="@+id/btnLookAt"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:src="@drawable/selector_select_icon" />
+
+    <ImageButton
         android:id="@+id/btnDelete"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

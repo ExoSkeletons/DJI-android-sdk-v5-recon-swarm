@@ -323,6 +323,15 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                     )
                 }
             },
+            onLookAt = { loc ->
+                controller.fly {
+                    // if at location, can't look at self
+                    if ((location.value?.distanceTo(loc) ?: 0.0) <= cfg.flyToTolerance)
+                        return@fly
+                    // look at location
+                    lookAtWithSpin(loc.as2D, loc.altitude)
+                }
+            },
             onDelete = { loc ->
                 lifecycleScope.launch {
                     waypointRepo.remove(loc) // suspend safe
