@@ -32,6 +32,7 @@ import com.google.android.gms.location.Priority
 import com.kcg.dr.LiveLocationProvider
 import com.kcg.dr.LocaleUtils.getLocalizedResources
 import com.kcg.dr.LocationUtils
+import com.kcg.dr.LocationUtils.bearingTo
 import com.kcg.dr.LocationUtils.distanceTo
 import com.kcg.dr.LocationUtils.translate
 import com.kcg.dr.SFXManager
@@ -79,6 +80,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 import java.util.Locale
 import kotlin.math.abs
+import kotlin.math.roundToInt
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -369,27 +371,30 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             } ?: ToastUtils.showToast("device location unavailable")
         }
 
-        controller.location.observe(viewLifecycleOwner) {
-            binding?.tvLocationAircraft?.text =
-                if (it != null) getString(
+        controller.location.observe(viewLifecycleOwner) { aircraft ->
+            aircraftLocation = aircraft
+
+            val device = deviceLocation.value
+
+            val dist = device?.let { aircraft.distanceTo(it) }
+            val dist2D = device?.let { aircraft.as2D.distanceTo(it.as2D) }
+            val angleTo =
+                device?.let { aircraft.as2D.bearingTo(it.as2D) - (controller.heading.value ?: 0.0) }
+
+            binding?.tvLocationAircraft?.text = aircraft?.let {
+                getString(
                     R.string.location_fmt_short,
                     it.latitude,
                     it.longitude,
                     it.altitude
-                ) else ""
-            aircraftLocation = it
-            val aircraft = aircraftLocation
-            val device = deviceLocation.value
-            var dist = 0.0
-            var dist2D = 0.0
-            if (aircraft != null && device != null) {
-                dist = aircraft.distanceTo(device)
-                dist2D = aircraft.as2D.distanceTo(device.as2D)
-            }
-            binding?.tvDistance?.text = "${dist}m"
-            binding?.tvDistance2D?.text = "${dist2D}m"
-            binding?.tvAttitude?.text = "${controller.attitude.value?.toJson() ?: "-"},\n" +
-                    "height: ${controller.height.value}"
+                )
+            } ?: "-"
+            binding?.tvDistance?.text = dist?.let { "${it}m" } ?: "-"
+            binding?.tvDistance2D?.text = dist2D?.let { "${it}m" } ?: "-"
+            binding?.tvAngleTo?.text = angleTo?.let { "${it.roundToInt()}°" } ?: "-"
+            binding?.tvAttitude?.text =
+                "${controller.attitude.value?.toJson() ?: "-"},\n" +
+                        "height: ${controller.height.value}"
         }
         controller.height.observe(viewLifecycleOwner) {
             binding?.tvAircraftHeight?.text = it.toString()
