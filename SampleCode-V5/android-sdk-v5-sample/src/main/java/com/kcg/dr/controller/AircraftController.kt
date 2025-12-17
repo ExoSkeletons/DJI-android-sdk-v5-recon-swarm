@@ -696,15 +696,16 @@ open class AircraftController(
 
     suspend fun followSticks(
         target: LiveData<LocationCoordinate3D>,
+        targetReachedCallback: CompletionCallbackWithParam<LocationCoordinate3D>? = null,
         maxVelocity: Double = 1.0,
         accelerationDist: Double = 2.0,
         decelerationDist: Double = 5.0,
         approachTolerance: Double = 3.0,
-        escapeBuffer: Double = 1.0
+        escapeTolerance: Double = 1.0
     ) = coroutineScope {
         var start = location.value!!
         var curTarget: LocationCoordinate3D? = target.value
-        var withinBuffer = false
+        var targetReached = false
 
         while (isActive) {
             delay(TRANSMISSION_INTERVAL)
@@ -718,11 +719,14 @@ open class AircraftController(
             // Distance check (3D)
             val dist3D = cur.distanceTo(curTarget)
             // Range check
-            if (!withinBuffer && dist3D <= approachTolerance) withinBuffer = true
-            if (withinBuffer && dist3D > approachTolerance + escapeBuffer) withinBuffer = false
+            if (!targetReached && dist3D <= approachTolerance) {
+                targetReached = true
+                targetReachedCallback?.onSuccess(cur)
+            }
+            if (targetReached && dist3D > approachTolerance + escapeTolerance) targetReached = false
 
             // If we're within range, don't move (minimise jitter)
-            if (withinBuffer) {
+            if (targetReached) {
                 start = cur
                 delay(1000)
                 continue
