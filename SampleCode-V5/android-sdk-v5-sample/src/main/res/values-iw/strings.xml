@@ -24,20 +24,27 @@
     <string name="commands_follow_me">עקוב אחריי|אחריי|עקוב אחרי|אחרי|אלי</string>
     <string name="commands_fly_waypoint">נקודת ציון|נקודת|נון צדיק|צדיק|נ.צ.|נצ|נו|ציון|נקודה</string>
 
-    <string name="commands_mission_scan_above">סריקה|סרוק|זרוק|רוק|צחוק|ספיקה|סליקה|שריטה</string>
-    <string name="commands_mission_recon">חקירה|חקור|אור</string>
-    <string name="commands_mission_far_recon">סריקה רחוקה|לך|אל|לך אל|טוס אל|לך ל|טוס ל|רחוק|סרוק רחוק</string>
-    <array name="commands_mission_far_recon_targets">
-        <item>חניון|אחד|1</item>
+    <string name="commands_mission_scan">
+        (?:סרוק|סריקה|סריקת|זרוק|סמוק|רוק|צחוק|חוק|ספיקה|סליקה|שריטה)(?:\\s+(.+))?
+    </string>
+    <string name="commands_mission_scan_name">סריקה</string>
+    <string name="commands_mission_recon">
+        (?:חקור|חקירה|אור|קור|חור)(?:\\s+(.+))?
+    </string>
+    <string name="commands_mission_recon_name">חקירה</string>
+    <string name="commands_mission_target_device">סייר|סביבי|אותי|מסביבי</string>
+    <array name="commands_mission_targets">
+        <item>חניון|חנייה|חניה|הניה|אחד|1</item>
         <item>בית|שתיים|שתים|2</item>
         <item>בניין|שלוש|3</item>
+        <item>דגל|ארבע|4</item>
     </array>
 
     <string name="command_hello">שלום|הי|היי|הלו|מה נשמע|מה קורה|אהלן|נפנוף|נפנף</string>
     <string name="commands_square">ריבוע|קיבוע|ריבוי</string>
     <string name="commands_circle">עיגול|מעגל|מאגר|עגול|גל</string>
     <string name="commands_cam_fan">מניפה</string>
-    <string name="commands_spin">סיבוב|תסתובב|תסתובבי|סביב|סביבך|מסביב</string>
+    <string name="commands_spin">סיבוב|תסתובב|תסתובבי|סביב|סביבך</string>
 
     <string name="commands_silence">שקט|השקט|הס|חשאי|חושך|צל|חשאיות</string>
 
