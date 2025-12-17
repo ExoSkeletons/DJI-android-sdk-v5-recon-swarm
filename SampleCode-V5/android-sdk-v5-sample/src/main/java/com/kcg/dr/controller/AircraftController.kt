@@ -324,7 +324,15 @@ open class AircraftController(
                         )
                         e.printStackTrace()
                         brake(true)
-                        callback?.onFailure(DJICoreError().build("${e.toString()}: ${e.message.toString()}"))
+                        callback?.onFailure(
+                            DJICoreError().build(
+                                e.message,
+                                e.javaClass.simpleName,
+                                e.toString(),
+                                0,
+                                e.stackTrace
+                            )
+                        )
                     }
                 }
             }.onSuccess {
