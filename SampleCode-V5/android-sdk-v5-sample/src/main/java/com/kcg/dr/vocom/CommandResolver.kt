@@ -9,9 +9,9 @@ class CommandResolver {
         val nameStringId: Int? = null,
         val func: (MatchResult) -> Unit = { }
     ) {
-        fun response(resources: Resources): String {
+        fun response(resources: Resources): String? {
             val name = name(resources)
-            return responseFmtStringId?.let { resources.getString(it, name) } ?: name
+            return responseFmtStringId?.let { resources.getString(it, name) }
         }
 
         fun name(resources: Resources): String {

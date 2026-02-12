@@ -508,6 +508,8 @@ More refer to the release notes." </string>
     <string name="error_speech_unrecognised">No speech recognized.</string>
 
     <string name="commands_response_fmt_accepted">got it</string>
+    <string name="commands_response_fmt_none"> </string>
+    <string name="commands_response_fmt_simple">%s</string>
     <string name="commands_response_fmt_executing">executing %s</string>
     <string name="commands_response_fmt_going">going %s</string>
 
@@ -518,17 +520,26 @@ More refer to the release notes." </string>
     <string name="commands_return_home">home|safe|house|run|ron|escape|evac|evacuate</string>
     <string name="commands_follow_target">follow|follow target|follow him|target</string>
     <string name="commands_follow_me">follow me|me</string>
+    <string name="commands_mission_follow_me_name">follow me</string>
+    <string name="commands_follow_me_side">sideways|side|crab</string>
+    <string name="commands_mission_follow_me_side_name">follow me, low visibility</string>
     <string name="commands_fly_waypoint">goto|go to|waypoint|go to waypoint|waypoint</string>
+    <string name="commands_scan_paths">scan for alternate paths|scan paths|scan path|paths|path</string>
+    <string name="commands_more_info">report|reporting|more info|next info|next report</string>
+
     <string name="commands_mission_scan">scan(?:\s+(.+))?</string>
     <string name="commands_mission_scan_name">scan</string>
     <string name="commands_mission_recon">reconnaissance|recon</string>
     <string name="commands_mission_recon_name">recon</string>
     <string name="commands_mission_target_device">me|self|user|device</string>
+
     <array name="commands_mission_targets">
         <item>park|parking|one|1</item>
         <item>house|two|2</item>
         <item>building|three|3</item>
         <item>flag|four|4</item>
+        <item>suspicious|five|5</item>
+        <item>bush|bushes|six|6</item>
     </array>
 
     <string name="command_hello">hello|hi|heya|hiya|hey|wave</string>
@@ -584,5 +595,5 @@ More refer to the release notes." </string>
     <string name="obstacle_detected_msg_dist">%1$s %4$s detected %2$d meters %3$s</string>
     <string name="obstacle_detected_msg">%1$s %4$s detected %3$s</string>
 
-    <string name="location_fmt_short">lat: %1$f, lon: %2$f\nalt: %3$f</string>
+    <string name="location_fmt_short">lat: %f, lon: %f alt: %.2f</string>
 </resources>

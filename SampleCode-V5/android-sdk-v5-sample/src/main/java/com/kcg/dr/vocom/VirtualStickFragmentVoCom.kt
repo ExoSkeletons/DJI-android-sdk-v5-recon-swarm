@@ -1,6 +1,7 @@
 package com.kcg.dr.vocom
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Color
@@ -72,7 +73,6 @@ import dji.v5.manager.datacenter.livestream.LiveVideoBitrateMode
 import dji.v5.manager.datacenter.livestream.StreamQuality
 import dji.v5.manager.interfaces.ICameraStreamManager
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -1008,7 +1008,14 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                     R.string.commands_mission_recon,
                     respFmtExId,
                     R.string.commands_mission_recon_name
-                ) {
+                ) { match ->
+                    val selfReconLocation = deviceLocation.value?.atAlt(cfg.scanHeightHigh)
+                    val (nameKey, target) = matchWaypointLocationFromRegexCapture(
+                        match,
+                        selfReconLocation
+                    )
+                    ToastUtils.showToast("recon-ning${target?.let { " " + if (it == selfReconLocation) "you" else "$nameKey:\n$it" } ?: ""}")
+
                     controller.fly {
                         val startHeight = height.value!!
                         ascendTo(cfg.scanHeightLow, cfg.descendVelocity)
@@ -1021,7 +1028,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                 },
                 Command(
                     R.string.commands_mission_scan,
-                    R.string.commands_response_fmt_executing,
+                    respFmtExId,
                     R.string.commands_mission_scan_name
                 ) { match ->
                     // extract the scan target from the spoken text
@@ -1089,21 +1096,27 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                         speakDemo()
                     }
                 },
+                Command(R.string.commands_more_info) { speakDemo() },
 
                 Command(
-                    R.string.command_hello
+                    R.string.command_hello,
+                    respFmtSimpleId,
                 ) { controller.fly { wave() } },
                 Command(
-                    R.string.commands_circle
                 ) { controller.fly { flyCircle(1.0, velocity = 0.5) } },
+                    R.string.commands_circle,
+                    respFmtExId,
+                ) {
                 Command(
-                    R.string.commands_square
+                    R.string.commands_square, respFmtExId,
                 ) { controller.fly { flySquare(5.0, velocity = 2.5) } },
                 Command(
-                    R.string.commands_cam_fan
+                    R.string.commands_cam_fan,
+                    respFmtSimpleId,
                 ) { controller.fly { gimbalFan() } },
                 Command(
-                    R.string.commands_spin
+                    R.string.commands_spin,
+                    respFmtExId,
                 ) { controller.fly { spinBy(360.0, velocity = 50.0) } },
 
                 Command(
@@ -1315,7 +1328,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
         // If aircraft is far from a perch position, move closer
         val dl = deviceLocation.value!!
-        val pl = dl.apply { altitude = cfg.cruiseHeight }
+        val pl = dl.atAlt(cfg.cruiseHeight)
         if (abs(
                 location.value!!.as2D.distanceTo(dl.as2D)
                         - cfg.followDistance

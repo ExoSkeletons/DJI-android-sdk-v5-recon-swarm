@@ -17,19 +17,24 @@
     <string name="commands_response_fmt_going">טיסה %s</string>
 
     <string name="commands_stop">עצירה|עצור|חד על|מספיק|חדל|סיום</string>
-    <string name="commands_takeoff">הַמְרָאָה|המראה|עוף|צא|שמיים|תעופה|תמריא|תמריאו|אמרה|בוקר טוב|בוקר|להמריא|תעוף|המרה|רחפן עולה</string>
+    <string name="commands_takeoff">הַמְרָאָה|המראה|עוף|שמיים|תעופה|תמריא|תמריאו|אמרה|בוקר טוב|בוקר|להמריא|תעוף|המרה|רחפן עולה</string>
     <string name="commands_land">נחיתה|מחיקה|תנחת|נחת|לרדת|לנחות|רצפה|לרצפה|נפילה|לילה טוב|לילה|לנחות|ליפול|פול|לישון|שינה|מחיקה|רחפן יורד|נוחת</string>
     <string name="commands_return_home">חזרה|הביתה|חזור הביתה|לך הביתה</string>
     <string name="commands_follow_target">עקוב מטרה|מטרה|מטעה|עקוב אחריו|עקוב אחריה|עקוב אחריהם|צפה</string>
+    <string name="commands_mission_follow_me_name">עקוב אחריי</string>
     <string name="commands_follow_me">עקוב אחריי|אחריי|עקוב אחרי|אחרי|אלי</string>
+    <string name="commands_mission_follow_me_side_name">עקוב אחריי, ראות מוגבלת</string>
+    <string name="commands_follow_me_side">עקוב אחריי, ראות מוגבלת|((אחריי|אחרי|אחראי) (צדדי|צד))</string>
     <string name="commands_fly_waypoint">נקודת ציון|נקודת|נון צדיק|צדיק|נ.צ.|נצ|נו|ציון|נקודה</string>
+    <string name="commands_scan_paths">איתור שביל עוקף|איתור|שביל|איתור שביל|שבילים|עוקפים|מעקף</string>
+    <string name="commands_more_info">ממצאים|ממצאים נוספים|עוד ממצאים|עוד ממצאים|דיווח|אמצעי|נמצאים|ממצאי|מבצעים|דיווחים</string>
 
     <string name="commands_mission_scan">
         (?:סרוק|סריקה|סריקת|זרוק|סמוק|רוק|צחוק|חוק|ספיקה|סליקה|שריטה)(?:\\s+(.+))?
     </string>
     <string name="commands_mission_scan_name">סריקה</string>
     <string name="commands_mission_recon">
-        (?:חקור|חקירה|אור|קור|חור)(?:\\s+(.+))?
+        (?:חקור|חקירה|חקירת|חכו|אור|קור|חור)(?:\\s+(.+))?
     </string>
     <string name="commands_mission_recon_name">חקירה</string>
     <string name="commands_mission_target_device">סייר|סביבי|אותי|מסביבי</string>
@@ -38,11 +43,13 @@
         <item>בית|שתיים|שתים|2</item>
         <item>בניין|שלוש|3</item>
         <item>דגל|ארבע|4</item>
+        <item>חשודים|חשוד|חשובים|חמש|5</item>
+        <item>שיחים|שיח|שש|6</item>
     </array>
 
     <string name="command_hello">שלום|הי|היי|הלו|מה נשמע|מה קורה|אהלן|נפנוף|נפנף</string>
     <string name="commands_square">ריבוע|קיבוע|ריבוי</string>
-    <string name="commands_circle">עיגול|מעגל|מאגר|עגול|גל</string>
+    <string name="commands_circle">עיגול|מעגל|מאגר|עגול</string>
     <string name="commands_cam_fan">מניפה</string>
     <string name="commands_spin">סיבוב|תסתובב|תסתובבי|סביב|סביבך</string>
 
