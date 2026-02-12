@@ -1,6 +1,5 @@
 package com.kcg.dr.vocom
 
-import LocationAdapter
 import android.app.Activity
 import android.content.Intent
 import android.content.res.Configuration
@@ -43,6 +42,7 @@ import com.kcg.dr.as3D
 import com.kcg.dr.controller.AircraftController
 import com.kcg.dr.controller.AircraftController.CircleFaceMode
 import com.kcg.dr.vocom.CommandResolver.Command
+import com.kcg.dr.waypoint.LocationAdapter
 import com.kcg.dr.waypoint.WPLocationRepository
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVirtualStickVocomPageBinding
@@ -367,69 +367,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         }
         liveLocation.startRequesting()
 
-        waypointRepo = WPLocationRepository(requireContext())
-        val waypointLocations = waypointRepo.locations.toMutableList()
-        val waypointNames = requireContext().getLocalizedResources(locale)
-            .getStringArray(R.array.commands_mission_targets)
-            .toMutableList()
-        waypointAdapter = LocationAdapter(
-            waypointLocations,
-            waypointNames,
-            onFlyTo = { loc ->
-                controller.fly {
-                    flyToSticks(
-                        loc,
-                        maxVelocity = cfg.maxVelocity,
-                        accelerationDist = cfg.accelerationDist,
-                        decelerationDist = cfg.decelerationDist
-                    )
-                }
-            },
-            onLookAt = { loc ->
-                controller.fly {
-                    // if at location, can't look at self
-                    if ((location.value?.distanceTo(loc) ?: 0.0) <= cfg.flyToTolerance)
-                        return@fly
-                    // look at location
-                    lookAtWithSpin(loc.as2D, loc.altitude)
-                }
-            },
-            onDelete = { loc ->
-                lifecycleScope.launch {
-                    waypointRepo.remove(loc) // suspend safe
-                    waypointAdapter.remove(loc) // update UI
-                }
-            }
-        )
-        binding?.rvWaypointLocations?.layoutManager = LinearLayoutManager(requireContext())
-        binding?.rvWaypointLocations?.adapter = waypointAdapter
-        lifecycleScope.launch {
-            waypointRepo.load()
-            waypointAdapter.set(waypointRepo.locations)
-        }
-        controller.location.observe(viewLifecycleOwner) {
-            binding?.btnWaypointAddAircraft?.isEnabled = it != null
-        }
-        deviceLocation.observe(viewLifecycleOwner) {
-            binding?.btnWaypointAddDevice?.isEnabled = it != null
-        }
-        binding?.btnWaypointAddAircraft?.setOnClickListener {
-            controller.location.value?.let {
-                lifecycleScope.launch {
-                    waypointRepo.add(it)
-                    waypointAdapter.add(it)
-                }
-            } ?: ToastUtils.showToast("aircraft location unavailable")
-        }
-        binding?.btnWaypointAddDevice?.setOnClickListener {
-            deviceLocation.value?.let {
-                Log.d("DeviceLocation", "add aircraft")
-                lifecycleScope.launch {
-                    waypointRepo.add(it)
-                    waypointAdapter.add(it)
-                }
-            } ?: ToastUtils.showToast("device location unavailable")
-        }
+        initWaypointControls()
 
         controller.location.observe(viewLifecycleOwner) { aircraft ->
             aircraftLocation = aircraft
@@ -793,7 +731,56 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         }
     }
 
-    private fun initCameraStreamSurfaceCallback() {
+    private fun initWaypointControls() {
+        // waypoint repo
+        waypointRepo = WPLocationRepository(requireContext())
+        // saved waypoint names
+        val savedWaypointNames = requireContext().getLocalizedResources(locale)
+            .getStringArray(R.array.commands_mission_targets)
+        // setup waypoint ui adapter
+        waypointAdapter = LocationAdapter(
+            viewLifecycleOwner,
+            onFlyTo = { loc ->
+                controller.fly {
+                    flyToSticks(
+                        loc,
+                        maxVelocity = cfg.maxVelocity,
+                        accelerationDist = cfg.accelerationDist,
+                        decelerationDist = cfg.decelerationDist
+                    )
+                }
+            },
+            onLookAt = { loc ->
+                controller.fly {
+                    // if at location, can't look at self
+                    if ((location.value?.distanceTo(loc) ?: 0.0) <= cfg.flyToTolerance)
+                        return@fly
+                    // look at location
+                    lookAtWithSpin(loc.as2D, cfg.humanHeight)
+                }
+            },
+            deviceLocation, controller.location
+        )
+        binding?.rvWaypointLocations?.layoutManager = LinearLayoutManager(requireContext())
+        binding?.rvWaypointLocations?.adapter = waypointAdapter
+        lifecycleScope.launch {
+            // init map with saved names as null
+            for (name in savedWaypointNames)
+                waypointAdapter.set(name, null)
+            // load saved waypoints from repo
+            waypointRepo.load()
+            // insert saved waypoints into ui adapter
+            for ((name, location) in waypointRepo.locations())
+                waypointAdapter.set(name, location)
+            // update repo on waypoint change
+            waypointAdapter.onLocationChanged = { name, location ->
+                lifecycleScope.launch { waypointRepo.put(name, location) }
+            }
+        }
+    }
+
+    private fun initCameraStreamSurface() {
+        svCameraStream = binding?.svCameraStream ?: return
         svCameraStream.holder.addCallback(object : SurfaceHolder.Callback {
             override fun surfaceCreated(holder: SurfaceHolder) {
                 Log.d("CameraView", "Surface Created")
@@ -1151,6 +1138,56 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         )
     }
 
+    private fun matchWaypointLocationFromRegexCapture(
+        regexMatch: MatchResult,
+        selfLocation: LocationCoordinate3D?
+    ): Pair<String?, LocationCoordinate3D?> {
+        // extract the args target from the regex match capture group
+        val args = regexMatch.groups[1]?.value ?: ""
+
+        val waypoints = waypointRepo.locations()
+
+        val waypointAliases = requireContext().getLocalizedResources(locale)
+            .getStringArray(R.array.commands_mission_targets).toMutableList()
+        val deviceAliases = requireContext().getLocalizedResources(locale)
+            .getString(R.string.commands_mission_target_device)
+
+        // try match args to a waypoint target
+        var nameKey: String? = null
+        val target = when {
+            args.isBlank() -> null // no target specified in command args, perform generic scan
+            else -> when {
+                // args match self alias
+                deviceAliases.toRegex().containsMatchIn(args) ->
+                    // choose device location as scan target
+                    selfLocation ?: throw RuntimeException("device location unavailable")
+
+                else -> {
+                    // try match args to the list of waypoint targets aliases
+                    waypointAliases.forEachIndexed { i, aliases ->
+                        Log.i(
+                            "LocationResolver",
+                            "matching aliases $i) $aliases to args $args:"
+                        )
+                        if (aliases.toRegex().containsMatchIn(args)) {
+                            nameKey = aliases
+                            Log.i("LocationResolver", "matched. index=$i")
+                            return@forEachIndexed
+                        }
+                    }
+                    if (nameKey == null) {
+                        Log.d("LocationResolver", "no key match for arg: $args")
+                        throw RuntimeException("no such location: $args")
+                    }
+
+                    // return the location of the matched waypoint target
+                    waypoints[nameKey] ?: throw RuntimeException("no location set for $args")
+                }
+            }
+        }
+        return Pair(nameKey, target)
+    }
+
     private fun startListening() {
         val maxSilenceDurationMillis = 20000L
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
@@ -1181,27 +1218,29 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     }
 
     private fun onHearText(spokenText: String) {
-        val res = commandResolver.resolve(
+        val resolve = commandResolver.resolve(
             spokenText,
             requireContext().getLocalizedResources(locale)
         )
+        val res = requireContext().getLocalizedResources(locale)
 
-        when (res) {
+        when (resolve) {
             null -> binding?.commandResult?.text =
-                requireContext().getString(R.string.error_speech_unrecognised)
+                res.getString(R.string.error_speech_unrecognised)
 
             else -> {
-                val (com, match) = res
+                val (com, match) = resolve
                 try {
                     com.func(match)
                     SFXManager.playSfx(SFXManager.SFX.ACTION_CONFIRM)
-                    val response =
-                        requireContext().getLocalizedResources(locale)
-                            .getString(R.string.commands_response_fmt_accepted) + ". " +
-                                com.response(requireContext().getLocalizedResources(locale))
-                    speakText(response)
+                    com.response(res)?.let {
+                        speakText(
+                            res.getString(R.string.commands_response_fmt_accepted) + ". " +
+                                    it
+                        )
+                    }
                     binding?.commandResult?.text =
-                        com.name(requireContext().getLocalizedResources(locale))
+                        com.name(res)
                 } catch (e: Exception) {
                     SFXManager.playSfx(SFXManager.SFX.NOTIFY_TECHNICAL)
                     ToastUtils.showToast(e.message ?: e.toString())
