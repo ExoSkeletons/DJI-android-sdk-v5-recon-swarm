@@ -8,8 +8,10 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Context.NOTIFICATION_SERVICE
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.res.Configuration
 import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.speech.RecognizerIntent
@@ -41,7 +43,10 @@ import com.kcg.dr.LocationUtils.bearingTo
 import com.kcg.dr.LocationUtils.distanceTo
 import com.kcg.dr.LocationUtils.translate
 import com.kcg.dr.SFXManager
+import com.kcg.dr.ServiceUtils.startService
+import com.kcg.dr.ServiceUtils.stopService
 import com.kcg.dr.api.ApiServerService
+import com.kcg.dr.api.EXTRA_PORT
 import com.kcg.dr.api.KeyActivator
 import com.kcg.dr.as2D
 import com.kcg.dr.atAlt
@@ -100,6 +105,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     //  God willing we may even figure out how to ditch view models entirely and go pure SDK... for now the app setup
     //  (permissions, vm's, activities...) is just too nice to give up.
 
+    private var binding: FragVirtualStickVocomPageBinding? = null
 
     private val locale = Locale("iw", "IL")
 
@@ -114,8 +120,12 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
     private lateinit var controller: AircraftController
     private val commandResolver: CommandResolver = CommandResolver()
-
-    private var binding: FragVirtualStickVocomPageBinding? = null
+    private val audioControlReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == AudioControlService.ACTION_START_VOICE_RECOGNITION)
+                startListening()
+        }
+    }
 
     private val deviation: Double = 0.02
 
@@ -280,7 +290,9 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         "שני חשודים, חולצות אדומות, תנועה לשעה 3, 150 מטר. ",
     )
 
-    // Speech recognition launcher
+
+    // Speech Recognition
+    // Launcher
     private val speechRecognizerLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -308,8 +320,41 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         super.onCreate(savedInstanceState)
 
         requireContext().apply {
-            // Server foreground service
-            ApiServerService.start(this, 8080)
+            // Create notification channel
+            val channelId = AircraftController.TAG
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val channel = NotificationChannel(
+                    channelId,
+                    "Aircraft Controller",
+                    NotificationManager.IMPORTANCE_LOW
+                )
+                val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+                manager.createNotificationChannel(channel)
+            }
+            // API Server foreground service
+            startService(this, Intent(this, ApiServerService::class.java).apply {
+                putExtra(EXTRA_PORT, 8080)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                    putExtra(EXTRA_CHANNEL_ID, channelId)
+            })
+            // Media Control foreground service
+            startService(this, Intent(this, AudioControlService::class.java).apply {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                    putExtra(EXTRA_CHANNEL_ID, channelId)
+            })
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                registerReceiver(
+                    audioControlReceiver,
+                    IntentFilter(AudioControlService.ACTION_START_VOICE_RECOGNITION),
+                    Context.RECEIVER_NOT_EXPORTED
+                )
+            } else {
+                registerReceiver(
+                    audioControlReceiver,
+                    IntentFilter(AudioControlService.ACTION_START_VOICE_RECOGNITION)
+                )
+            }
+
             // TTS
             tts = TextToSpeech(this, onInitListener)
         }
@@ -339,8 +384,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
         binding?.widgetHorizontalSituationIndicator?.setSimpleModeEnable(false)
 
-        svCameraStream = view.findViewById(R.id.sv_camera_stream)
-        initCameraStreamSurfaceCallback()
+        initCameraStreamSurface()
         initLiveStreamControls()
         initRecordingControls()
         cameraVM.setCameraIndex(cameraIndex)
@@ -360,8 +404,8 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                         altitude = cfg.humanHeight
                     })
 
-                    val fdl = getString(
-                        R.string.location_fmt_short,
+                    val fdl = String.format(
+                        getString(R.string.location_fmt_short),
                         location.latitude,
                         location.longitude,
                         location.altitude
@@ -379,14 +423,17 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
             val device = deviceLocation.value
 
-            val dist = device?.let { aircraft.distanceTo(it) }
-            val dist2D = device?.let { aircraft.as2D.distanceTo(it.as2D) }
-            val angleTo =
-                device?.let { aircraft.as2D.bearingTo(it.as2D) - (controller.heading.value ?: 0.0) }
+            val dist = aircraft?.let { device?.let { aircraft.distanceTo(device) } }
+            val dist2D = aircraft?.let { device?.let { aircraft.as2D.distanceTo(device.as2D) } }
+            val angleTo = aircraft?.let {
+                device?.let {
+                    controller.heading.value?.let { aircraft.as2D.bearingTo(device.as2D) - it }
+                }
+            }
 
             binding?.tvLocationAircraft?.text = aircraft?.let {
-                getString(
-                    R.string.location_fmt_short,
+                String.format(
+                    getString(R.string.location_fmt_short),
                     it.latitude,
                     it.longitude,
                     it.altitude
@@ -395,9 +442,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             binding?.tvDistance?.text = dist?.let { "${it}m" } ?: "-"
             binding?.tvDistance2D?.text = dist2D?.let { "${it}m" } ?: "-"
             binding?.tvAngleTo?.text = angleTo?.let { "${it.roundToInt()}°" } ?: "-"
-            binding?.tvAttitude?.text =
-                "${controller.attitude.value?.toJson() ?: "-"},\n" +
-                        "height: ${controller.height.value}"
+            binding?.tvAttitude?.text = controller.attitude.value?.toJson()?.toString() ?: "-"
         }
         controller.height.observe(viewLifecycleOwner) {
             binding?.tvAircraftHeight?.text = it.toString()
@@ -446,6 +491,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         binding?.btnToMe?.setOnClickListener { toMe() }
         binding?.btnFollowCam?.setOnClickListener { track() }
 
+        // tts
         silent.observe(viewLifecycleOwner) {
             binding?.silent?.text = "Silent : " + if (it == true) "ON" else "OFF"
         }
@@ -540,26 +586,28 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        if (liveStreamVM.isStreaming())
-            liveStreamVM.stopStream(null)
+        binding = null
+
 
         tts.stop()
         tts.shutdown()
 
         controller.destroy()
         liveLocation.stopRequesting()
+        activity?.unregisterReceiver(audioControlReceiver)
+
         if (cameraStreamSurface != null) {
             cameraStreamManager.removeCameraStreamSurface(cameraStreamSurface!!)
             cameraStreamSurface = null
         }
-        binding = null
+        cameraVM.stopRecord() // Stop any recordings to avoid corrupting card
+        if (liveStreamVM.isStreaming()) liveStreamVM.stopStream(null)
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        val intent = Intent(requireContext(), ApiServerService::class.java)
-        requireContext().stopService(intent) // Stop API service
-        cameraVM.stopRecord() // Stop any recordings to avoid corrupting card
+        stopService(requireContext(), ApiServerService::class.java) // Stop API service
+        stopService(requireContext(), AudioControlService::class.java) // Stop TTS service
         SFXManager.release()
     }
 
@@ -932,7 +980,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                 Log.w("RCSticks", "RC Sticks touched when virtual stick had control")
 
                 ToastUtils.showShortToast("Controller Override")
-                speakText("Controller Override", Locale.ENGLISH)
+                // speakText("Controller Override", Locale.ENGLISH)
                 controller.stop() // stop controller return control to manual RC
                 // FIXME: this seems to trigger a disable virtual stick attempt twice,
                 //  which gets registered as a failure to disable the second time
@@ -941,18 +989,14 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         controller.init()
         controller.takeStickControl(object : CommonCallbacks.CompletionCallback {
             override fun onSuccess() {
-                ToastUtils.showToast("controller activated successfully")
-
                 if (binding?.leftStickView != null && binding?.rightStickView != null)
                     attachOnScreenSticks(
                         binding?.leftStickView!!, binding?.rightStickView!!,
                         object : CommonCallbacks.CompletionCallback {
-                            override fun onSuccess() {
-                                ToastUtils.showToast("sticks set")
-                            }
+                            override fun onSuccess() {}
 
                             override fun onFailure(error: IDJIError) {
-                                ToastUtils.showToast("error setting sticks: ${error.errorCode()}")
+                                ToastUtils.showToast("error attaching sticks: ${error.errorCode()}")
                             }
                         },
                         deviation = deviation
@@ -1007,8 +1051,38 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
                 Command(
                     R.string.commands_follow_me,
-                    respFmtExId
+                    respFmtExId,
+                    R.string.commands_mission_follow_me_name
                 ) { followMe() },
+                Command(
+                    R.string.commands_follow_me_side,
+                    respFmtExId,
+                    R.string.commands_mission_follow_me_side_name
+                ) {
+                    // faked for demo >_>
+                    val flagLocationIndex = 3
+                    val targetNames = requireContext().getLocalizedResources(locale)
+                        .getStringArray(R.array.commands_mission_targets)
+                    val flagKey = targetNames[flagLocationIndex]
+                    val targetLocation = waypointRepo.locations()[flagKey]
+                        ?: throw RuntimeException("can't find flag location")
+                    controller.fly {
+                        withEyesOn(deviceLocation) {
+                            flyToSticks(targetLocation, maxVelocity = cfg.followVelocity * .5)
+                        }
+                    }
+                },
+                Command(
+                    R.string.commands_scan_paths,
+                    respFmtExId
+                ) {
+                    controller.fly {
+                        pitchCamera(-90.0)
+                        ascendBy(3.0, velocity = 2.0)
+                        scanGround(1.0, cfg.scanVelocity, CircleFaceMode.OUTER)
+                        speakDemo()
+                    }
+                },
                 Command(
                     R.string.commands_mission_recon,
                     respFmtExId,
@@ -1022,12 +1096,39 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                     ToastUtils.showToast("recon-ning${target?.let { " " + if (it == selfReconLocation) "you" else "$nameKey:\n$it" } ?: ""}")
 
                     controller.fly {
-                        val startHeight = height.value!!
-                        ascendTo(cfg.scanHeightLow, cfg.descendVelocity)
+                        takeoff()
+
+                        pitchCamera(-90.0)
+
+                        if (target != null) {
+                            // fly first to location for recon
+                            flyToSticks(
+                                target,
+                                maxVelocity = cfg.maxVelocity,
+                                accelerationDist = cfg.accelerationDist,
+                                decelerationDist = cfg.decelerationDist
+                            )
+                        }
                         delay(1.seconds)
-                        scanGround(cfg.scanRadiusLow, cfg.scanVelocity)
+
+                        val startHeight = height.value ?: cfg.cruiseHeight
+                        val reconHeight = (startHeight - 15.0)
+                            // go no lower than human height (don't hit ground)
+                            .coerceAtLeast(cfg.humanHeight)
+                            // go no lower than lowest scan height
+                            .coerceAtLeast(cfg.scanHeightLow)
+                            // go no higher than start point (recon shouldn't go up)
+                            .coerceAtMost(startHeight)
+                        ascendTo(reconHeight, cfg.descendVelocity)
+                        delay(1.seconds)
+
+                        pitchCamera(-60.0)
+                        spinBy(360.0)
+
                         speakDemo()
+
                         delay(1.seconds)
+                        pitchCamera(-90.0)
                         ascendTo(startHeight, cfg.ascendVelocity)
                     }
                 },
@@ -1036,68 +1137,44 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                     respFmtExId,
                     R.string.commands_mission_scan_name
                 ) { match ->
-                    // extract the scan target from the spoken text
-                    val args = match.groups[1]?.value ?: ""
-
-                    val waypoints = waypointRepo.locations
-                    val dl = deviceLocation.value?.as2D?.as3D(cfg.scanHeightHigh)
-
-                    val waypointAliases = requireContext().getLocalizedResources(locale)
-                        .getStringArray(R.array.commands_mission_targets).toMutableList()
-                    val deviceAliases = requireContext().getLocalizedResources(locale)
-                        .getString(R.string.commands_mission_target_device)
-
-                    var index: Int = -1
-                    val target = when {
-                        args.isBlank() -> null
-                        else -> when {
-                            deviceAliases.toRegex().containsMatchIn(args) ->
-                                dl ?: throw RuntimeException("device location unavailable")
-
-                            else -> {
-                                waypointAliases.forEachIndexed { i, aliases ->
-                                    if (i >= waypoints.size) return@forEachIndexed
-
-                                    Log.i(
-                                        "LocationResolver",
-                                        "matching aliases $aliases to args $args:"
-                                    )
-                                    if (aliases.toRegex().containsMatchIn(args)) {
-                                        index = i
-                                        Log.i("LocationResolver", "matched. index=$index")
-                                        return@forEachIndexed
-                                    }
-                                    Log.i("LocationResolver", "index $index")
-                                }
-                                if (index < 0) {
-                                    speakText("no such target:\n $args")
-                                    throw RuntimeException("no match for $args")
-                                }
-                                waypoints[index]
-                            }
-                        }
-                    }
-
-                    ToastUtils.showToast("scanning${target?.let { " " + if (it == dl) "you" else "$index:$it" } ?: ""}")
-
-                    return@Command
+                    val selfScanLocation = deviceLocation.value?.atAlt(cfg.scanHeightHigh)
+                    val (nameKey, target) = matchWaypointLocationFromRegexCapture(
+                        match,
+                        selfScanLocation
+                    )
+                    val scanFaceMode =
+                        if (target == null || target == selfScanLocation) CircleFaceMode.OUTER
+                        else CircleFaceMode.CENTER
+                    ToastUtils.showToast("scanning${target?.let { " " + if (it == selfScanLocation) "you" else "$nameKey:\n$it" } ?: ""}")
 
                     controller.fly {
                         takeoff()
-                        target?.let {
-                            flyToSticks(
-                                target,
-                                maxVelocity = cfg.maxVelocity,
-                                accelerationDist = cfg.accelerationDist,
-                                decelerationDist = cfg.decelerationDist
+
+                        if (target != null) {
+                            // fly to location
+                            withEyesOn(
+                                MutableLiveData(target.atAlt(cfg.humanHeight))
+                            ) {
+                                // fly to location
+                                flyToSticks(
+                                    target,
+                                    maxVelocity = cfg.maxVelocity,
+                                    accelerationDist = cfg.accelerationDist,
+                                    decelerationDist = cfg.decelerationDist
+                                )
+                            }
+                        } else {
+                            // generic area scan
+                            pitchCamera(-90.0)
+                            val startHeight = height.value ?: cfg.cruiseHeight
+                            ascendTo(
+                                cfg.scanHeightHigh.coerceAtLeast(startHeight),
+                                cfg.ascendVelocity
                             )
-                        } ?: ascendTo(cfg.scanHeightHigh, cfg.ascendVelocity)
+                        }
                         delay(1.seconds)
-                        scanGround(
-                            cfg.scanRadiusHigh,
-                            cfg.scanVelocity,
-                            faceMode = CircleFaceMode.OUTER
-                        )
+                        scanGround(cfg.scanRadiusHigh, cfg.scanVelocity, scanFaceMode)
+
                         speakDemo()
                     }
                 },
@@ -1377,7 +1454,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     private suspend fun awaitDeviceLocation(
         timeout: Duration = Duration.INFINITE,
         updateInterval: Duration = 100.milliseconds
-    ) = coroutineScope {
+    ) {
         require(timeout >= updateInterval) { "timeout $timeout to short, must be greater than update interval $updateInterval" }
 
         Log.d("DeviceLocation", "awaiting location")
@@ -1395,9 +1472,9 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
 
     private fun followMe() = controller.fly {
-        scope.launch {
-            awaitDeviceLocation()
-            takeoff()
+        coroutineScope {
+            launch { awaitDeviceLocation() }
+            launch { takeoff() }
         }
 
         // If aircraft is far from a perch position, move closer
@@ -1408,7 +1485,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                         - cfg.followDistance
             ) > cfg.flyToTolerance
         ) {
-            ToastUtils.showToast("device far away. looking for you")
+            ToastUtils.showToast("looking for device")
             lookAtWithSpin(dl.as2D, dl.altitude)
             ToastUtils.showToast("moving to perch")
             flyToSticks(
@@ -1424,37 +1501,20 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         }
 
         // Orbiting pattern
-        while (currentCoroutineContext().isActive) {
-            ToastUtils.showToast("following you")
-            withTimeoutOrNull(cfg.watch12Time) {
-                perchShoulder(
-                    deviceLocation,
-                    cfg.cruiseHeight, cfg.followDistance,
-                    faceTarget = true
-                )
-                // trailShoulder(deviceLocation, cfg.preferredAlt, cfg.perchDistance)
-            }
-            brakeFor(100.milliseconds)
-
-            ToastUtils.showToast("watching 6")
-            spinBy(180.0, velocity = 140.0)
-            delay(cfg.watch6Time)
-            spinBy(180.0, velocity = 140.0)
-            /*withTimeoutOrNull(cfg.frontTime) {
-                perchShoulder(
-                    deviceLocation,
-                    cfg.preferredAlt, cfg.followDistance,
-                    faceTarget = false
-                )
-            }*/
-        }
+        perchShoulder(
+            deviceLocation,
+            cfg.cruiseHeight, cfg.followDistance,
+            followVelocity = cfg.followVelocity,
+            watch12Duration = cfg.watch12Time,
+            watch6Duration = cfg.watch6Time,
+        )
     }
 
     private fun toMe() = controller.fly {
         ToastUtils.showToast("following phone location")
-        scope.launch {
-            awaitDeviceLocation()
-            takeoff()
+        coroutineScope {
+            launch { awaitDeviceLocation() }
+            launch { takeoff() }
         }
         flyToSticks(
             deviceLocation.value!!,
@@ -1469,10 +1529,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
         awaitDeviceLocation()
         ToastUtils.showToast("camera tracking phone location")
-        scope.launch {
-            awaitDeviceLocation()
-            takeoff()
-        }
-        lookAtAndTrack(deviceLocation)
+
+        lookAtAndTrack(deviceLocation, fovTolerance = 17.0)
     }
 }

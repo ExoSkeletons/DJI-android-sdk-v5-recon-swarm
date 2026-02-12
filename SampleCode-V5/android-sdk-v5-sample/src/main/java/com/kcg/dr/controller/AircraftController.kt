@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Observer
 import com.kcg.dr.DJIErrorException
 import com.kcg.dr.LocationUtils
 import com.kcg.dr.LocationUtils.bearingTo
@@ -62,6 +63,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -75,7 +77,7 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 open class AircraftController(
-    val scope: CoroutineScope,
+    private val scope: CoroutineScope,
 
     private val stickVM: VirtualStickVM,
     private val acVM: BasicAircraftControlVM,
@@ -84,7 +86,7 @@ open class AircraftController(
     private val wayPointV3VM: WayPointV3VM,
 ) {
     companion object {
-        private const val TAG: String = "AircraftController"
+        const val TAG: String = "AircraftController"
 
         /** virtual stick controller requires constant sending of updates to move aircraft.
          * Sending freq. range per docs is 10-22hz iirc.
@@ -613,9 +615,8 @@ open class AircraftController(
         currentLocation: LocationCoordinate3D,
         endLocation: LocationCoordinate3D,
         curYaw: Double,
-        maxVelocity: Double,
-        minVelocity: Double = 0.5,
-        accelerationDist: Double, decelerationDist: Double,
+        maxVelocity: Double, minVelocity: Double = 0.5,
+        accelerationDist: Double, decelerationDist: Double = accelerationDist,
     ): Triple<Double, Double, Double> {
         require(maxVelocity > 0) { "maxVelocity must be positive" }
         require(minVelocity > 0) { "minVelocity must be positive" }
@@ -648,6 +649,18 @@ open class AircraftController(
 
         return Triple(x * v, y * v, z * v)
     }
+
+    private fun springAngularVelocity(
+        currentVelocity: Double,
+        yawDiff: Double,
+        maxVelocity: Double,
+        dampFactor: Double = 0.12,
+        pGain: Double = 2.0,
+    ): Double {
+        val idealVelocity = (yawDiff * pGain).coerceIn(-maxVelocity, maxVelocity)
+        return (dampFactor * idealVelocity) + ((1.0 - dampFactor) * currentVelocity)
+    }
+
 
     suspend fun flyToSticks(
         target: LocationCoordinate3D,
@@ -698,7 +711,7 @@ open class AircraftController(
         maxVelocity: Double = 1.0,
         accelerationDist: Double = 2.0,
         decelerationDist: Double = 5.0,
-        approachTolerance: Double = 3.0,
+        approachTolerance: Double = 2.0,
         escapeTolerance: Double = 1.0
     ) = coroutineScope {
         var start = location.value!!
@@ -719,16 +732,15 @@ open class AircraftController(
             // Range check
             if (!targetReached && dist3D <= approachTolerance) {
                 targetReached = true
+                start = cur
                 targetReachedCallback?.onSuccess(cur)
             }
-            if (targetReached && dist3D > approachTolerance + escapeTolerance) targetReached = false
+            if (targetReached && dist3D > approachTolerance + escapeTolerance) {
+                targetReached = false
+            }
 
             // If we're within range, don't move (minimise jitter)
-            if (targetReached) {
-                start = cur
-                delay(1000)
-                continue
-            }
+            if (targetReached) continue
 
             // Calculate velocity towards target
             val (vx, vy, vz) = smoothVelocity(
@@ -745,12 +757,28 @@ open class AircraftController(
             convergeParam.apply {
                 pitch = vy
                 roll = vx
-                yaw = 0.0
                 verticalThrottle = vz
             }
             sendFlightParam(convergeParam)
         }
     }
+
+    suspend fun whileSuspendedBy(
+        suspenders: List<suspend () -> Unit>,
+        block: suspend () -> Unit
+    ) = coroutineScope {
+        val jobsList = mutableListOf<Job>()
+        for (suspender in suspenders)
+            jobsList.add(launch { suspender() })
+        block()
+        for (job in jobsList)
+            job.cancelAndJoin()
+    }
+
+    suspend fun whileSuspendedBy(
+        suspender: suspend () -> Unit,
+        block: suspend () -> Unit
+    ) = whileSuspendedBy(listOf(suspender), block)
 
     suspend fun flyBySticks(
         direction: LocationUtils.RelativeDirection, distance: Double,
@@ -942,24 +970,34 @@ open class AircraftController(
 
         val posDelay = 1000L
         if (fromCenter) {
-            forwardBy(radius, velocity) // fly out from center
+            // fly out from center
+            if (faceMode == CircleFaceMode.CENTER)
+                forwardBy(-radius, velocity)  // go back from center, face is towards center
+            else
+                forwardBy(radius, velocity) // go forward from center, face is towards outer
             delay(posDelay)
         }
-        val spinAmount = (
+        val angleCorrection = (
                 when (faceMode) {
-                    CircleFaceMode.CENTER -> 180.0 // spin to face center
-                    CircleFaceMode.OUTER -> 0.0 // remain facing outwards
+                    CircleFaceMode.CENTER, CircleFaceMode.OUTER -> 0.0 // remain facing forward
                     CircleFaceMode.TANGENT -> 90.0 * rotationSign // spin to face tangent
                     CircleFaceMode.TANGENT_BACK -> -90.0 * rotationSign // spin to face tangent backwards
                 } + if (!fromCenter) 180.0 else 0.0
                 ).normalizeAngle()
-        spinBy(spinAmount) // spin to face circle direction
+        val angV = 140.0
+        spinBy(angleCorrection, velocity = angV) // spin to face circle direction
         sendStickParamForDuration(travelDuration.seconds, circleMotionParam) // send circle motion
-        spinBy(-spinAmount) // spin back to face starting direction
+        delay(posDelay)
+        spinBy(-angleCorrection, velocity = angV) // spin back to face starting direction
         if (fromCenter) {
             delay(posDelay)
-            forwardBy(-radius, velocity) // return to center
+            // return to center
+            if (faceMode == CircleFaceMode.CENTER)
+                forwardBy(radius, velocity)  // go forward to center, face is towards center
+            else
+                forwardBy(-radius, velocity) // go backward to center, face is towards outer
         }
+        delay(posDelay)
         callback.onSuccess()
     }
 
@@ -1053,24 +1091,52 @@ open class AircraftController(
     }
 
     suspend fun lookAtAndTrack(
-        liveTargetLocation: LiveData<LocationCoordinate3D>,
-        spinVelocity: Double = 100.0,
-        fovTolerance: Double = 0.0,
+        liveTarget: LiveData<LocationCoordinate3D>,
+        maxVelocity: Double = 70.0,
+        fovTolerance: Double = 1.0,
         angleOffset: Double = 0.0,
-        updateInterval: Duration = 1.seconds,
+        gimbalUpdateInterval: Duration = 1.seconds,
     ) = coroutineScope {
-        while (isActive) {
-            delay(updateInterval)
+        launch {
+            var currentAngVelocity = 0.0
+            while (isActive) {
+                delay(TRANSMISSION_INTERVAL)
 
-            val targetLocation = liveTargetLocation.value ?: continue
+                val curLoc = location.value ?: continue
+                val curAtt = attitude.value ?: continue
+                val targetLoc = liveTarget.value ?: continue
 
-            lookAtWithSpin(
-                targetLocation.as2D,
-                targetLocation.altitude,
-                spinVelocity = spinVelocity,
-                fovTolerance = fovTolerance,
-                angleOffset = angleOffset,
-            )
+                val bearingTo = curLoc.as2D.bearingTo(targetLoc.as2D)
+                val targetYaw = (bearingTo + angleOffset).wrap180()
+                val yawDiff = (targetYaw - curAtt.yaw).wrap180()
+
+                if (abs(yawDiff) <= fovTolerance) continue
+
+                currentAngVelocity = springAngularVelocity(
+                    currentVelocity = currentAngVelocity,
+                    yawDiff = yawDiff,
+                    maxVelocity = maxVelocity,
+                )
+
+                val spinParam = FlightParam().apply {
+                    yaw = currentAngVelocity
+                }
+                sendFlightParam(spinParam)
+            }
+        }
+        launch {
+            while (isActive) {
+                delay(gimbalUpdateInterval)
+
+                val cur = location.value ?: continue
+                val target = liveTarget.value ?: continue
+                val height = height.value ?: continue
+
+                val dist2D = cur.as2D.distanceTo(target.as2D)
+                val dh = target.altitude - height
+
+                camGimbalVM.lookTo(dist2D, dh)
+            }
         }
     }
 
@@ -1116,41 +1182,59 @@ open class AircraftController(
         delay(scanDurationMs)
     }
 
-    suspend fun followWithPoi(
-        target: LiveData<LocationCoordinate3D>,
-        poi: LiveData<LocationCoordinate3D> = target,
 
-        followVelocity: Double = 3.0,
+    suspend fun whileFollowing(
+        targetLocation: LiveData<LocationCoordinate3D>,
+        targetReachedCallback: CompletionCallbackWithParam<LocationCoordinate3D>? = null,
+        maxVelocity: Double = 1.0,
         accelerationDist: Double = 2.0,
         decelerationDist: Double = 5.0,
-
-        spinVelocity: Double = 100.0,
-
-        approachTolerance: Double = 1.0,
-        escapeTolerance: Double = 1.0,
-
-        poiHeadingOffset: Double,
+        approachTolerance: Double = 2.0,
+        escapeTolerance: Double = 0.0,
+        block: suspend () -> Unit
     ) = coroutineScope {
-        // Follow target location
-        launch {
+        whileSuspendedBy({
             followSticks(
-                target, null,
-                followVelocity,
-                accelerationDist, decelerationDist,
-                approachTolerance, escapeTolerance
+                targetLocation,
+                targetReachedCallback,
+                maxVelocity,
+                accelerationDist,
+                decelerationDist,
+                approachTolerance,
+                escapeTolerance,
             )
-        }
-        // Keep Eyes on poi location
-        launch { lookAtAndTrack(poi, spinVelocity, angleOffset = poiHeadingOffset) }
+        }, block)
     }
+
+    suspend fun withEyesOn(
+        deviceLocation: LiveData<LocationCoordinate3D>,
+        spinVelocity: Double = 100.0,
+        fovTolerance: Double = 0.0,
+        angleOffset: Double = 0.0,
+        block: suspend () -> Unit
+    ) = coroutineScope {
+        whileSuspendedBy(
+            {
+                lookAtAndTrack(
+                    deviceLocation,
+                    spinVelocity,
+                    fovTolerance,
+                    angleOffset,
+                )
+            },
+            block
+        )
+    }
+
 
     suspend fun perchShoulder(
         targetLocation: LiveData<LocationCoordinate3D>,
         perchHeight: Double,
         perchDistance: Double,
-        followVelocity: Double = 1.0,
+        followVelocity: Double,
         targetHeading: LiveData<Double>? = null,
-        faceTarget: Boolean = true,
+        watch12Duration: Duration = Duration.INFINITE,
+        watch6Duration: Duration? = null,
     ) = coroutineScope {
         val perchLocation = MediatorLiveData<LocationCoordinate3D>().apply {
             fun update() {
@@ -1172,13 +1256,30 @@ open class AircraftController(
             targetHeading?.let { addSource(it) { update() } }
             update()
         }
+        val obs = Observer<LocationCoordinate3D> {}
+        perchLocation.observeForever(obs)
 
-        followWithPoi(
-            perchLocation,
-            targetLocation,
-            followVelocity = followVelocity,
-            poiHeadingOffset = if (faceTarget) 0.0 else 180.0
-        )
+        try {
+            whileFollowing(perchLocation, maxVelocity = followVelocity) {
+                while (isActive) {
+                    ToastUtils.showToast("watching 12\n(${watch12Duration})")
+                    withTimeoutOrNull(watch12Duration) {
+                        lookAtAndTrack(targetLocation)
+                    }
+                    brakeFor(1.seconds)
+                    watch6Duration?.let {
+                        ToastUtils.showToast("watching 6\n(${watch6Duration})")
+                        spinBy(180.0, velocity = 140.0)
+                        delay(it)
+                        /*withTimeoutOrNull(it) {
+                            lookAtAndTrack(targetLocation, angleOffset = 180.0)
+                        }*/
+                    }
+                }
+            }
+        } finally {
+            perchLocation.removeObserver(obs)
+        }
     }
 
     suspend fun trailShoulder(

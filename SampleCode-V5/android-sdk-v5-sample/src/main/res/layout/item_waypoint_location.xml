@@ -25,13 +25,6 @@
             android:orientation="horizontal">
 
             <TextView
-                android:id="@+id/tvIndex"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textSize="24sp"
-                android:textStyle="bold" />
-
-            <TextView
                 android:id="@+id/tvLocation"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -42,22 +35,48 @@
 
     </LinearLayout>
 
-    <ImageButton
-        android:id="@+id/btnGoto"
-        android:layout_width="wrap_content"
-        android:layout_height="match_parent"
-        android:src="@drawable/uxsdk_hsiview_aircraft" />
-
-    <ImageButton
-        android:id="@+id/btnLookAt"
-        android:layout_width="wrap_content"
-        android:layout_height="match_parent"
-        android:src="@drawable/selector_select_icon" />
-
-    <ImageButton
-        android:id="@+id/btnDelete"
+    <LinearLayout
+        android:id="@+id/layout_actions_location"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:src="@drawable/uxsdk_selector_icon_delete" />
+        android:orientation="horizontal">
+
+        <ImageButton
+            android:id="@+id/btnGoto"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:src="@drawable/uxsdk_hsiview_aircraft" />
+
+        <ImageButton
+            android:id="@+id/btnLookAt"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:src="@drawable/selector_select_icon" />
+
+        <ImageButton
+            android:id="@+id/btnDelete"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@android:drawable/ic_menu_close_clear_cancel" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/layout_actions_no_location"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <ImageButton
+            android:id="@+id/btnSetAircraft"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/uxsdk_ic_setting_drone_active" />
+
+        <ImageButton
+            android:id="@+id/btnSetDevice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@android:drawable/ic_menu_mylocation" />
+    </LinearLayout>
 
 </LinearLayout>
