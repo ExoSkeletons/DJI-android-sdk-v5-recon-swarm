@@ -11,6 +11,7 @@ import com.kcg.dr.LocationUtils.distanceTo
 import com.kcg.dr.LocationUtils.translate
 import com.kcg.dr.LocationUtils.vectorToTarget
 import com.kcg.dr.as2D
+import com.kcg.dr.atAlt
 import com.kcg.dr.normalizeAngle
 import com.kcg.dr.toDegrees
 import com.kcg.dr.wrap180
@@ -1165,7 +1166,7 @@ open class AircraftController(
                     perchDistance,
                     LocationUtils.RelativeDirection.BACKWARD,
                     heading
-                ).apply { altitude = perchHeight }
+                ).atAlt(perchHeight)
             }
 
             addSource(targetLocation) { update() }

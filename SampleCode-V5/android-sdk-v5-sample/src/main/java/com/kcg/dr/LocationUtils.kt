@@ -33,6 +33,9 @@ inline val LocationCoordinate3D.as2D get() = LocationCoordinate2D(this.latitude,
 fun LocationCoordinate2D.as3D(altitude: Double) =
     LocationCoordinate3D(this.latitude, this.longitude, altitude)
 
+fun LocationCoordinate3D.atAlt(altitude: Double) =
+    LocationCoordinate3D(this.latitude, this.longitude, altitude)
+
 
 object LocationUtils {
     enum class RelativeDirection(val sign: Int, val bearingOffsetDegrees: Float) {

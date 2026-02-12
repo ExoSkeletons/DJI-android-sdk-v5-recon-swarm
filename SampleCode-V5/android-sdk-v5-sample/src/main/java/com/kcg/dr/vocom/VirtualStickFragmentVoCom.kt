@@ -38,7 +38,7 @@ import com.kcg.dr.SFXManager
 import com.kcg.dr.api.ApiServerService
 import com.kcg.dr.api.KeyActivator
 import com.kcg.dr.as2D
-import com.kcg.dr.as3D
+import com.kcg.dr.atAlt
 import com.kcg.dr.controller.AircraftController
 import com.kcg.dr.controller.AircraftController.CircleFaceMode
 import com.kcg.dr.vocom.CommandResolver.Command
