@@ -223,7 +223,57 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         circleError = -0.15,
     )
     private val cfg: DemoFlightConfig = emptyLotConfig
+    private var demoTextIndex = MutableLiveData(0)
 
+    private val noAddInfo = "אין ממצאים נוספים"
+
+    @Suppress("SpellCheckingInspection")
+    private val demoTexts = listOf(
+        // תחילת תרחיש -----
+        // פקודה: אחריי
+        "בשעה 12, במרחק 200 מטר, הולך רגל , חולצה צהובה מתקדם לכיוונך",
+        "בשעה 12 , במרחק 150 מטר, צומת דרכים.",
+        // פקודה: סריקה סביבי
+        // todo: פקודה: עוד ממצאים|ממצאים נוספים|ממצאים -> דיווח הבא
+        "ממצאי סריקה: " +
+                "בשעה 12, במרחק 100 מטר, צומת דרכים. ",
+        "בשעה 1, במרחק 100 מטר שיחים, חשוד מאחורי שיחים. ",
+        "בשעה 3, 250 מטר לאחר הצומת, מגרש חנייה. ",
+        noAddInfo,
+        // פקודה: חקור שיחים
+        "ממצאי חקירה: " +
+                "הולך רגל בחולצה צהובה, ללא חפצים חשודים",
+        // פקודה: סריקה מגרש חנייה
+        // הסייר ליד השיחים
+        "ממצאי סריקה: " +
+                "בשעה 3 במרחק 50 מטר, הולך רגל בחולצה אדומה. ",
+        "הולך רגל בשעה 2 מהכניסה לחניה. ",
+        noAddInfo,
+        // פקודה: חקור חשודים
+        "ממצאי חקירה: " +
+                "בשעה 11, 20 מטר ממך, חשוד בחולצה אדומה עומד בקרבת הכניסה לחנייה ומתצפת. ",
+        "בשעה 2, חשוד בחולצה אדומה נע לכיוון גבעת הדגל ",
+        noAddInfo,
+        // פקודה: אחריי
+        // פקודה: סריקה מגרש חנייה
+        // הסייר ליד קיר אבנים
+        "ממצאי סריקה: " +
+                "בשעה 3 במרחק 50 מטר, הולך רגל בחולצה אדומה. ",
+        "הולך רגל בשעה 2 מהכניסה לחניה. ",
+        noAddInfo,
+        // פקודה: איתור שביל עוקף -> up + slow spin360
+        "אותר:" +
+                "בשעה 11 במרחק 10 מטרים כניסה לשביל עוקף",
+        // פקודה: אחריי צדדי
+        // רחפן מגיב קיבלתי ראות מוגבלת וכו'
+        // רחפן טס לאט לדגל עם עיניים על הסייר, הסייר הולך לאט בשיל לדגל ומחכה ליד
+        // פקודה: חקור דגל
+        "ממצאי חקירה: " +
+                "בשעה 2, במרחק 50 מטר, דגל אדום. ",
+        "במרחק 50 מטר, שני חשודים בחולצות אדומות, סמוך לדגל. ",
+        // סייר מחכה שניות ומבקש שוב ממצאים
+        "שני חשודים, חולצות אדומות, תנועה לשעה 3, 150 מטר. ",
+    )
 
     // Speech recognition launcher
     private val speechRecognizerLauncher = registerForActivityResult(
@@ -260,7 +310,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         }
         SFXManager.init(context = requireContext())
     }
-
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -416,6 +465,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         controller.gimbalAttitude.observe(viewLifecycleOwner) {
             binding?.tvGimbalAttitude?.text = "${it?.toJson() ?: "-"}"
         }
+
         binding?.btnSetVirtualStickSpeedLevel?.setOnClickListener {
             val speedLevels = doubleArrayOf(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0)
             initPopupNumberPicker(Helper.makeList(speedLevels)) {
@@ -456,6 +506,23 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         silent.observe(viewLifecycleOwner) {
             binding?.silent?.text = "Silent : " + if (it == true) "ON" else "OFF"
         }
+        // demo text speech
+        demoTextIndex.observe(viewLifecycleOwner) { i ->
+            when {
+                i == null -> demoTextIndex.postValue(0)
+                i >= demoTexts.size -> demoTextIndex.postValue(0)
+                i < 0 -> demoTextIndex.postValue(demoTexts.size - 1)
+
+                else -> binding?.tvDemoText?.text = demoTexts[i]
+            }
+        }
+        binding?.btnDemoTextPrev?.setOnClickListener {
+            demoTextIndex.postValue(demoTextIndex.value?.minus(1) ?: 0)
+        }
+        binding?.btnDemoTextNext?.setOnClickListener {
+            demoTextIndex.postValue(demoTextIndex.value?.plus(1) ?: 0)
+        }
+        binding?.btnDemoTextPlay?.setOnClickListener { speakDemo() }
 
         binding?.btnDisableSim?.setOnClickListener { disableSimulator(null) }
         binding?.btnEnableSim?.setOnClickListener { enableSimulator() }
@@ -574,7 +641,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                 return
             }
             tts.language = locale
-            tts.setSpeechRate(1.1f)
+            tts.setSpeechRate(1.3f)
             SFXManager.playSfx(SFXManager.SFX.NOTIFY_INFO)
             tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
         }
@@ -621,6 +688,12 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         }
     }
 
+    private fun speakDemo() {
+        demoTextIndex.value?.let {
+            speakText(demoTexts[it])
+            demoTextIndex.postValue(it + 1)
+        }
+    }
 
     private fun initLiveStreamControls() {
         binding?.btnStartStream?.setOnClickListener {
@@ -901,20 +974,14 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     }
 
     private fun initVoiceCommandResolver() {
-        val demoScanSusInfo = "זוהו מספר חשודים מלפנים."
-        val demoPrefix = "ממצאי חקירה:"
-        val demoScanInfo = listOf(
-            "אין ממצאים.",
-            "זיהיתי רכב אחד בתנועה מלפנים, וזיהיתי שתי אנשים מלפנים במרחק 15 מטר.",
-            "זיהיתי אדם חמוש מתחתיי ואדם מאחורי רכב.",
-        )
-
+        val respFmtNoneId = R.string.commands_response_fmt_none
+        val respFmtSimpleId = R.string.commands_response_fmt_simple
         val respFmtExId = R.string.commands_response_fmt_executing
         val respFmtGoId = R.string.commands_response_fmt_going
 
         commandResolver.commands.clear()
         commandResolver.commands.addAll(
-            arrayOf(
+            listOf(
                 Command(R.string.commands_stop) { controller.stop() },
                 Command(R.string.commands_takeoff) {
                     controller.fly {
@@ -960,7 +1027,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                         ascendTo(cfg.scanHeightLow, cfg.descendVelocity)
                         delay(1.seconds)
                         scanGround(cfg.scanRadiusLow, cfg.scanVelocity)
-                        speakText(demoPrefix + " " + demoScanInfo.random())
+                        speakDemo()
                         delay(1.seconds)
                         ascendTo(startHeight, cfg.ascendVelocity)
                     }
@@ -1032,7 +1099,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                             cfg.scanVelocity,
                             faceMode = CircleFaceMode.OUTER
                         )
-                        speakText(demoPrefix + " " + demoScanInfo.random())
+                        speakDemo()
                     }
                 },
 
