@@ -1,7 +1,12 @@
 package com.kcg.dr.vocom
 
 import android.app.Activity
+import android.app.Notification.EXTRA_CHANNEL_ID
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Context.NOTIFICATION_SERVICE
 import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Color
@@ -1103,10 +1108,79 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                     respFmtSimpleId,
                 ) { controller.fly { wave() } },
                 Command(
-                ) { controller.fly { flyCircle(1.0, velocity = 0.5) } },
                     R.string.commands_circle,
                     respFmtExId,
                 ) {
+                    controller.fly {
+                        val r = 1.0
+                        val v = 1.0
+                        ToastUtils.showToast("circle: fromCenter, center, clockwise")
+                        flyCircle(
+                            r,
+                            v,
+                            faceMode = CircleFaceMode.CENTER,
+                            clockwise = true,
+                            fromCenter = true
+                        )
+                        ToastUtils.showToast("circle: fromCenter, center, x-clockwise")
+                        flyCircle(
+                            r,
+                            v,
+                            faceMode = CircleFaceMode.CENTER,
+                            clockwise = false,
+                            fromCenter = true
+                        )
+                        ToastUtils.showToast("circle: fromCenter, outer, clockwise")
+                        flyCircle(
+                            r,
+                            v,
+                            faceMode = CircleFaceMode.OUTER,
+                            clockwise = true,
+                            fromCenter = true
+                        )
+                        ToastUtils.showToast("circle: fromCenter, outer, x-clockwise")
+                        flyCircle(
+                            r,
+                            v,
+                            faceMode = CircleFaceMode.OUTER,
+                            clockwise = false,
+                            fromCenter = true
+                        )
+                        delay(2.seconds)
+                        ToastUtils.showToast("circle: center, clockwise")
+                        flyCircle(
+                            r,
+                            v,
+                            faceMode = CircleFaceMode.CENTER,
+                            clockwise = true,
+                            fromCenter = false
+                        )
+                        ToastUtils.showToast("circle: center, x-clockwise")
+                        flyCircle(
+                            r,
+                            v,
+                            faceMode = CircleFaceMode.CENTER,
+                            clockwise = false,
+                            fromCenter = false
+                        )
+                        ToastUtils.showToast("circle: outer, clockwise")
+                        flyCircle(
+                            r,
+                            v,
+                            faceMode = CircleFaceMode.OUTER,
+                            clockwise = true,
+                            fromCenter = false
+                        )
+                        ToastUtils.showToast("circle: outer, x-clockwise")
+                        flyCircle(
+                            r,
+                            v,
+                            faceMode = CircleFaceMode.OUTER,
+                            clockwise = false,
+                            fromCenter = false
+                        )
+                    }
+                },
                 Command(
                     R.string.commands_square, respFmtExId,
                 ) { controller.fly { flySquare(5.0, velocity = 2.5) } },

@@ -684,7 +684,6 @@ open class AircraftController(
             convergeParam.apply {
                 pitch = vy
                 roll = vx
-                yaw = 0.0
                 verticalThrottle = vz
             }
             sendFlightParam(convergeParam)
