@@ -138,6 +138,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     private lateinit var waypointAdapter: LocationAdapter
     private lateinit var waypointRepo: WPLocationRepository
 
+    // Scenarios
     class DemoFlightConfig(
         val humanHeight: Double = 2.0,
         val cruiseHeight: Double,
@@ -152,21 +153,24 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         val descendVelocity: Double = 0.5,
         val scanVelocity: Double,
 
-        val maxVelocity: Double = 1.0,
+        val maxVelocity: Double,
         val accelerationDist: Double = 2.0,
         val decelerationDist: Double = 2.0,
 
-        val flyToTolerance: Double = 0.0,
+        val flyToTolerance: Double = 1.0,
 
         val followDistance: Double,
-        val watch12Time: Duration = 25.seconds,
-        val watch6Time: Duration = 10.seconds,
+        val followVelocity: Double = maxVelocity,
+        val watch12Time: Duration = 30.seconds,
+        val watch6Time: Duration = 3.seconds,
         val circleError: Double = 0.0,
     )
 
     private val indoorsConfig = DemoFlightConfig(
         cruiseHeight = 1.5,
         followDistance = 0.0,
+
+        flyToTolerance = 1.5,
 
         scanHeightHigh = 1.0,
         scanRadiusHigh = 0.4,
@@ -175,6 +179,8 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         scanRadiusLow = 0.3,
 
         scanVelocity = 0.25,
+
+        maxVelocity = 1.0,
     )
     private val denseLotConfig = DemoFlightConfig(
         cruiseHeight = 5.0,
@@ -186,28 +192,33 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         scanHeightLow = 2.5,
         scanRadiusLow = 1.0,
 
+        ascendVelocity = 1.5,
+        descendVelocity = 1.0,
         scanVelocity = 1.0,
+        maxVelocity = 3.0,
 
         circleError = -0.1,
     )
     private val emptyLotConfig = DemoFlightConfig(
         humanHeight = 3.0,
-        cruiseHeight = 20.0,
-        followDistance = 12.0,
+        cruiseHeight = 30.0,
+        followDistance = 14.0,
 
-        scanHeightHigh = 30.0,
-        scanRadiusHigh = 10.0,
+        scanHeightHigh = 40.0,
+        scanRadiusHigh = 12.0,
 
-        scanHeightLow = 10.0,
+        scanHeightLow = 14.0,
         scanRadiusLow = 8.0,
 
         ascendVelocity = 4.0,
-        descendVelocity = 2.5,
+        descendVelocity = 2.0,
         scanVelocity = 4.0,
 
         maxVelocity = 8.0,
         accelerationDist = 5.0,
         decelerationDist = 15.0,
+
+        followVelocity = 3.0,
 
         circleError = -0.15,
     )
