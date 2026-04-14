@@ -23,14 +23,15 @@ class ApiHttpServer(private val port: Int) {
     fun start() {
         if (server != null) return
 
-        server = embeddedServer(CIO, host = "0.0.0.0", port = port) {
+        val host = "0.0.0.0"
+        server = embeddedServer(CIO, host = host, port = port) {
             install(ContentNegotiation) { json() }
 
             routing {
                 // Home page
                 get("/") {
                     call.respondText(
-                        "<html><body><h2>Drone API Server Running</h2></body></html>",
+                        "<html><body><h2>Drone API Server Running. $host : $port</h2></body></html>",
                         contentType = ContentType.Text.Html
                     )
                 }
