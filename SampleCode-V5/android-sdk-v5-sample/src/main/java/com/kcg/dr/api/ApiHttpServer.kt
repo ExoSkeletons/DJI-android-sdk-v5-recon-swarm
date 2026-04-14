@@ -1,6 +1,13 @@
 package com.kcg.dr.api
 
 import android.util.Log
+import com.kcg.dr.CoroutineUtils.suspendAction
+import com.kcg.dr.CoroutineUtils.suspendGet
+import com.kcg.dr.DJIErrorException
+import com.kcg.dr.controller.AircraftController
+import dji.sdk.keyvalue.key.BatteryKey
+import dji.sdk.keyvalue.key.FlightControllerKey
+import dji.v5.et.create
 import io.ktor.http.ContentType
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.call
@@ -16,8 +23,12 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
-class ApiHttpServer(private val port: Int) {
+private const val TAG = "ApiHttpServer"
+
+class ApiHttpServer(private val port: Int, private val controller: AircraftController? = null) {
     private var server: ApplicationEngine? = null
 
     fun start() {
@@ -36,30 +47,92 @@ class ApiHttpServer(private val port: Int) {
                     )
                 }
 
+                get("/fly") {
+                    try {
+                        val isFlying = suspendGet(FlightControllerKey.KeyIsFlying.create()) ?: false
+                        if (isFlying) {
+                            call.respond(buildJsonObject {
+                                put("ok", false)
+                                put("error", "Aircraft already in air")
+                            })
+                            return@get
+                        }
+                        suspendAction(FlightControllerKey.KeyStartTakeoff.create())
+                        call.respond(buildJsonObject { put("ok", true) })
+                    } catch (e: DJIErrorException) {
+                        call.respond(buildJsonObject {
+                            put("ok", false)
+                            put("error", e.error.toString())
+                        })
+                    }
+                }
+                get("/land") {
+                    try {
+                        suspendAction(FlightControllerKey.KeyStartAutoLanding.create())
+                        call.respond(buildJsonObject { put("ok", true) })
+                    } catch (e: DJIErrorException) {
+                        call.respond(buildJsonObject {
+                            put("ok", false)
+                            put("error", e.error.toString())
+                        })
+                    }
+                }
+
+                // Battery
+                get("/battery") {
+                    try {
+                        val voltage = suspendGet(BatteryKey.KeyVoltage.create())
+                        val capacity = suspendGet(BatteryKey.KeyFullChargeCapacity.create())
+                        val remaining = suspendGet(BatteryKey.KeyChargeRemaining.create())
+                        val percent = suspendGet(BatteryKey.KeyChargeRemainingInPercent.create())
+                        call.respond(buildJsonObject {
+                            put("ok", true)
+                            put("voltage", voltage)
+                            put("capacity", capacity)
+                            put("remaining", remaining)
+                            put("percent", percent)
+                        })
+                    } catch (e: DJIErrorException) {
+                        call.respond(buildJsonObject {
+                            put("ok", false)
+                            put("error", e.error.toString())
+                        })
+                    }
+                }
+
                 // Key activation
                 post("/key") {
                     try {
                         val jsonStr = call.receiveText()
                         val element = Json.parseToJsonElement(jsonStr)
-                        val result =  KeyActivator.handleKeyRequest(element)
+                        val result = KeyActivator.handleKeyRequest(element)
 
-                        call.respond(mapOf("ok" to true, "result" to result))
+                        call.respond(buildJsonObject {
+                            put("ok", true)
+                            put("result", result.toString())
+                        })
+                    } catch (e: DJIErrorException) {
+                        call.respond(buildJsonObject {
+                            put("ok", false)
+                            put("error", e.error.toString())
+                        })
                     } catch (e: Exception) {
-                        Log.e("ApiHttpServer", "Exception: ${e.message}", e)
-                        call.respond(
-                            mapOf("ok" to false, "error" to (e.message ?: "Unknown error"))
-                        )
+                        Log.e(TAG, "Exception: ${e.message}", e)
+                        call.respond(buildJsonObject {
+                            put("ok", false)
+                            put("error", e.message)
+                        })
                     }
                 }
             }
         }.start(wait = false)
 
-        Log.i("ApiHttpServer", "Ktor server started on port $port")
+        Log.i(TAG, "Ktor server started on port $port")
     }
 
     fun stop() {
         server?.stop()
         server = null
-        Log.i("ApiHttpServer", "Ktor server stopped")
+        Log.i(TAG, "Ktor server stopped")
     }
 }

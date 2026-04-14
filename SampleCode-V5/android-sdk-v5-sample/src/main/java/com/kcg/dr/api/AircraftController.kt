@@ -2,18 +2,24 @@
 
 package com.kcg.dr.api
 
+import com.kcg.dr.LocationCoordinate2DSerializer
+import com.kcg.dr.LocationCoordinate3DSerializer
+import dji.sdk.keyvalue.value.common.LocationCoordinate2D
+import dji.sdk.keyvalue.value.common.LocationCoordinate3D
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonObject
 
 
 @Serializable
-data class ControllerRequest(
-    val command: String, // TODO: enum
-    val param: JsonObject? = null,
+data class FlyToRequest(
+    @Serializable(with = LocationCoordinate3DSerializer::class)
+    val target: LocationCoordinate3D,
+    val maxVelocity: Double,
 )
 
 @Serializable
-data class FlightMissionRequest(
-    val actions: List<ControllerRequest>
+data class LookAtRequest(
+    @Serializable(with = LocationCoordinate2DSerializer::class)
+    val target: LocationCoordinate2D,
+    val height: Double,
 )

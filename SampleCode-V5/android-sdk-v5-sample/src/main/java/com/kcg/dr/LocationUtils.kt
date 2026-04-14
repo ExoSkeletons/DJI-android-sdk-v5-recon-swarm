@@ -1,8 +1,16 @@
+@file:OptIn(InternalSerializationApi::class)
+
 package com.kcg.dr
 
 import android.location.Location
 import dji.sdk.keyvalue.value.common.LocationCoordinate2D
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
+import kotlinx.serialization.InternalSerializationApi
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.sin
@@ -36,6 +44,53 @@ fun LocationCoordinate2D.as3D(altitude: Double) =
 fun LocationCoordinate3D.atAlt(altitude: Double) =
     LocationCoordinate3D(this.latitude, this.longitude, altitude)
 
+
+@Serializable
+data class LocationCoordinate3DSerializable(
+    val latitude: Double,
+    val longitude: Double,
+    val altitude: Double,
+)
+
+object LocationCoordinate3DSerializer : KSerializer<LocationCoordinate3D> {
+    override val descriptor: SerialDescriptor =
+        LocationCoordinate3DSerializable.serializer().descriptor
+
+    override fun serialize(encoder: Encoder, value: LocationCoordinate3D) {
+        // Convert DJI object -> Surrogate -> JSON
+        val sur = LocationCoordinate3DSerializable(value.latitude, value.longitude, value.altitude)
+        encoder.encodeSerializableValue(LocationCoordinate3DSerializable.serializer(), sur)
+    }
+
+    override fun deserialize(decoder: Decoder): LocationCoordinate3D {
+        // Convert JSON -> Surrogate -> DJI object
+        val sur = decoder.decodeSerializableValue(LocationCoordinate3DSerializable.serializer())
+        return LocationCoordinate3D(sur.latitude, sur.longitude, sur.altitude)
+    }
+}
+
+@Serializable
+data class LocationCoordinate2DSerializable(
+    val latitude: Double,
+    val longitude: Double,
+)
+
+object LocationCoordinate2DSerializer : KSerializer<LocationCoordinate2D> {
+    override val descriptor: SerialDescriptor =
+        LocationCoordinate2DSerializable.serializer().descriptor
+
+    override fun serialize(encoder: Encoder, value: LocationCoordinate2D) {
+        // Convert DJI object -> Surrogate -> JSON
+        val sur = LocationCoordinate2DSerializable(value.latitude, value.longitude)
+        encoder.encodeSerializableValue(LocationCoordinate2DSerializable.serializer(), sur)
+    }
+
+    override fun deserialize(decoder: Decoder): LocationCoordinate2D {
+        // Convert JSON -> Surrogate -> DJI object
+        val sur = decoder.decodeSerializableValue(LocationCoordinate2DSerializable.serializer())
+        return LocationCoordinate2D(sur.latitude, sur.longitude)
+    }
+}
 
 object LocationUtils {
     enum class RelativeDirection(val sign: Int, val bearingOffsetDegrees: Float) {
