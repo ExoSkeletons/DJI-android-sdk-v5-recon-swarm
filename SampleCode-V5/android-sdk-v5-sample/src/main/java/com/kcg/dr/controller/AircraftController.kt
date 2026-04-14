@@ -5,6 +5,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
+import com.kcg.dr.CoroutineUtils.whileSuspendedBy
 import com.kcg.dr.DJIErrorException
 import com.kcg.dr.LocationUtils
 import com.kcg.dr.LocationUtils.bearingTo
@@ -762,23 +763,6 @@ open class AircraftController(
             sendFlightParam(convergeParam)
         }
     }
-
-    suspend fun whileSuspendedBy(
-        suspenders: List<suspend () -> Unit>,
-        block: suspend () -> Unit
-    ) = coroutineScope {
-        val jobsList = mutableListOf<Job>()
-        for (suspender in suspenders)
-            jobsList.add(launch { suspender() })
-        block()
-        for (job in jobsList)
-            job.cancelAndJoin()
-    }
-
-    suspend fun whileSuspendedBy(
-        suspender: suspend () -> Unit,
-        block: suspend () -> Unit
-    ) = whileSuspendedBy(listOf(suspender), block)
 
     suspend fun flyBySticks(
         direction: LocationUtils.RelativeDirection, distance: Double,
