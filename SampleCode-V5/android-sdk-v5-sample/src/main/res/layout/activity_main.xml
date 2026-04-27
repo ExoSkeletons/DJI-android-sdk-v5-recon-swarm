@@ -57,6 +57,7 @@
                 android:layout_margin="4dp"
                 android:textColor="@color/white"
                 android:textSize="14sp"
+                android:visibility="visible"
                 tools:text="@string/sdk_version" />
 
             <TextView
