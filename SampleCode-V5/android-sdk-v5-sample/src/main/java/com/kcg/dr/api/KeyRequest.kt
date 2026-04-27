@@ -31,13 +31,9 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
-import org.json.JSONArray
-import org.json.JSONObject
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -63,30 +59,6 @@ class KeyItem<P, R>(
     val djiKey: DJIKey<R>,
     val djiKeySet: DJIKey<P> = djiKey as DJIKey<P>
 ) {
-    fun Any?.toElement(): JsonElement = when (val value = this) {
-        null -> JsonNull
-        is JSONArray -> {
-            val list = mutableListOf<JsonElement>()
-            for (i in 0 until value.length())
-                list += value.opt(i).toElement()
-            JsonArray(list)
-        }
-
-        is Boolean -> JsonPrimitive(value)
-        is Number -> JsonPrimitive(value)
-        is String -> JsonPrimitive(value)
-        is JSONObject -> value.toJsonObject() // Recursive
-        else -> JsonPrimitive(value.toString()) // fallback
-    }
-
-    fun JSONObject?.toJsonObject(): JsonElement {
-        if (this == null) return JsonNull
-        val content = mutableMapOf<String, JsonElement>()
-        for (key in this.keys())
-            content[key] = this.opt(key).toElement()
-        return JsonObject(content)
-    }
-
     fun fromJson(jsonObject: JsonObject?): P? =
         djiKey.keyInfo.typeConverter.fromStr(jsonObject.toString()) as P?
 
