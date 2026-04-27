@@ -179,6 +179,8 @@ private fun Route.statusRoute() {
             })
         } catch (e: DJIErrorException) {
             call.respond(djiErrorResponse(e))
+        } catch (e: Exception) {
+            call.respond(exceptResponse(e))
         }
     }
     get("/signal") {
