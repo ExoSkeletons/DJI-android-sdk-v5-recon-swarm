@@ -43,12 +43,22 @@ fun Any?.toElement(): JsonElement = when (val value = this) {
     else -> JsonPrimitive(value.toString()) // fallback
 }
 
-fun JSONObject?.toJsonObject(): JsonElement {
+fun JSONObject?.toJsonElement(): JsonElement {
     if (this == null) return JsonNull
     val content = mutableMapOf<String, JsonElement>()
     for (key in this.keys())
         content[key] = this.opt(key).toElement()
     return JsonObject(content)
+}
+
+fun JsonElement?.or(other: JsonElement): JsonElement = when {
+    this == null || this is JsonNull -> other
+    else -> this
+}
+
+fun Any?.or(other: JsonElement): JsonElement = when (val value = this) {
+    null -> other
+    else -> value.toElement()
 }
 
 class SerializerSurrogates() {

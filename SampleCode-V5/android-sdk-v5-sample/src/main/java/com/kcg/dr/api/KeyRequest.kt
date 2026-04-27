@@ -62,7 +62,7 @@ class KeyItem<P, R>(
         val r = djiKey.getOrExcept()
         return when (r) {
             null -> JsonNull
-            is DJIValue -> r.toJson().toJsonObject()
+            is DJIValue -> r.toJson().toJsonElement()
             else -> r.toElement()
         }
     }
@@ -82,7 +82,7 @@ class KeyItem<P, R>(
         val r = (djiKey as DJIKey.ActionKey<P, R>).actionOrExcept(p)
         return when (r) {
             null -> JsonNull
-            is DJIValue -> r.toJson().toJsonObject()
+            is DJIValue -> r.toJson().toJsonElement()
             else -> r.toElement()
         }
     }
