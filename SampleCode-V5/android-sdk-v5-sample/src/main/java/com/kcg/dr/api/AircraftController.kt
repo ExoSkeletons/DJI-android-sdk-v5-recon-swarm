@@ -10,6 +10,8 @@ import com.kcg.dr.api.SerializerSurrogates.LocationCoordinate3DSerializer
 import com.kcg.dr.controller.AircraftController
 import dji.sdk.keyvalue.value.common.LocationCoordinate2D
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.ApplicationCallPipeline
 import io.ktor.server.application.call
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
@@ -110,8 +112,21 @@ class CameraActions {
 @Serializable
 data class FlyRequest(val mission: List<Action>)
 
+
 @OptIn(ExperimentalSerializationApi::class)
-fun Route.controllerRoute(controller: AircraftController) {
+fun Route.controllerRoute(c: ()->AircraftController?) {
+    lateinit var controller: AircraftController
+    intercept(ApplicationCallPipeline.Plugins) {
+        val cr = c()
+        if (cr == null) {
+            call.respond(HttpStatusCode.ServiceUnavailable, "Drone Controller not initialized.")
+            finish() // This prevents the actual get/post handlers below from running
+            return@intercept
+        }
+        controller = cr
+    }
+
+    get("/") { call.respond(status { "controller is ready" }) }
     post("/flyTo") {
         val request = call.receive<FlightActions.FlyTo>()
         controller.fly {

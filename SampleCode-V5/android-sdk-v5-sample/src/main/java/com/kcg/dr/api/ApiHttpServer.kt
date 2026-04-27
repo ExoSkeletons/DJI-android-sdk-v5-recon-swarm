@@ -40,7 +40,12 @@ import kotlinx.serialization.json.put
 
 private const val TAG = "ApiHttpServer"
 
-class ApiHttpServer(private val port: Int, private val controller: AircraftController? = null) {
+object ControllerBridge {
+    // global injection of controller. remove when controller is refactored to singleton or a vm or smth
+    var controller: AircraftController? = null
+}
+
+class ApiHttpServer(private val port: Int) {
     private var server: ApplicationEngine? = null
 
     fun stop() {

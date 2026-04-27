@@ -46,6 +46,7 @@ import com.kcg.dr.SFXManager
 import com.kcg.dr.ServiceUtils.startService
 import com.kcg.dr.ServiceUtils.stopService
 import com.kcg.dr.api.ApiServerService
+import com.kcg.dr.api.ControllerBridge
 import com.kcg.dr.api.EXTRA_PORT
 import com.kcg.dr.api.KeyActivator
 import com.kcg.dr.as2D
@@ -989,6 +990,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         controller.init()
         controller.takeStickControl(object : CommonCallbacks.CompletionCallback {
             override fun onSuccess() {
+                ControllerBridge.controller = controller
                 if (binding?.leftStickView != null && binding?.rightStickView != null)
                     attachOnScreenSticks(
                         binding?.leftStickView!!, binding?.rightStickView!!,
