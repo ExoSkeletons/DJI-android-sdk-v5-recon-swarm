@@ -52,6 +52,34 @@ data class LookAt(
         controller.lookAtWithSpin(target, this@LookAt.height)
 }
 
+class PatternActions {
+    @Serializable
+    @SerialName("circle")
+    data class Circle(
+        val radius: Double,
+        val velocity: Double,
+        val count: Double = 1.0,
+        val clockwise: Boolean = true,
+        @SerialName("facing")
+        val faceMode: AircraftController.CircleFaceMode = AircraftController.CircleFaceMode.CENTER,
+    ) : Action() {
+        override suspend fun act(controller: AircraftController) =
+            controller.flyCircle(radius, velocity, count, clockwise, faceMode)
+    }
+
+    @Serializable
+    @SerialName("square")
+    data class Square(
+        val side: Double,
+        val velocity: Double,
+        val clockwise: Boolean = true,
+    ) : Action() {
+        override suspend fun act(controller: AircraftController) =
+            controller.flySquare(side, velocity, clockwise)
+    }
+}
+
+
 @Serializable
 data class FlyRequest(val mission: List<FlightAction>)
 
