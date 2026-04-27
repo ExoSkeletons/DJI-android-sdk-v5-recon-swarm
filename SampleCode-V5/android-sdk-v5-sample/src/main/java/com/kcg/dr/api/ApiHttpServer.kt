@@ -90,7 +90,7 @@ class ApiHttpServer(private val port: Int) {
                             return@get
                         }
                         FlightControllerKey.KeyStartTakeoff.create().actionOrExcept()
-                        call.respond(buildJsonObject { put("ok", true) })
+                        call.respond(ok())
                     } catch (e: DJIErrorException) {
                         call.respond(djiErrorResponse(e))
                     }
@@ -98,7 +98,7 @@ class ApiHttpServer(private val port: Int) {
                 get("/land") {
                     try {
                         FlightControllerKey.KeyStartAutoLanding.create().actionOrExcept()
-                        call.respond(buildJsonObject { put("ok", true) })
+                        call.respond(ok())
                     } catch (e: DJIErrorException) {
                         call.respond(djiErrorResponse(e))
                     }
@@ -126,7 +126,6 @@ class ApiHttpServer(private val port: Int) {
 }
 
 private fun Route.statusRoute() {
-    val unavailable = JsonPrimitive("unavailable")
     get("/") {
         try {
             val isFlying = FlightControllerKey.KeyIsFlying.create().get(false)
@@ -142,8 +141,7 @@ private fun Route.statusRoute() {
             val controllerConnection = RemoteControllerKey.KeyConnection.create().get(false)
             val controllerVersion = RemoteControllerKey.KeyFirmwareVersion.create().get()
 
-            call.respond(buildJsonObject {
-                put("ok", true)
+            call.respond(ok {
                 put("aircraft", buildJsonObject {
                     put("isFlying", isFlying)
                     put("battery", battery.or(unavailable))
@@ -174,12 +172,11 @@ private fun Route.statusRoute() {
             val capacity = BatteryKey.KeyFullChargeCapacity.create().get()
             val remaining = BatteryKey.KeyChargeRemaining.create().get()
             val percent = BatteryKey.KeyChargeRemainingInPercent.create().get()
-            call.respond(buildJsonObject {
-                put("ok", true)
                 put("voltage", voltage.or(unavailable))
                 put("capacity", capacity.or(unavailable))
                 put("remaining", remaining.or(unavailable))
                 put("percent", percent.or(unavailable))
+            call.respond(ok {
             })
         } catch (e: DJIErrorException) {
             call.respond(djiErrorResponse(e))
@@ -192,8 +189,7 @@ private fun Route.statusRoute() {
             val frequency = AirLinkKey.KeyFrequencyBand.create().get()
             val range = AirLinkKey.KeyFrequencyBandRange.create().get()
 
-            call.respond(buildJsonObject {
-                put("ok", true)
+            call.respond(ok {
                 put("connection", connection)
                 put("quality", quality.or(unavailable))
                 put("frequency", frequency.toElement().or(unavailable))
