@@ -75,29 +75,12 @@ class ApiHttpServer(private val port: Int, private val controller: AircraftContr
 
                 // Status
                 route("/status") {
-                    statusHandler()
+                    statusRoute()
                 }
 
                 controller?.let {
                     route("/controller") {
-                        post("/flyTo") {
-                            val request = call.receive<FlyToRequest>()
-                            controller.fly {
-                                flyToSticks(
-                                    target = request.target,
-                                    maxVelocity = request.maxVelocity
-                                )
-                            }
-                        }
-
-                        post("/lookAt") {
-                            val request = call.receive<LookAtRequest>()
-                            controller.fly { lookAtWithSpin(request.target, request.height) }
-                        }
-
-                        post("/stop") { controller.stop() }
-                        post("/takeoff") { controller.takeoff() }
-                        post("/land") { controller.land() }
+                        controllerRoute(it)
                     }
                 }
 
@@ -151,7 +134,28 @@ class ApiHttpServer(private val port: Int, private val controller: AircraftContr
     }
 }
 
-private fun Route.statusHandler() {
+private fun Route.controllerRoute(controller: AircraftController) {
+    post("/flyTo") {
+        val request = call.receive<FlyToRequest>()
+        controller.fly {
+            flyToSticks(
+                target = request.target,
+                maxVelocity = request.maxVelocity
+            )
+        }
+    }
+
+    post("/lookAt") {
+        val request = call.receive<LookAtRequest>()
+        controller.fly { lookAtWithSpin(request.target, request.height) }
+    }
+
+    post("/stop") { controller.stop() }
+    post("/takeoff") { controller.takeoff() }
+    post("/land") { controller.land() }
+}
+
+private fun Route.statusRoute() {
     get("/") {
         try {
             val isFlying = FlightControllerKey.KeyIsFlying.create().getOrExcept() ?: false
