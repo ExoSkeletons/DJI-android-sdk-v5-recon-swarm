@@ -77,6 +77,7 @@ class ApiHttpServer(private val port: Int, private val controller: AircraftContr
         val host = "0.0.0.0"
         server = embeddedServer(CIO, host = host, port = port) {
             install(ContentNegotiation) { json() }
+            install(IgnoreTrailingSlash)
 
             routing {
                 // Home page
