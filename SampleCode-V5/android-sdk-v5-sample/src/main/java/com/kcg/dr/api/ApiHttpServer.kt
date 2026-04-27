@@ -53,6 +53,55 @@ class ApiHttpServer(private val port: Int, private val controller: AircraftContr
                     )
                 }
 
+                // Status
+                route("/status") {
+                    get("/") {
+                        //statusHandler()
+                    }
+                    // Battery
+                    get("/battery") {
+                        try {
+                            val voltage = BatteryKey.KeyVoltage.create().suspendGet()
+                            val capacity = BatteryKey.KeyFullChargeCapacity.create().suspendGet()
+                            val remaining = BatteryKey.KeyChargeRemaining.create().suspendGet()
+                            val percent =
+                                BatteryKey.KeyChargeRemainingInPercent.create().suspendGet()
+                            call.respond(buildJsonObject {
+                                put("ok", true)
+                                put("voltage", voltage)
+                                put("capacity", capacity)
+                                put("remaining", remaining)
+                                put("percent", percent)
+                            })
+                        } catch (e: DJIErrorException) {
+                            call.respond(errorResponse(e))
+                        }
+                    }
+                }
+
+                controller?.let {
+                    route("/controller") {
+                        post("/flyTo") {
+                            val request = call.receive<FlyToRequest>()
+                            controller.fly {
+                                flyToSticks(
+                                    target = request.target,
+                                    maxVelocity = request.maxVelocity
+                                )
+                            }
+                        }
+
+                        post("/lookAt") {
+                            val request = call.receive<LookAtRequest>()
+                            controller.fly { lookAtWithSpin(request.target, request.height) }
+                        }
+
+                        post("/stop") { controller.stop() }
+                        post("/takeoff") { controller.takeoff() }
+                        post("/land") { controller.land() }
+                    }
+                }
+
                 get("/fly") {
                     try {
                         val isFlying =
@@ -77,28 +126,6 @@ class ApiHttpServer(private val port: Int, private val controller: AircraftContr
                     try {
                         FlightControllerKey.KeyStartAutoLanding.create().suspendAction()
                         call.respond(buildJsonObject { put("ok", true) })
-                    } catch (e: DJIErrorException) {
-                        call.respond(buildJsonObject {
-                            put("ok", false)
-                            put("error", e.error.toString())
-                        })
-                    }
-                }
-
-                // Battery
-                get("/battery") {
-                    try {
-                        val voltage = suspendGet(BatteryKey.KeyVoltage.create())
-                        val capacity = suspendGet(BatteryKey.KeyFullChargeCapacity.create())
-                        val remaining = suspendGet(BatteryKey.KeyChargeRemaining.create())
-                        val percent = suspendGet(BatteryKey.KeyChargeRemainingInPercent.create())
-                        call.respond(buildJsonObject {
-                            put("ok", true)
-                            put("voltage", voltage)
-                            put("capacity", capacity)
-                            put("remaining", remaining)
-                            put("percent", percent)
-                        })
                     } catch (e: DJIErrorException) {
                         call.respond(buildJsonObject {
                             put("ok", false)
