@@ -49,7 +49,8 @@ class ApiHttpServer(private val port: Int, private val controller: AircraftContr
 
                 get("/fly") {
                     try {
-                        val isFlying = suspendGet(FlightControllerKey.KeyIsFlying.create()) ?: false
+                        val isFlying =
+                            FlightControllerKey.KeyIsFlying.create().suspendGet() ?: false
                         if (isFlying) {
                             call.respond(buildJsonObject {
                                 put("ok", false)
@@ -57,7 +58,7 @@ class ApiHttpServer(private val port: Int, private val controller: AircraftContr
                             })
                             return@get
                         }
-                        suspendAction(FlightControllerKey.KeyStartTakeoff.create())
+                        FlightControllerKey.KeyStartTakeoff.create().suspendAction()
                         call.respond(buildJsonObject { put("ok", true) })
                     } catch (e: DJIErrorException) {
                         call.respond(buildJsonObject {
@@ -68,7 +69,7 @@ class ApiHttpServer(private val port: Int, private val controller: AircraftContr
                 }
                 get("/land") {
                     try {
-                        suspendAction(FlightControllerKey.KeyStartAutoLanding.create())
+                        FlightControllerKey.KeyStartAutoLanding.create().suspendAction()
                         call.respond(buildJsonObject { put("ok", true) })
                     } catch (e: DJIErrorException) {
                         call.respond(buildJsonObject {

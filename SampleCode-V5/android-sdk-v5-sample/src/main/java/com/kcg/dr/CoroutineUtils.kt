@@ -30,38 +30,28 @@ object CoroutineUtils {
         block: suspend () -> Unit
     ) = whileSuspendedBy(listOf(suspender), block)
 
-    suspend fun <T> suspendGet(key: DJIKey<T>): T? {
-        val g = suspendCancellableCoroutine { cont ->
-            key.get(
+    suspend fun <T> DJIKey<T>.suspendGet(): T? =
+        suspendCancellableCoroutine { cont ->
+            this.get(
                 onSuccess = { cont.resume(it) },
                 onFailure = { error -> cont.resumeWithException(DJIErrorException(error)) }
             )
         }
-        return g
-    }
 
-    suspend fun <T> suspendSet(
-        key: DJIKey<T>,
-        value: T,
-    ) {
+    suspend fun <T> DJIKey<T>.suspendSet(value: T) =
         suspendCancellableCoroutine { cont ->
-            key.set(
+            this.set(
                 value,
                 onSuccess = { cont.resume(Unit) },
                 onFailure = { error -> cont.resumeWithException(DJIErrorException(error)) }
             )
         }
-    }
 
-    suspend fun <T, R> suspendAction(
-        key: DJIKey.ActionKey<T, R>,
-    ): R {
-        val r = suspendCancellableCoroutine { cont ->
-            key.action(
+    suspend fun <T, R> DJIKey.ActionKey<T, R>.suspendAction(): R =
+        suspendCancellableCoroutine { cont ->
+            this.action(
                 onSuccess = { cont.resume(it) },
                 onFailure = { error -> cont.resumeWithException(DJIErrorException(error)) }
             )
         }
-        return r
-    }
 }
