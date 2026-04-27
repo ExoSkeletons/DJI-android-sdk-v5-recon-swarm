@@ -19,37 +19,42 @@ import kotlin.time.Duration.Companion.seconds
 
 
 @Serializable
-sealed class FlightAction {
-    abstract suspend fun act(controller: AircraftController)
+sealed class Action {
+    abstract suspend fun act(controller: AircraftController): Any?
 }
 
-@Serializable
-@SerialName("delay")
-data class Delay(val seconds: Double) : FlightAction() {
-    override suspend fun act(controller: AircraftController) =
-        delay(seconds.seconds)
+class TemporalActions {
+    @Serializable
+    @SerialName("delay")
+    data class Delay(val seconds: Double) : Action() {
+        override suspend fun act(controller: AircraftController) =
+            delay(seconds.seconds)
+    }
 }
 
-@Serializable
-@SerialName("fly_to")
-data class FlyTo(
-    @Serializable(with = LocationCoordinate3DSerializer::class)
-    val target: LocationCoordinate3D,
-    val maxVelocity: Double
-) : FlightAction() {
-    override suspend fun act(controller: AircraftController) =
-        controller.flyTo(target)
-}
+class FlightActions {
+    @Serializable
+    @SerialName("fly_to")
+    data class FlyTo(
+        @Serializable(with = LocationCoordinate3DSerializer::class)
+        val target: LocationCoordinate3D,
+        @SerialName("velocity")
+        val maxVelocity: Double
+    ) : Action() {
+        override suspend fun act(controller: AircraftController) =
+            controller.flyToSticks(target, maxVelocity = maxVelocity)
+    }
 
-@Serializable
-@SerialName("look_at")
-data class LookAt(
-    @Serializable(with = LocationCoordinate2DSerializer::class)
-    val target: LocationCoordinate2D,
-    val height: Double
-) : FlightAction() {
-    override suspend fun act(controller: AircraftController) =
-        controller.lookAtWithSpin(target, this@LookAt.height)
+    @Serializable
+    @SerialName("look_at")
+    data class LookAt(
+        @Serializable(with = LocationCoordinate2DSerializer::class)
+        val target: LocationCoordinate2D,
+        val height: Double? = null
+    ) : Action() {
+        override suspend fun act(controller: AircraftController) =
+            controller.lookAtWithSpin(target, this@LookAt.height)
+    }
 }
 
 class PatternActions {
@@ -79,13 +84,28 @@ class PatternActions {
     }
 }
 
+class CameraActions {
+    @Serializable
+    @SerialName("gimbal_pitch")
+    data class GimbalPitch(val angle: Double) : Action() {
+        override suspend fun act(controller: AircraftController) =
+            controller.pitchCamera(angle)
+    }
+
+    @Serializable
+    @SerialName("wave")
+    data class Wave(val count: Int = 2) : Action() {
+        override suspend fun act(controller: AircraftController) =
+            controller.wave(count)
+    }
+}
 
 @Serializable
-data class FlyRequest(val mission: List<FlightAction>)
+data class FlyRequest(val mission: List<Action>)
 
 fun Route.controllerRoute(controller: AircraftController) {
     post("/flyTo") {
-        val request = call.receive<FlyTo>()
+        val request = call.receive<FlightActions.FlyTo>()
         controller.fly {
             flyToSticks(
                 target = request.target,
@@ -94,14 +114,15 @@ fun Route.controllerRoute(controller: AircraftController) {
         }
     }
     post("/lookAt") {
-        val request = call.receive<LookAt>()
+        val request = call.receive<FlightActions.LookAt>()
         controller.fly { lookAtWithSpin(request.target, request.height) }
     }
 
     post("/fly") {
         val request = call.receive<FlyRequest>()
         controller.fly {
-            for (request in request.mission) request.act(controller)
+            for (request in request.mission)
+                request.act(controller)
         }
     }
 
