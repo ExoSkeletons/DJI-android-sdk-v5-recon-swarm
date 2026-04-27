@@ -105,8 +105,7 @@ class ApiHttpServer(private val port: Int, private val controller: AircraftContr
 
                 get("/fly") {
                     try {
-                        val isFlying =
-                            FlightControllerKey.KeyIsFlying.create().getOrExcept() ?: false
+                        val isFlying = FlightControllerKey.KeyIsFlying.create().get(false)
                         if (isFlying) {
                             call.respond(buildJsonObject {
                                 put("ok", false)
