@@ -177,8 +177,8 @@ class ApiHttpServer(private val port: Int, private val controller: AircraftContr
                 put("aircraft", buildJsonObject {
                     put("isFlying", isFlying)
                     put("battery", battery)
-                    /*put("velocity3D", velocity3D.toJson())
-                    put("position3D", position3D)*/
+                    put("velocity3D", velocity3D?.toJson().toJsonObject())
+                    put("position3D", position3D?.toJson().toJsonObject())
                 })
                 put("product", buildJsonObject {
                     put("version", version)
