@@ -53,7 +53,7 @@ data class DJIKeyRequest(
 @Suppress("UNCHECKED_CAST")
 class KeyItem<P, R>(
     val djiKey: DJIKey<R>,
-    val djiKeySet: DJIKey<P> = djiKey as DJIKey<P>
+    private val djiKeySet: DJIKey<P> = djiKey as DJIKey<P>
 ) {
     fun fromJson(jsonObject: JsonObject?): P? =
         djiKey.keyInfo.typeConverter.fromStr(jsonObject.toString()) as P?
