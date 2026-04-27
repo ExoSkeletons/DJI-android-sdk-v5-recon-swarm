@@ -2,8 +2,11 @@ package com.kcg.dr.api
 
 import android.util.Log
 import com.kcg.dr.CoroutineUtils.actionOrExcept
-import com.kcg.dr.CoroutineUtils.getOrExcept
 import com.kcg.dr.DJIErrorException
+import com.kcg.dr.api.Responses.djiErrorResponse
+import com.kcg.dr.api.Responses.errorResponse
+import com.kcg.dr.api.Responses.exceptResponse
+import com.kcg.dr.api.Responses.ok
 import com.kcg.dr.controller.AircraftController
 import dji.sdk.keyvalue.key.AirLinkKey
 import dji.sdk.keyvalue.key.BatteryKey
@@ -31,40 +34,11 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
 private const val TAG = "ApiHttpServer"
-
-
-private fun djiErrorResponse(e: DJIErrorException): JsonObject = buildJsonObject {
-    put("ok", false)
-    put("djiError", buildJsonObject {
-        with(e.error) {
-            put("errorType", errorType().toElement())
-            if (errorCode() != null) put("errorCode", errorCode())
-            if (innerCode() != null) put("innerCode", innerCode())
-            if (description() != null) put("description", description())
-            if (hint() != null) put("hint", hint())
-
-            if (errorCode().contains("handler( |_|-|.)*not( |_|-|.)*found".toRegex(RegexOption.IGNORE_CASE)))
-                put(
-                    "hint",
-                    "Remote Controller might not be connected to Device. Have you connected the Device to the RC's USB port?"
-                )
-        }
-    })
-}
-
-private fun exceptResponse(e: Exception): JsonObject = buildJsonObject {
-    Log.e(TAG, "Exception: ${e.message}", e)
-    buildJsonObject {
-        put("ok", false)
-        put("error", e.message)
-    }
-}
 
 class ApiHttpServer(private val port: Int, private val controller: AircraftController? = null) {
     private var server: ApplicationEngine? = null
@@ -107,10 +81,7 @@ class ApiHttpServer(private val port: Int, private val controller: AircraftContr
                     try {
                         val isFlying = FlightControllerKey.KeyIsFlying.create().get(false)
                         if (isFlying) {
-                            call.respond(buildJsonObject {
-                                put("ok", false)
-                                put("error", "Aircraft already in air")
-                            })
+                            call.respond(errorResponse { "Aircraft already in air" })
                             return@get
                         }
                         FlightControllerKey.KeyStartTakeoff.create().actionOrExcept()
@@ -135,10 +106,7 @@ class ApiHttpServer(private val port: Int, private val controller: AircraftContr
                         val element = Json.parseToJsonElement(jsonStr)
                         val result = KeyActivator.handleKeyRequest(element)
 
-                        call.respond(buildJsonObject {
-                            put("ok", true)
-                            put("result", result.toString())
-                        })
+                        call.respond(ok { put("result", result) })
                     } catch (e: DJIErrorException) {
                         call.respond(djiErrorResponse(e))
                     } catch (e: Exception) {

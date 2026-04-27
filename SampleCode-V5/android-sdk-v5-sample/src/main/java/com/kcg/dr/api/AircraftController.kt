@@ -2,6 +2,9 @@
 
 package com.kcg.dr.api
 
+import com.kcg.dr.CoroutineUtils.await
+import com.kcg.dr.api.Responses.ok
+import com.kcg.dr.api.Responses.status
 import com.kcg.dr.api.SerializerSurrogates.LocationCoordinate2DSerializer
 import com.kcg.dr.api.SerializerSurrogates.LocationCoordinate3DSerializer
 import com.kcg.dr.controller.AircraftController
@@ -9,12 +12,16 @@ import dji.sdk.keyvalue.value.common.LocationCoordinate2D
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
 import io.ktor.server.application.call
 import io.ktor.server.request.receive
+import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import kotlinx.coroutines.delay
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.serializer
 import kotlin.time.Duration.Companion.seconds
 
 
@@ -103,6 +110,7 @@ class CameraActions {
 @Serializable
 data class FlyRequest(val mission: List<Action>)
 
+@OptIn(ExperimentalSerializationApi::class)
 fun Route.controllerRoute(controller: AircraftController) {
     post("/flyTo") {
         val request = call.receive<FlightActions.FlyTo>()
@@ -112,10 +120,22 @@ fun Route.controllerRoute(controller: AircraftController) {
                 maxVelocity = request.maxVelocity
             )
         }
+        call.respond(ok {
+            put(
+                FlightActions.FlyTo::class.serializer().descriptor.serialName,
+                request.target.toJson().toJsonElement()
+            )
+        })
     }
     post("/lookAt") {
         val request = call.receive<FlightActions.LookAt>()
         controller.fly { lookAtWithSpin(request.target, request.height) }
+        call.respond(ok {
+            put(
+                FlightActions.LookAt::class.serializer().descriptor.serialName,
+                request.target.toJson().toJsonElement()
+            )
+        })
     }
 
     post("/fly") {
@@ -124,9 +144,25 @@ fun Route.controllerRoute(controller: AircraftController) {
             for (request in request.mission)
                 request.act(controller)
         }
+        // respond without waiting for completion
+        call.respond(status { "starting mission" })
     }
 
-    post("/stop") { controller.stop() }
-    post("/takeoff") { controller.takeoff() }
-    post("/land") { controller.land() }
+    post("/stop") {
+        controller.stop()
+        call.respond(ok())
+    }
+    post("/takeoff") {
+        await { c -> controller.fly { takeoff(c) } }
+        call.respond(ok())
+    }
+    post("/land") {
+        await { c -> controller.fly { land(c) } }
+        call.respond(ok())
+    }
+
+    get("/(wave|hi|hey|hello)".toRegex()) {
+        controller.fly { wave() }
+        call.respond(status { "Hello! o/" })
+    }
 }

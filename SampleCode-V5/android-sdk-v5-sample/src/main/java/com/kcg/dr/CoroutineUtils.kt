@@ -1,6 +1,8 @@
 package com.kcg.dr
 
 import dji.sdk.keyvalue.key.DJIKey
+import dji.v5.common.callback.CommonCallbacks
+import dji.v5.common.error.IDJIError
 import dji.v5.et.action
 import dji.v5.et.get
 import dji.v5.et.set
@@ -29,6 +31,18 @@ object CoroutineUtils {
         suspender: suspend () -> Unit,
         block: suspend () -> Unit
     ) = whileSuspendedBy(listOf(suspender), block)
+
+    suspend fun <T> await(block: (CommonCallbacks.CompletionCallbackWithParam<T>) -> Unit): T? {
+        return suspendCancellableCoroutine { cont ->
+            val wrapper = object : CommonCallbacks.CompletionCallbackWithParam<T> {
+                override fun onSuccess(value: T?) = cont.resume(value)
+
+                override fun onFailure(error: IDJIError) = cont.resumeWithException(DJIErrorException(error))
+            }
+            block(wrapper)
+        }
+    }
+
 
     suspend fun <R> DJIKey<R>.getOrExcept(): R? =
         suspendCancellableCoroutine { cont ->
