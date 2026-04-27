@@ -37,7 +37,21 @@ private const val TAG = "ApiHttpServer"
 
 private fun djiErrorResponse(e: DJIErrorException): JsonObject = buildJsonObject {
     put("ok", false)
-    put("error", e.error.toString())
+    put("djiError", buildJsonObject {
+        with(e.error) {
+            put("errorType", errorType().toElement())
+            if (errorCode() != null) put("errorCode", errorCode())
+            if (innerCode() != null) put("innerCode", innerCode())
+            if (description() != null) put("description", description())
+            if (hint() != null) put("hint", hint())
+
+            if (errorCode().contains("handler( |_|-|.)*not( |_|-|.)*found".toRegex(RegexOption.IGNORE_CASE)))
+                put(
+                    "hint",
+                    "Remote Controller might not be connected to Device. Have you connected the Device to the RC's USB port?"
+                )
+        }
+    })
 }
 
 private fun exceptResponse(e: Exception): JsonObject = buildJsonObject {
