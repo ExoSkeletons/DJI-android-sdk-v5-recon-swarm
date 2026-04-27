@@ -28,6 +28,13 @@ fun Any?.toElement(): JsonElement = when (val value = this) {
         JsonArray(list)
     }
 
+    is Collection<*> -> {
+        val list = mutableListOf<JsonElement>()
+        for (item in value)
+            list += item.toElement()
+        JsonArray(list)
+    }
+
     is Boolean -> JsonPrimitive(value)
     is Number -> JsonPrimitive(value)
     is String -> JsonPrimitive(value)
