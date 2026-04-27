@@ -16,18 +16,33 @@ import kotlinx.serialization.Serializable
 
 
 @Serializable
+abstract class FlightRequest
+
+@Serializable
+data class SequenceRequest(
+    val list: List<FlightRequest>,
+) : FlightRequest()
+
+
+@Serializable
+data class DelayRequest(
+    val seconds: Double,
+) : FlightRequest()
+
+
+@Serializable
 data class FlyToRequest(
     @Serializable(with = LocationCoordinate3DSerializer::class)
     val target: LocationCoordinate3D,
     val maxVelocity: Double,
-)
+) : FlightRequest()
 
 @Serializable
 data class LookAtRequest(
     @Serializable(with = LocationCoordinate2DSerializer::class)
     val target: LocationCoordinate2D,
     val height: Double,
-)
+) : FlightRequest()
 
 
 fun Route.controllerRoute(controller: AircraftController) {
