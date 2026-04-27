@@ -7,22 +7,29 @@ import com.kcg.dr.DJIErrorException
 import com.kcg.dr.controller.AircraftController
 import dji.sdk.keyvalue.key.BatteryKey
 import dji.sdk.keyvalue.key.FlightControllerKey
+import dji.sdk.keyvalue.key.ProductKey
+import dji.sdk.keyvalue.key.RemoteControllerKey
 import dji.v5.et.create
 import io.ktor.http.ContentType
 import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.call
 import io.ktor.server.application.install
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.ApplicationEngine
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.request.receive
 import io.ktor.server.request.receiveText
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
+import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
+import io.ktor.util.pipeline.PipelineContext
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
@@ -56,7 +63,7 @@ class ApiHttpServer(private val port: Int, private val controller: AircraftContr
                 // Status
                 route("/status") {
                     get("/") {
-                        //statusHandler()
+                        statusHandler()
                     }
                     // Battery
                     get("/battery") {
@@ -149,6 +156,42 @@ class ApiHttpServer(private val port: Int, private val controller: AircraftContr
         }.start(wait = false)
 
         Log.i(TAG, "Ktor server started on port $port")
+    }
+
+    private suspend fun PipelineContext<Unit, ApplicationCall>.statusHandler() {
+        try {
+            val isFlying = FlightControllerKey.KeyIsFlying.create().suspendGet() ?: false
+            val battery = BatteryKey.KeyChargeRemainingInPercent.create().suspendGet()
+            val velocity3D = FlightControllerKey.KeyAircraftVelocity.create().suspendGet()
+            val position3D = FlightControllerKey.KeyAircraftLocation3D.create().suspendGet()
+
+            val version = ProductKey.KeyFirmwareVersion.create().suspendGet()
+            val connection = ProductKey.KeyConnection.create().suspendGet() ?: false
+
+            val controllerConnection =
+                RemoteControllerKey.KeyConnection.create().suspendGet() ?: false
+            val controllerVersion = RemoteControllerKey.KeyFirmwareVersion.create().suspendGet()
+
+            call.respond(buildJsonObject {
+                put("ok", true)
+                put("aircraft", buildJsonObject {
+                    put("isFlying", isFlying)
+                    put("battery", battery)
+                    /*put("velocity3D", velocity3D.toJson())
+                    put("position3D", position3D)*/
+                })
+                put("product", buildJsonObject {
+                    put("version", version)
+                    put("connection", connection)
+                })
+                put("controller", buildJsonObject {
+                    put("connection", controllerConnection)
+                    put("version", controllerVersion)
+                })
+            })
+        } catch (e: DJIErrorException) {
+            call.respond(errorResponse(e))
+        }
     }
 
     private fun errorResponse(e: DJIErrorException): JsonObject = buildJsonObject {
