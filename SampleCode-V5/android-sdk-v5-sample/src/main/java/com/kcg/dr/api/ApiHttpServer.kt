@@ -35,7 +35,7 @@ import kotlinx.serialization.json.put
 private const val TAG = "ApiHttpServer"
 
 
-private fun errorResponse(e: DJIErrorException): JsonObject = buildJsonObject {
+private fun djiErrorResponse(e: DJIErrorException): JsonObject = buildJsonObject {
     put("ok", false)
     put("error", e.error.toString())
 }
@@ -98,7 +98,7 @@ class ApiHttpServer(private val port: Int, private val controller: AircraftContr
                         FlightControllerKey.KeyStartTakeoff.create().actionOrExcept()
                         call.respond(buildJsonObject { put("ok", true) })
                     } catch (e: DJIErrorException) {
-                        call.respond(errorResponse(e))
+                        call.respond(djiErrorResponse(e))
                     }
                 }
                 get("/land") {
@@ -106,7 +106,7 @@ class ApiHttpServer(private val port: Int, private val controller: AircraftContr
                         FlightControllerKey.KeyStartAutoLanding.create().actionOrExcept()
                         call.respond(buildJsonObject { put("ok", true) })
                     } catch (e: DJIErrorException) {
-                        call.respond(errorResponse(e))
+                        call.respond(djiErrorResponse(e))
                     }
                 }
 
@@ -122,7 +122,7 @@ class ApiHttpServer(private val port: Int, private val controller: AircraftContr
                             put("result", result.toString())
                         })
                     } catch (e: DJIErrorException) {
-                        call.respond(errorResponse(e))
+                        call.respond(djiErrorResponse(e))
                     } catch (e: Exception) {
                         call.respond(exceptResponse(e))
                     }
@@ -188,7 +188,7 @@ private fun Route.statusRoute() {
                 })
             })
         } catch (e: DJIErrorException) {
-            call.respond(errorResponse(e))
+            call.respond(djiErrorResponse(e))
         }
     }
     // Battery
@@ -207,7 +207,7 @@ private fun Route.statusRoute() {
                 put("percent", percent)
             })
         } catch (e: DJIErrorException) {
-            call.respond(errorResponse(e))
+            call.respond(djiErrorResponse(e))
         }
     }
 }
