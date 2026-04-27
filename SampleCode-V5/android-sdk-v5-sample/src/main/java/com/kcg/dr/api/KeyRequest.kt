@@ -16,9 +16,9 @@ package com.kcg.dr.api
 
 import android.util.Log
 import com.google.gson.annotations.SerializedName
-import com.kcg.dr.CoroutineUtils.suspendAction
-import com.kcg.dr.CoroutineUtils.suspendGet
-import com.kcg.dr.CoroutineUtils.suspendSet
+import com.kcg.dr.CoroutineUtils.actionOrExcept
+import com.kcg.dr.CoroutineUtils.getOrExcept
+import com.kcg.dr.CoroutineUtils.setOrExcept
 import dji.sdk.keyvalue.key.DJIActionKeyInfo
 import dji.sdk.keyvalue.key.DJIKey
 import dji.sdk.keyvalue.key.DJIKeyInfo
@@ -59,7 +59,7 @@ class KeyItem<P, R>(
         djiKey.keyInfo.typeConverter.fromStr(jsonObject.toString()) as P?
 
     suspend fun get(): JsonElement {
-        val r = djiKey.suspendGet()
+        val r = djiKey.getOrExcept()
         return when (r) {
             null -> JsonNull
             is DJIValue -> r.toJson().toJsonObject()
@@ -71,7 +71,7 @@ class KeyItem<P, R>(
         val p: P? = fromJson(jsonParam)
         require(p != null) { "Parameter cannot be null" }
 
-        djiKeySet.suspendSet(p)
+        djiKeySet.setOrExcept(p)
         return JsonNull
     }
 
@@ -79,7 +79,7 @@ class KeyItem<P, R>(
         val p: P? = fromJson(jsonParam)
         require(p != null) { "Parameter cannot be null" }
 
-        val r = (djiKey as DJIKey.ActionKey<P, R>).suspendAction(p)
+        val r = (djiKey as DJIKey.ActionKey<P, R>).actionOrExcept(p)
         return when (r) {
             null -> JsonNull
             is DJIValue -> r.toJson().toJsonObject()

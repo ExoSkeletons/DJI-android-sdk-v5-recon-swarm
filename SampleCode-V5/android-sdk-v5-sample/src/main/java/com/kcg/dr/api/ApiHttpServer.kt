@@ -1,8 +1,8 @@
 package com.kcg.dr.api
 
 import android.util.Log
-import com.kcg.dr.CoroutineUtils.suspendAction
-import com.kcg.dr.CoroutineUtils.suspendGet
+import com.kcg.dr.CoroutineUtils.actionOrExcept
+import com.kcg.dr.CoroutineUtils.getOrExcept
 import com.kcg.dr.DJIErrorException
 import com.kcg.dr.controller.AircraftController
 import dji.sdk.keyvalue.key.BatteryKey
@@ -68,11 +68,11 @@ class ApiHttpServer(private val port: Int, private val controller: AircraftContr
                     // Battery
                     get("/battery") {
                         try {
-                            val voltage = BatteryKey.KeyVoltage.create().suspendGet()
-                            val capacity = BatteryKey.KeyFullChargeCapacity.create().suspendGet()
-                            val remaining = BatteryKey.KeyChargeRemaining.create().suspendGet()
+                            val voltage = BatteryKey.KeyVoltage.create().getOrExcept()
+                            val capacity = BatteryKey.KeyFullChargeCapacity.create().getOrExcept()
+                            val remaining = BatteryKey.KeyChargeRemaining.create().getOrExcept()
                             val percent =
-                                BatteryKey.KeyChargeRemainingInPercent.create().suspendGet()
+                                BatteryKey.KeyChargeRemainingInPercent.create().getOrExcept()
                             call.respond(buildJsonObject {
                                 put("ok", true)
                                 put("voltage", voltage)
@@ -112,7 +112,7 @@ class ApiHttpServer(private val port: Int, private val controller: AircraftContr
                 get("/fly") {
                     try {
                         val isFlying =
-                            FlightControllerKey.KeyIsFlying.create().suspendGet() ?: false
+                            FlightControllerKey.KeyIsFlying.create().getOrExcept() ?: false
                         if (isFlying) {
                             call.respond(buildJsonObject {
                                 put("ok", false)
@@ -120,7 +120,7 @@ class ApiHttpServer(private val port: Int, private val controller: AircraftContr
                             })
                             return@get
                         }
-                        FlightControllerKey.KeyStartTakeoff.create().suspendAction()
+                        FlightControllerKey.KeyStartTakeoff.create().actionOrExcept()
                         call.respond(buildJsonObject { put("ok", true) })
                     } catch (e: DJIErrorException) {
                         call.respond(errorResponse(e))
@@ -128,7 +128,7 @@ class ApiHttpServer(private val port: Int, private val controller: AircraftContr
                 }
                 get("/land") {
                     try {
-                        FlightControllerKey.KeyStartAutoLanding.create().suspendAction()
+                        FlightControllerKey.KeyStartAutoLanding.create().actionOrExcept()
                         call.respond(buildJsonObject { put("ok", true) })
                     } catch (e: DJIErrorException) {
                         call.respond(errorResponse(e))
@@ -160,17 +160,17 @@ class ApiHttpServer(private val port: Int, private val controller: AircraftContr
 
     private suspend fun PipelineContext<Unit, ApplicationCall>.statusHandler() {
         try {
-            val isFlying = FlightControllerKey.KeyIsFlying.create().suspendGet() ?: false
-            val battery = BatteryKey.KeyChargeRemainingInPercent.create().suspendGet()
-            val velocity3D = FlightControllerKey.KeyAircraftVelocity.create().suspendGet()
-            val position3D = FlightControllerKey.KeyAircraftLocation3D.create().suspendGet()
+            val isFlying = FlightControllerKey.KeyIsFlying.create().getOrExcept() ?: false
+            val battery = BatteryKey.KeyChargeRemainingInPercent.create().getOrExcept()
+            val velocity3D = FlightControllerKey.KeyAircraftVelocity.create().getOrExcept()
+            val position3D = FlightControllerKey.KeyAircraftLocation3D.create().getOrExcept()
 
-            val version = ProductKey.KeyFirmwareVersion.create().suspendGet()
-            val connection = ProductKey.KeyConnection.create().suspendGet() ?: false
+            val version = ProductKey.KeyFirmwareVersion.create().getOrExcept()
+            val connection = ProductKey.KeyConnection.create().getOrExcept() ?: false
 
             val controllerConnection =
-                RemoteControllerKey.KeyConnection.create().suspendGet() ?: false
-            val controllerVersion = RemoteControllerKey.KeyFirmwareVersion.create().suspendGet()
+                RemoteControllerKey.KeyConnection.create().getOrExcept() ?: false
+            val controllerVersion = RemoteControllerKey.KeyFirmwareVersion.create().getOrExcept()
 
             call.respond(buildJsonObject {
                 put("ok", true)
