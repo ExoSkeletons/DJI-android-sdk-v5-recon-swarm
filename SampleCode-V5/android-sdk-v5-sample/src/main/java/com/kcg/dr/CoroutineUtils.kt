@@ -30,7 +30,7 @@ object CoroutineUtils {
         block: suspend () -> Unit
     ) = whileSuspendedBy(listOf(suspender), block)
 
-    suspend fun <T> DJIKey<T>.suspendGet(): T? =
+    suspend fun <R> DJIKey<R>.suspendGet(): R? =
         suspendCancellableCoroutine { cont ->
             this.get(
                 onSuccess = { cont.resume(it) },
@@ -38,7 +38,7 @@ object CoroutineUtils {
             )
         }
 
-    suspend fun <T> DJIKey<T>.suspendSet(value: T) =
+    suspend fun <P> DJIKey<P>.suspendSet(value: P) =
         suspendCancellableCoroutine { cont ->
             this.set(
                 value,
@@ -47,7 +47,7 @@ object CoroutineUtils {
             )
         }
 
-    suspend fun <T, R> DJIKey.ActionKey<T, R>.suspendAction(): R =
+    suspend fun <P, R> DJIKey.ActionKey<P, R>.suspendAction(): R =
         suspendCancellableCoroutine { cont ->
             this.action(
                 onSuccess = { cont.resume(it) },
