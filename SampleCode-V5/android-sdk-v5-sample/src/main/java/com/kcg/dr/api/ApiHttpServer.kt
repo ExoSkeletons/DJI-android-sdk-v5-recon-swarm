@@ -116,10 +116,7 @@ class ApiHttpServer(private val port: Int, private val controller: AircraftContr
                         FlightControllerKey.KeyStartTakeoff.create().suspendAction()
                         call.respond(buildJsonObject { put("ok", true) })
                     } catch (e: DJIErrorException) {
-                        call.respond(buildJsonObject {
-                            put("ok", false)
-                            put("error", e.error.toString())
-                        })
+                        call.respond(errorResponse(e))
                     }
                 }
                 get("/land") {
@@ -127,10 +124,7 @@ class ApiHttpServer(private val port: Int, private val controller: AircraftContr
                         FlightControllerKey.KeyStartAutoLanding.create().suspendAction()
                         call.respond(buildJsonObject { put("ok", true) })
                     } catch (e: DJIErrorException) {
-                        call.respond(buildJsonObject {
-                            put("ok", false)
-                            put("error", e.error.toString())
-                        })
+                        call.respond(errorResponse(e))
                     }
                 }
 
@@ -146,16 +140,9 @@ class ApiHttpServer(private val port: Int, private val controller: AircraftContr
                             put("result", result.toString())
                         })
                     } catch (e: DJIErrorException) {
-                        call.respond(buildJsonObject {
-                            put("ok", false)
-                            put("error", e.error.toString())
-                        })
+                        call.respond(errorResponse(e))
                     } catch (e: Exception) {
-                        Log.e(TAG, "Exception: ${e.message}", e)
-                        call.respond(buildJsonObject {
-                            put("ok", false)
-                            put("error", e.message)
-                        })
+                        call.respond(exceptResponse(e))
                     }
                 }
             }
@@ -164,5 +151,16 @@ class ApiHttpServer(private val port: Int, private val controller: AircraftContr
         Log.i(TAG, "Ktor server started on port $port")
     }
 
+    private fun errorResponse(e: DJIErrorException): JsonObject = buildJsonObject {
+        put("ok", false)
+        put("error", e.error.toString())
+    }
+
+    private fun exceptResponse(e: Exception): JsonObject = buildJsonObject {
+        Log.e(TAG, "Exception: ${e.message}", e)
+        buildJsonObject {
+            put("ok", false)
+            put("error", e.message)
+        }
     }
 }
