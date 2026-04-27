@@ -54,4 +54,13 @@ object CoroutineUtils {
                 onFailure = { error -> cont.resumeWithException(DJIErrorException(error)) }
             )
         }
+
+    suspend fun <P, R> DJIKey.ActionKey<P, R>.suspendAction(p: P): R =
+        suspendCancellableCoroutine { cont ->
+            this.action(
+                param = p,
+                onSuccess = { cont.resume(it) },
+                onFailure = { error -> cont.resumeWithException(DJIErrorException(error)) }
+            )
+        }
 }
