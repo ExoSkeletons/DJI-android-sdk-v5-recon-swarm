@@ -5,6 +5,7 @@ import com.kcg.dr.CoroutineUtils.actionOrExcept
 import com.kcg.dr.CoroutineUtils.getOrExcept
 import com.kcg.dr.DJIErrorException
 import com.kcg.dr.controller.AircraftController
+import dji.sdk.keyvalue.key.AirLinkKey
 import dji.sdk.keyvalue.key.BatteryKey
 import dji.sdk.keyvalue.key.FlightControllerKey
 import dji.sdk.keyvalue.key.GimbalKey
@@ -228,6 +229,26 @@ private fun Route.statusRoute() {
             })
         } catch (e: DJIErrorException) {
             call.respond(djiErrorResponse(e))
+        }
+    }
+    get("/signal") {
+        try {
+            val connection = AirLinkKey.KeyConnection.create().get(false)
+            val quality = AirLinkKey.KeySignalQuality.create().get()
+            val frequency = AirLinkKey.KeyFrequencyBand.create().get()
+            val range = AirLinkKey.KeyFrequencyBandRange.create().get()
+
+            call.respond(buildJsonObject {
+                put("ok", true)
+                put("connection", connection)
+                put("quality", quality.or(unavailable))
+                put("frequency", frequency.toElement().or(unavailable))
+                put("range", range.toElement().or(unavailable))
+            })
+        } catch (e: DJIErrorException) {
+            call.respond(djiErrorResponse(e))
+        } catch (e: Exception) {
+            call.respond(exceptResponse(e))
         }
     }
 }
