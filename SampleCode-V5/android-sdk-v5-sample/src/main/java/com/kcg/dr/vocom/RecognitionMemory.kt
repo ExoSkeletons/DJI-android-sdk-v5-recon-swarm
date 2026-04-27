@@ -96,8 +96,19 @@ class RecognitionMemory(private val memTime: Double) {
         onForget(forgotten)
     }
 
-    var onSeen: (sample: List<RecognitionSample.ObstacleInfo>) -> Unit = {}
-    var onMemoryAdded: (new: List<RecognitionSample.ObstacleInfo>) -> Unit = {}
-    var onMemoryUpdated: (updated: List<Pair<RecognitionSample.ObstacleInfo, RecognitionSample.ObstacleInfo>>) -> Unit = {}
-    var onForget: (forgotten: List<RecognitionSample.ObstacleInfo>) -> Unit = {}
+    fun clear() = memory.clear()
+
+    fun lastSeen(type: ObstacleInfo.ObstacleType? = null): ObstacleInfo? {
+        val filtered = if (type != null) memory.filter { it.type == type } else memory
+        return filtered.maxByOrNull { it.lastSeenTimestamp }
+    }
+
+    fun lastAdded(type: ObstacleInfo.ObstacleType? = null): ObstacleInfo? {
+        TODO()
+    }
+
+    var onSeen: (sample: List<ObstacleInfo>) -> Unit = {}
+    var onMemoryAdded: (new: List<ObstacleInfo>) -> Unit = {}
+    var onMemoryUpdated: (updated: List<Pair<ObstacleInfo, ObstacleInfo>>) -> Unit = {}
+    var onForget: (forgotten: List<ObstacleInfo>) -> Unit = {}
 }
