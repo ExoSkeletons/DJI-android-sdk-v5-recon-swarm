@@ -183,6 +183,8 @@ private fun Route.statusRoute() {
             val battery = BatteryKey.KeyChargeRemainingInPercent.create().get()
             val velocity3D = FlightControllerKey.KeyAircraftVelocity.create().get()
             val location3D = FlightControllerKey.KeyAircraftLocation3D.create().get()
+            val attitude = FlightControllerKey.KeyAircraftAttitude.create().get()
+            val gimbalAttitude = GimbalKey.KeyGimbalAttitude.create().get()
 
             val version = ProductKey.KeyFirmwareVersion.create().get()
             val connection = ProductKey.KeyConnection.create().get(false)
@@ -197,6 +199,8 @@ private fun Route.statusRoute() {
                     put("battery", battery.or(unavailable))
                     put("velocity3D", velocity3D?.toJson().toJsonElement().or(unavailable))
                     put("position3D", location3D?.toJson().toJsonElement().or(unavailable))
+                    put("attitude", attitude?.toJson().toJsonElement().or(unavailable))
+                    put("gimbalAttitude", gimbalAttitude?.toJson().toJsonElement().or(unavailable))
                 })
                 put("product", buildJsonObject {
                     put("version", version.or(unavailable))
