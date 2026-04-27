@@ -16,26 +16,22 @@ package com.kcg.dr.api
 
 import android.util.Log
 import com.google.gson.annotations.SerializedName
-import com.kcg.dr.DJIErrorException
+import com.kcg.dr.CoroutineUtils.suspendAction
+import com.kcg.dr.CoroutineUtils.suspendGet
+import com.kcg.dr.CoroutineUtils.suspendSet
 import dji.sdk.keyvalue.key.DJIActionKeyInfo
 import dji.sdk.keyvalue.key.DJIKey
 import dji.sdk.keyvalue.key.DJIKeyInfo
 import dji.sdk.keyvalue.key.FlightControllerKey
 import dji.sdk.keyvalue.key.GimbalKey
 import dji.sdk.keyvalue.value.base.DJIValue
-import dji.v5.et.action
 import dji.v5.et.create
-import dji.v5.et.get
-import dji.v5.et.set
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 
 @Serializable
@@ -62,52 +58,32 @@ class KeyItem<P, R>(
     fun fromJson(jsonObject: JsonObject?): P? =
         djiKey.keyInfo.typeConverter.fromStr(jsonObject.toString()) as P?
 
-    suspend fun get(): JsonElement = suspendCancellableCoroutine { cont ->
-        djiKey.get(
-            {
-                cont.resume(
-                    when (it) {
-                        null -> JsonNull
-                        is DJIValue -> it.toJson().toJsonObject()
-                        else -> it.toElement()
-                    }
-                )
-            },
-            { cont.resumeWithException(DJIErrorException(it)) }
-        )
+    suspend fun get(): JsonElement {
+        val r = djiKey.suspendGet()
+        return when (r) {
+            null -> JsonNull
+            is DJIValue -> r.toJson().toJsonObject()
+            else -> r.toElement()
+        }
     }
 
     suspend fun set(jsonParam: JsonObject?): JsonElement {
         val p: P? = fromJson(jsonParam)
         require(p != null) { "Parameter cannot be null" }
 
-        return suspendCancellableCoroutine { cont ->
-            djiKeySet.set(
-                p,
-                { cont.resume(JsonNull) },
-                { cont.resumeWithException(DJIErrorException(it)) }
-            )
-        }
+        djiKeySet.suspendSet(p)
+        return JsonNull
     }
 
     suspend fun action(jsonParam: JsonObject?): JsonElement {
         val p: P? = fromJson(jsonParam)
         require(p != null) { "Parameter cannot be null" }
 
-        return suspendCancellableCoroutine { cont ->
-            (djiKey as DJIKey.ActionKey<P, R>).action(
-                p,
-                {
-                    cont.resume(
-                        when (it) {
-                            null -> JsonNull
-                            is DJIValue -> it.toJson().toJsonObject()
-                            else -> it.toElement()
-                        }
-                    )
-                },
-                { cont.resumeWithException(DJIErrorException(it)) }
-            )
+        val r = (djiKey as DJIKey.ActionKey<P, R>).suspendAction(p)
+        return when (r) {
+            null -> JsonNull
+            is DJIValue -> r.toJson().toJsonObject()
+            else -> r.toElement()
         }
     }
 }
