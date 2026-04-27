@@ -183,6 +183,24 @@ private fun Route.statusRoute() {
             call.respond(exceptResponse(e))
         }
     }
+    get("/gps") {
+        try {
+            val satCount = FlightControllerKey.KeyGPSSatelliteCount.create().get()
+            val signalLevel = FlightControllerKey.KeyGPSSignalLevel.create().get()
+            val valid = FlightControllerKey.KeyGPSIsValid.create().get()
+            val compass = FlightControllerKey.KeyCompassHeading.create().get()
+            call.respond(ok {
+                put("satCount", satCount)
+                put("signalLevel", signalLevel.toElement())
+                put("valid", valid)
+                put("compass", compass)
+            })
+        } catch (e: DJIErrorException) {
+            call.respond(djiErrorResponse(e))
+        } catch (e: Exception) {
+            call.respond(exceptResponse(e))
+        }
+    }
     get("/signal") {
         try {
             val connection = AirLinkKey.KeyConnection.create().get(false)
