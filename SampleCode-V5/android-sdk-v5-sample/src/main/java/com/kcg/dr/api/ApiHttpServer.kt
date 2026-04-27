@@ -6,6 +6,7 @@ import com.kcg.dr.DJIErrorException
 import com.kcg.dr.api.Responses.djiErrorResponse
 import com.kcg.dr.api.Responses.errorResponse
 import com.kcg.dr.api.Responses.exceptResponse
+import com.kcg.dr.api.Responses.nok
 import com.kcg.dr.api.Responses.ok
 import com.kcg.dr.controller.AircraftController
 import dji.sdk.keyvalue.key.AirLinkKey
@@ -36,6 +37,7 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObjectBuilder
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
@@ -73,11 +75,20 @@ class ApiHttpServer(private val port: Int) {
                 }
 
                 intercept(ApplicationCallPipeline.Plugins) {
-                    val connected = ProductKey.KeyConnection.create().get(false)
-                    if (!connected) {
-                        call.respond(HttpStatusCode.ServiceUnavailable, "Product not connected.")
-                        finish()
-                        return@intercept
+                    val rcAvailable = RemoteControllerKey.KeyConnection.create().get(false)
+                    if (!rcAvailable) {
+                        call.respond(HttpStatusCode.ServiceUnavailable, "No connection to Remote Controller")
+                        return@intercept finish()
+                    }
+                    val aircraftAvailable = FlightControllerKey.KeyConnection.create().get(false)
+                    if (!aircraftAvailable) {
+                        call.respond(HttpStatusCode.ServiceUnavailable, "No connection to Aircraft")
+                        return@intercept finish()
+                    }
+                    val productConnected = ProductKey.KeyConnection.create().get(false)
+                    if (!productConnected) {
+                        call.respond(HttpStatusCode.ServiceUnavailable, "Product not connected")
+                        return@intercept finish()
                     }
                 }
 
