@@ -21,7 +21,6 @@ import io.ktor.server.cio.CIO
 import io.ktor.server.engine.ApplicationEngine
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.server.request.receive
 import io.ktor.server.request.receiveText
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
@@ -152,27 +151,6 @@ class ApiHttpServer(private val port: Int, private val controller: AircraftContr
 
         Log.i(TAG, "Ktor server started on port $port")
     }
-}
-
-private fun Route.controllerRoute(controller: AircraftController) {
-    post("/flyTo") {
-        val request = call.receive<FlyToRequest>()
-        controller.fly {
-            flyToSticks(
-                target = request.target,
-                maxVelocity = request.maxVelocity
-            )
-        }
-    }
-
-    post("/lookAt") {
-        val request = call.receive<LookAtRequest>()
-        controller.fly { lookAtWithSpin(request.target, request.height) }
-    }
-
-    post("/stop") { controller.stop() }
-    post("/takeoff") { controller.takeoff() }
-    post("/land") { controller.land() }
 }
 
 private fun Route.statusRoute() {
