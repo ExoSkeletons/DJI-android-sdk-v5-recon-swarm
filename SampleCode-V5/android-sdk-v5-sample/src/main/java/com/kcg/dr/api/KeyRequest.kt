@@ -63,12 +63,12 @@ class KeyItem<P, R>(
     val djiKey: DJIKey<R>,
     val djiKeySet: DJIKey<P> = djiKey as DJIKey<P>
 ) {
-    fun toElement(value: Any?): JsonElement = when (value) {
+    fun Any?.toElement(): JsonElement = when (val value = this) {
         null -> JsonNull
         is JSONArray -> {
             val list = mutableListOf<JsonElement>()
             for (i in 0 until value.length())
-                list += toElement(value.opt(i))
+                list += value.opt(i).toElement()
             JsonArray(list)
         }
 
@@ -83,7 +83,7 @@ class KeyItem<P, R>(
         if (this == null) return JsonNull
         val content = mutableMapOf<String, JsonElement>()
         for (key in this.keys())
-            content[key] = toElement(this.opt(key))
+            content[key] = this.opt(key).toElement()
         return JsonObject(content)
     }
 
@@ -97,7 +97,7 @@ class KeyItem<P, R>(
                     when (it) {
                         null -> JsonNull
                         is DJIValue -> it.toJson().toJsonObject()
-                        else -> toElement(it)
+                        else -> it.toElement()
                     }
                 )
             },
@@ -130,7 +130,7 @@ class KeyItem<P, R>(
                         when (it) {
                             null -> JsonNull
                             is DJIValue -> it.toJson().toJsonObject()
-                            else -> toElement(it)
+                            else -> it.toElement()
                         }
                     )
                 },
