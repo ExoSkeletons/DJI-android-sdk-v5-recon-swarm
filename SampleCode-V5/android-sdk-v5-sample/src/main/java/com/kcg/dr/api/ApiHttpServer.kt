@@ -31,6 +31,12 @@ private const val TAG = "ApiHttpServer"
 class ApiHttpServer(private val port: Int, private val controller: AircraftController? = null) {
     private var server: ApplicationEngine? = null
 
+    fun stop() {
+        server?.stop()
+        server = null
+        Log.i(TAG, "Ktor server stopped")
+    }
+
     fun start() {
         if (server != null) return
 
@@ -131,9 +137,5 @@ class ApiHttpServer(private val port: Int, private val controller: AircraftContr
         Log.i(TAG, "Ktor server started on port $port")
     }
 
-    fun stop() {
-        server?.stop()
-        server = null
-        Log.i(TAG, "Ktor server stopped")
     }
 }
