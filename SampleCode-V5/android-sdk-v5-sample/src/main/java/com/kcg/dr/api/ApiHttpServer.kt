@@ -189,16 +189,21 @@ private fun Route.statusRoute() {
     }
     get("/gps") {
         try {
+            val valid = FlightControllerKey.KeyGPSIsValid.create().get(false)
             val satCount = FlightControllerKey.KeyGPSSatelliteCount.create().get()
             val signalLevel = FlightControllerKey.KeyGPSSignalLevel.create().get()
-            val valid = FlightControllerKey.KeyGPSIsValid.create().get()
             val compass = FlightControllerKey.KeyCompassHeading.create().get()
-            call.respond(ok {
+
+            val build: JsonObjectBuilder.() -> Unit = {
                 put("satCount", satCount)
                 put("signalLevel", signalLevel.toElement())
                 put("valid", valid)
                 put("compass", compass)
-            })
+            }
+            call.respond(
+                if (valid) ok(build)
+                else nok(build)
+            )
         } catch (e: DJIErrorException) {
             call.respond(djiErrorResponse(e))
         } catch (e: Exception) {
