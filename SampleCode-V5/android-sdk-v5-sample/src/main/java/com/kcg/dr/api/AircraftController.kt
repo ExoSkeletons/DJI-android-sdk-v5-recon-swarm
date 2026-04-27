@@ -11,43 +11,53 @@ import io.ktor.server.application.call
 import io.ktor.server.request.receive
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.post
+import kotlinx.coroutines.delay
 import kotlinx.serialization.InternalSerializationApi
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlin.time.Duration.Companion.seconds
 
 
 @Serializable
-abstract class FlightRequest
+sealed class FlightAction {
+    abstract suspend fun act(controller: AircraftController)
+}
 
 @Serializable
-data class SequenceRequest(
-    val list: List<FlightRequest>,
-) : FlightRequest()
-
-
-@Serializable
-data class DelayRequest(
-    val seconds: Double,
-) : FlightRequest()
-
+@SerialName("delay")
+data class Delay(val seconds: Double) : FlightAction() {
+    override suspend fun act(controller: AircraftController) =
+        delay(seconds.seconds)
+}
 
 @Serializable
-data class FlyToRequest(
+@SerialName("fly_to")
+data class FlyTo(
     @Serializable(with = LocationCoordinate3DSerializer::class)
     val target: LocationCoordinate3D,
-    val maxVelocity: Double,
-) : FlightRequest()
+    val maxVelocity: Double
+) : FlightAction() {
+    override suspend fun act(controller: AircraftController) =
+        controller.flyTo(target)
+}
 
 @Serializable
-data class LookAtRequest(
+@SerialName("look_at")
+data class LookAt(
     @Serializable(with = LocationCoordinate2DSerializer::class)
     val target: LocationCoordinate2D,
-    val height: Double,
-) : FlightRequest()
+    val height: Double
+) : FlightAction() {
+    override suspend fun act(controller: AircraftController) =
+        controller.lookAtWithSpin(target, this@LookAt.height)
+}
 
+@Serializable
+data class FlyRequest(val mission: List<FlightAction>)
 
 fun Route.controllerRoute(controller: AircraftController) {
     post("/flyTo") {
-        val request = call.receive<FlyToRequest>()
+        val request = call.receive<FlyTo>()
         controller.fly {
             flyToSticks(
                 target = request.target,
@@ -55,10 +65,16 @@ fun Route.controllerRoute(controller: AircraftController) {
             )
         }
     }
-
     post("/lookAt") {
-        val request = call.receive<LookAtRequest>()
+        val request = call.receive<LookAt>()
         controller.fly { lookAtWithSpin(request.target, request.height) }
+    }
+
+    post("/fly") {
+        val request = call.receive<FlyRequest>()
+        controller.fly {
+            for (request in request.mission) request.act(controller)
+        }
     }
 
     post("/stop") { controller.stop() }
