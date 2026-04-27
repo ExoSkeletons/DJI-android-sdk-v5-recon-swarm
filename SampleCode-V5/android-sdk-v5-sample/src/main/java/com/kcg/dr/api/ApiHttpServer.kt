@@ -157,53 +157,17 @@ class ApiHttpServer(private val port: Int, private val controller: AircraftContr
 
         Log.i(TAG, "Ktor server started on port $port")
     }
+}
 
-    private suspend fun PipelineContext<Unit, ApplicationCall>.statusHandler() {
-        try {
-            val isFlying = FlightControllerKey.KeyIsFlying.create().getOrExcept() ?: false
-            val battery = BatteryKey.KeyChargeRemainingInPercent.create().getOrExcept()
-            val velocity3D = FlightControllerKey.KeyAircraftVelocity.create().getOrExcept()
-            val position3D = FlightControllerKey.KeyAircraftLocation3D.create().getOrExcept()
+private fun errorResponse(e: DJIErrorException): JsonObject = buildJsonObject {
+    put("ok", false)
+    put("error", e.error.toString())
+}
 
-            val version = ProductKey.KeyFirmwareVersion.create().getOrExcept()
-            val connection = ProductKey.KeyConnection.create().getOrExcept() ?: false
-
-            val controllerConnection =
-                RemoteControllerKey.KeyConnection.create().getOrExcept() ?: false
-            val controllerVersion = RemoteControllerKey.KeyFirmwareVersion.create().getOrExcept()
-
-            call.respond(buildJsonObject {
-                put("ok", true)
-                put("aircraft", buildJsonObject {
-                    put("isFlying", isFlying)
-                    put("battery", battery)
-                    put("velocity3D", velocity3D?.toJson().toJsonObject())
-                    put("position3D", position3D?.toJson().toJsonObject())
-                })
-                put("product", buildJsonObject {
-                    put("version", version)
-                    put("connection", connection)
-                })
-                put("controller", buildJsonObject {
-                    put("connection", controllerConnection)
-                    put("version", controllerVersion)
-                })
-            })
-        } catch (e: DJIErrorException) {
-            call.respond(errorResponse(e))
-        }
-    }
-
-    private fun errorResponse(e: DJIErrorException): JsonObject = buildJsonObject {
+private fun exceptResponse(e: Exception): JsonObject = buildJsonObject {
+    Log.e(TAG, "Exception: ${e.message}", e)
+    buildJsonObject {
         put("ok", false)
-        put("error", e.error.toString())
-    }
-
-    private fun exceptResponse(e: Exception): JsonObject = buildJsonObject {
-        Log.e(TAG, "Exception: ${e.message}", e)
-        buildJsonObject {
-            put("ok", false)
-            put("error", e.message)
-        }
+        put("error", e.message)
     }
 }
