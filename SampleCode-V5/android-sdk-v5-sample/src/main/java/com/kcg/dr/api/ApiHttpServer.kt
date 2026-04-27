@@ -17,7 +17,9 @@ import dji.sdk.keyvalue.key.RemoteControllerKey
 import dji.v5.et.create
 import dji.v5.et.get
 import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.application.ApplicationCallPipeline
 import io.ktor.server.application.call
 import io.ktor.server.application.install
 import io.ktor.server.cio.CIO
@@ -70,16 +72,18 @@ class ApiHttpServer(private val port: Int) {
                     )
                 }
 
-                // Status
-                route("/status") {
-                    statusRoute()
-                }
-
-                controller?.let {
-                    route("/controller") {
-                        controllerRoute(it)
+                intercept(ApplicationCallPipeline.Plugins) {
+                    val connected = ProductKey.KeyConnection.create().get(false)
+                    if (!connected) {
+                        call.respond(HttpStatusCode.ServiceUnavailable, "Product not connected.")
+                        finish()
+                        return@intercept
                     }
                 }
+
+                route("/status") { statusRoute() }
+
+                route("/c") { controllerRoute { ControllerBridge.controller } }
 
                 get("/fly") {
                     try {
