@@ -34,7 +34,6 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
@@ -144,19 +143,19 @@ private fun Route.statusRoute() {
             call.respond(ok {
                 put("aircraft", buildJsonObject {
                     put("isFlying", isFlying)
-                    put("battery", battery.or(unavailable))
-                    put("velocity3D", velocity3D?.toJson().toJsonElement().or(unavailable))
-                    put("position3D", location3D?.toJson().toJsonElement().or(unavailable))
-                    put("attitude", attitude?.toJson().toJsonElement().or(unavailable))
-                    put("gimbalAttitude", gimbalAttitude?.toJson().toJsonElement().or(unavailable))
+                    put("battery", battery)
+                    put("velocity3D", velocity3D?.toJson().toJsonElement())
+                    put("position3D", location3D?.toJson().toJsonElement())
+                    put("attitude", attitude?.toJson().toJsonElement())
+                    put("gimbalAttitude", gimbalAttitude?.toJson().toJsonElement())
                 })
                 put("product", buildJsonObject {
-                    put("version", version.or(unavailable))
-                    put("connection", connection.or(unavailable))
+                    put("version", version)
+                    put("connection", connection)
                 })
                 put("controller", buildJsonObject {
+                    put("version", controllerVersion)
                     put("connection", controllerConnection)
-                    put("version", controllerVersion.or(unavailable))
                 })
             })
         } catch (e: DJIErrorException) {
@@ -172,11 +171,11 @@ private fun Route.statusRoute() {
             val capacity = BatteryKey.KeyFullChargeCapacity.create().get()
             val remaining = BatteryKey.KeyChargeRemaining.create().get()
             val percent = BatteryKey.KeyChargeRemainingInPercent.create().get()
-                put("voltage", voltage.or(unavailable))
-                put("capacity", capacity.or(unavailable))
-                put("remaining", remaining.or(unavailable))
-                put("percent", percent.or(unavailable))
             call.respond(ok {
+                put("voltage", voltage)
+                put("capacity", capacity)
+                put("remaining", remaining)
+                put("percent", percent)
             })
         } catch (e: DJIErrorException) {
             call.respond(djiErrorResponse(e))
@@ -191,9 +190,9 @@ private fun Route.statusRoute() {
 
             call.respond(ok {
                 put("connection", connection)
-                put("quality", quality.or(unavailable))
-                put("frequency", frequency.toElement().or(unavailable))
-                put("range", range.toElement().or(unavailable))
+                put("quality", quality)
+                put("frequency", frequency.toElement())
+                put("range", range.toElement())
             })
         } catch (e: DJIErrorException) {
             call.respond(djiErrorResponse(e))
