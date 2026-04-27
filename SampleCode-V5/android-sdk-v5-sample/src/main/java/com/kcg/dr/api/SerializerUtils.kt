@@ -31,7 +31,8 @@ fun Any?.toElement(): JsonElement = when (val value = this) {
     is Boolean -> JsonPrimitive(value)
     is Number -> JsonPrimitive(value)
     is String -> JsonPrimitive(value)
-    is JSONObject -> value.toJsonObject() // Recursive
+    is Enum<*> -> JsonPrimitive(value.name)
+    is JSONObject -> value.toJsonElement()
     else -> JsonPrimitive(value.toString()) // fallback
 }
 
