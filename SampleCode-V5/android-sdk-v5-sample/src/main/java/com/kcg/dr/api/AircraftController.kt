@@ -7,7 +7,7 @@ import com.kcg.dr.api.Responses.ok
 import com.kcg.dr.api.Responses.status
 import com.kcg.dr.api.SerializerSurrogates.LocationCoordinate2DSerializer
 import com.kcg.dr.api.SerializerSurrogates.LocationCoordinate3DSerializer
-import com.kcg.dr.controller.AircraftController
+import com.kcg.dr.vocom.flight.AircraftController
 import dji.sdk.keyvalue.value.common.LocationCoordinate2D
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
 import io.ktor.http.HttpStatusCode
