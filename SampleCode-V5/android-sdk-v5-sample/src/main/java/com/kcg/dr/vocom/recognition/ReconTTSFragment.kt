@@ -1,4 +1,4 @@
-package com.kcg.dr.vocom
+package com.kcg.dr.vocom.recognition
 
 import android.app.AlertDialog
 import android.content.Intent

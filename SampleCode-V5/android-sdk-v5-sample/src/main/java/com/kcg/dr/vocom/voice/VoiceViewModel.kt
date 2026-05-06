@@ -1,4 +1,4 @@
-package com.kcg.dr.vocom
+package com.kcg.dr.vocom.voice
 
 import android.content.Context
 import android.content.res.Resources
@@ -11,7 +11,6 @@ import java.util.Locale
 
 class VoiceViewModel : ViewModel() {
     val silent = MutableLiveData(false)
-    val demoTextIndex = MutableLiveData(0)
     val speechResult = MutableLiveData<String>()
     val commandResult = MutableLiveData<String>()
     
@@ -27,7 +26,7 @@ class VoiceViewModel : ViewModel() {
         }
     }
 
-    fun speak(text: String, resources: Resources? = null) {
+    fun speak(text: String) {
         if (text.isNotBlank() && silent.value != true) {
             tts?.let {
                 if (it.isLanguageAvailable(locale) >= TextToSpeech.LANG_AVAILABLE) {

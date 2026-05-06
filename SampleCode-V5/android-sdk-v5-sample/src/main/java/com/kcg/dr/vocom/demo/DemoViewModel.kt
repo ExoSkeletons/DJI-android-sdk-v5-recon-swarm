@@ -1,4 +1,4 @@
-package com.kcg.dr.vocom
+package com.kcg.dr.vocom.demo
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData

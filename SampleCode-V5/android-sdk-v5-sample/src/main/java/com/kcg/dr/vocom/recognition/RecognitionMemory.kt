@@ -1,9 +1,5 @@
-@file:OptIn(InternalSerializationApi::class)
+package com.kcg.dr.vocom.recognition
 
-package com.kcg.dr.vocom
-
-import com.kcg.dr.vocom.RecognitionMemory.RecognitionSample.ObstacleInfo
-import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -69,7 +65,7 @@ class RecognitionMemory(private val memTime: Double) {
         }
     }
 
-    val memory = mutableListOf<ObstacleInfo>()
+    val memory = mutableListOf<RecognitionSample.ObstacleInfo>()
 
     fun see(sample: RecognitionSample) {
         onSeen(sample.objects)
@@ -98,17 +94,13 @@ class RecognitionMemory(private val memTime: Double) {
 
     fun clear() = memory.clear()
 
-    fun lastSeen(type: ObstacleInfo.ObstacleType? = null): ObstacleInfo? {
+    fun lastSeen(type: RecognitionSample.ObstacleInfo.ObstacleType? = null): RecognitionSample.ObstacleInfo? {
         val filtered = if (type != null) memory.filter { it.type == type } else memory
         return filtered.maxByOrNull { it.lastSeenTimestamp }
     }
 
-    fun lastAdded(type: ObstacleInfo.ObstacleType? = null): ObstacleInfo? {
-        TODO()
-    }
-
-    var onSeen: (sample: List<ObstacleInfo>) -> Unit = {}
-    var onMemoryAdded: (new: List<ObstacleInfo>) -> Unit = {}
-    var onMemoryUpdated: (updated: List<Pair<ObstacleInfo, ObstacleInfo>>) -> Unit = {}
-    var onForget: (forgotten: List<ObstacleInfo>) -> Unit = {}
+    var onSeen: (sample: List<RecognitionSample.ObstacleInfo>) -> Unit = {}
+    var onMemoryAdded: (new: List<RecognitionSample.ObstacleInfo>) -> Unit = {}
+    var onMemoryUpdated: (updated: List<Pair<RecognitionSample.ObstacleInfo, RecognitionSample.ObstacleInfo>>) -> Unit = {}
+    var onForget: (forgotten: List<RecognitionSample.ObstacleInfo>) -> Unit = {}
 }

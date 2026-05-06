@@ -1,4 +1,4 @@
-package com.kcg.dr.vocom
+package com.kcg.dr.vocom.location
 
 import android.content.Context
 import androidx.lifecycle.MutableLiveData
@@ -29,7 +29,7 @@ class LocationViewModel : ViewModel() {
                             deviceLocation.postValue(LocationCoordinate3D().apply {
                                 latitude = location.latitude
                                 longitude = location.longitude
-                                altitude = 3.0 // Default human height or from config
+                                altitude = 3.0 // Default human height
                             })
                         }
                     }

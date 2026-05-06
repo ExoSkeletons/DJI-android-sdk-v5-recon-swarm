@@ -83,7 +83,7 @@
             android:permission="android.permission.INTERNET">
         </service>
         <service
-            android:name="com.kcg.dr.vocom.AudioControlService"
+            android:name="com.kcg.dr.vocom.voice.AudioControlService"
             android:exported="true"
             android:enabled="true"
             android:foregroundServiceType="mediaPlayback"

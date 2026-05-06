@@ -1,4 +1,4 @@
-package com.kcg.dr.vocom
+package com.kcg.dr.vocom.flight
 
 import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.ViewModel
@@ -17,8 +17,6 @@ class AircraftControlViewModel : ViewModel() {
     private var _controller: AircraftController? = null
     val controller: AircraftController? get() = _controller
 
-    // Using MediatorLiveData to observe controller fields without observeForever
-    // These will only trigger when the VM's LiveData is actually being observed by an active LifecycleOwner
     val aircraftLocation = MediatorLiveData<LocationCoordinate3D?>()
     val aircraftHeight = MediatorLiveData<Double>()
     val batteryPercent = MediatorLiveData<Int>()
@@ -48,7 +46,6 @@ class AircraftControlViewModel : ViewModel() {
         
         c.init()
         
-        // Setup Mediator sources
         aircraftLocation.addSource(c.location) { aircraftLocation.value = it }
         aircraftHeight.addSource(c.height) { aircraftHeight.value = it }
         batteryPercent.addSource(c.batteryPercent) { batteryPercent.value = it }

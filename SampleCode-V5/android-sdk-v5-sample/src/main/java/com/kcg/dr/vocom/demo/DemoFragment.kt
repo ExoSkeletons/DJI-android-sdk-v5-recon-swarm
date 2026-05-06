@@ -1,4 +1,4 @@
-package com.kcg.dr.vocom
+package com.kcg.dr.vocom.demo
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.kcg.dr.databinding.FragVocomDemoBinding
+import com.kcg.dr.vocom.voice.VoiceViewModel
 
 class DemoFragment : Fragment() {
     private var _binding: FragVocomDemoBinding? = null
@@ -24,25 +25,19 @@ class DemoFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         demoVM.demoTextIndex.observe(viewLifecycleOwner) { i ->
-            val texts = demoVM.demoTexts
-            if (i >= 0 && i < texts.size) {
-                binding.tvDemoText.text = texts[i]
-            }
+            binding.tvDemoText.text = demoVM.getCurrentText() ?: ""
         }
 
         binding.btnDemoTextNext.setOnClickListener {
-            val next = (demoVM.demoTextIndex.value ?: 0) + 1
-            demoVM.demoTextIndex.postValue(next % demoVM.demoTexts.size)
+            demoVM.nextText(wrap = true)
         }
 
         binding.btnDemoTextPrev.setOnClickListener {
-            val prev = (demoVM.demoTextIndex.value ?: 0) - 1
-            val size = demoVM.demoTexts.size
-            demoVM.demoTextIndex.postValue((prev + size) % size)
+            demoVM.prevText(wrap = true)
         }
 
         binding.btnDemoTextPlay.setOnClickListener {
-            demoVM.nextDemoText()?.let { text ->
+            demoVM.getCurrentText()?.let { text ->
                 voiceVM.speak(text)
             }
         }

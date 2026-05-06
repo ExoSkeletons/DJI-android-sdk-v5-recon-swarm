@@ -1,4 +1,4 @@
-package com.kcg.dr.vocom
+package com.kcg.dr.vocom.waypoints
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -11,6 +11,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.kcg.dr.LocaleUtils.getLocalizedResources
 import com.kcg.dr.LocationUtils.distanceTo
 import com.kcg.dr.as2D
+import com.kcg.dr.vocom.flight.AircraftControlViewModel
+import com.kcg.dr.vocom.location.LocationViewModel
 import com.kcg.dr.waypoint.LocationAdapter
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVocomWaypointsBinding
@@ -55,7 +57,6 @@ class WaypointsFragment : Fragment() {
             viewLifecycleOwner,
             onFlyTo = { loc ->
                 aircraftVM.controller?.fly {
-                    // Note: cfg params should ideally be in a VM too. For now using defaults.
                     flyToSticks(loc, maxVelocity = 8.0)
                 }
             },

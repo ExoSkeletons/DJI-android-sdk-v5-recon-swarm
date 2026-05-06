@@ -1,4 +1,4 @@
-package com.kcg.dr.vocom
+package com.kcg.dr.vocom.recognition
 
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel

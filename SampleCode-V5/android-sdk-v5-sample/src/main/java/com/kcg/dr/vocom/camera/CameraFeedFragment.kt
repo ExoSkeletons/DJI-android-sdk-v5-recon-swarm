@@ -1,4 +1,4 @@
-package com.kcg.dr.vocom
+package com.kcg.dr.vocom.camera
 
 import android.os.Bundle
 import android.view.LayoutInflater
