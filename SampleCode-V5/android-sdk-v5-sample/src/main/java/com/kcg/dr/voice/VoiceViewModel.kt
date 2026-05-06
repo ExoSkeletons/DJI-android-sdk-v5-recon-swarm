@@ -1,4 +1,4 @@
-package com.kcg.dr.vocom.voice
+package com.kcg.dr.voice
 
 import android.content.Context
 import android.content.res.Resources

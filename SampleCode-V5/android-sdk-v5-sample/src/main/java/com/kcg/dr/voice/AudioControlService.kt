@@ -1,4 +1,4 @@
-package com.kcg.dr.vocom.voice
+package com.kcg.dr.voice
 
 import android.app.Notification
 import android.app.Notification.EXTRA_CHANNEL_ID

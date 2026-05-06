@@ -1,4 +1,4 @@
-package com.kcg.dr.vocom.demo
+package com.kcg.dr.demo
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -6,8 +6,8 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import com.kcg.dr.databinding.FragVocomDemoBinding
-import com.kcg.dr.vocom.voice.VoiceViewModel
+import com.kcg.dr.voice.VoiceViewModel
+import dji.sampleV5.aircraft.databinding.FragVocomDemoBinding
 
 class DemoFragment : Fragment() {
     private var _binding: FragVocomDemoBinding? = null
@@ -16,7 +16,11 @@ class DemoFragment : Fragment() {
     private val demoVM: DemoViewModel by activityViewModels()
     private val voiceVM: VoiceViewModel by activityViewModels()
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
         _binding = FragVocomDemoBinding.inflate(inflater, container, false)
         return binding.root
     }

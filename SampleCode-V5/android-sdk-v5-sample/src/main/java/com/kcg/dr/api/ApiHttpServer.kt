@@ -8,7 +8,7 @@ import com.kcg.dr.api.Responses.errorResponse
 import com.kcg.dr.api.Responses.exceptResponse
 import com.kcg.dr.api.Responses.nok
 import com.kcg.dr.api.Responses.ok
-import com.kcg.dr.vocom.flight.AircraftController
+import com.kcg.dr.flight.AircraftController
 import dji.sdk.keyvalue.key.AirLinkKey
 import dji.sdk.keyvalue.key.BatteryKey
 import dji.sdk.keyvalue.key.FlightControllerKey
@@ -77,7 +77,10 @@ class ApiHttpServer(private val port: Int) {
                 intercept(ApplicationCallPipeline.Plugins) {
                     val rcAvailable = RemoteControllerKey.KeyConnection.create().get(false)
                     if (!rcAvailable) {
-                        call.respond(HttpStatusCode.ServiceUnavailable, "No connection to Remote Controller")
+                        call.respond(
+                            HttpStatusCode.ServiceUnavailable,
+                            "No connection to Remote Controller"
+                        )
                         return@intercept finish()
                     }
                     val aircraftAvailable = FlightControllerKey.KeyConnection.create().get(false)

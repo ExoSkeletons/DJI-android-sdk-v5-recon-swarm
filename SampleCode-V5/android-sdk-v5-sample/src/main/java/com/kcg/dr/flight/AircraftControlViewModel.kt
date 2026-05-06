@@ -1,4 +1,4 @@
-package com.kcg.dr.vocom.flight
+package com.kcg.dr.flight
 
 import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.ViewModel

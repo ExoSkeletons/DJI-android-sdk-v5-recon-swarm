@@ -7,7 +7,7 @@ import com.kcg.dr.api.Responses.ok
 import com.kcg.dr.api.Responses.status
 import com.kcg.dr.api.SerializerSurrogates.LocationCoordinate2DSerializer
 import com.kcg.dr.api.SerializerSurrogates.LocationCoordinate3DSerializer
-import com.kcg.dr.vocom.flight.AircraftController
+import com.kcg.dr.flight.AircraftController
 import dji.sdk.keyvalue.value.common.LocationCoordinate2D
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
 import io.ktor.http.HttpStatusCode
@@ -114,7 +114,7 @@ data class FlyRequest(val mission: List<Action>)
 
 
 @OptIn(ExperimentalSerializationApi::class)
-fun Route.controllerRoute(c: ()->AircraftController?) {
+fun Route.controllerRoute(c: () -> AircraftController?) {
     lateinit var controller: AircraftController
     intercept(ApplicationCallPipeline.Plugins) {
         val cr = c()
@@ -156,8 +156,8 @@ fun Route.controllerRoute(c: ()->AircraftController?) {
     post("/fly") {
         val request = call.receive<FlyRequest>()
         controller.fly {
-            for (request in request.mission)
-                request.act(controller)
+            for (action : Action in request.mission)
+                action.act(controller)
         }
         // respond without waiting for completion
         call.respond(status { "starting mission" })

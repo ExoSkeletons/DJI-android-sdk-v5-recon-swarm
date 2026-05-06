@@ -1,4 +1,4 @@
-package com.kcg.dr.vocom.waypoints
+package com.kcg.dr.waypoints
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel

@@ -1,4 +1,4 @@
-package com.kcg.dr.vocom.flight
+package com.kcg.dr.flight
 
 import android.util.Log
 import androidx.lifecycle.LiveData

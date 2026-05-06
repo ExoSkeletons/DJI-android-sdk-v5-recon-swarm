@@ -1,4 +1,4 @@
-package com.kcg.dr.vocom.waypoints
+package com.kcg.dr.waypoints
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -11,8 +11,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.kcg.dr.LocaleUtils.getLocalizedResources
 import com.kcg.dr.LocationUtils.distanceTo
 import com.kcg.dr.as2D
-import com.kcg.dr.vocom.flight.AircraftControlViewModel
-import com.kcg.dr.vocom.location.LocationViewModel
+import com.kcg.dr.flight.AircraftControlViewModel
+import com.kcg.dr.location.LocationViewModel
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVocomWaypointsBinding
 import kotlinx.coroutines.launch
@@ -42,6 +42,8 @@ class WaypointsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         waypointsVM.loadWaypoints()
+        locationVM.initProvider(this)
+        locationVM.startLocation()
 
         setupAdapter()
 

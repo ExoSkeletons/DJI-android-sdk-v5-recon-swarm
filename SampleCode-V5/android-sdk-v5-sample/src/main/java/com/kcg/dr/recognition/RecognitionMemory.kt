@@ -1,4 +1,4 @@
-package com.kcg.dr.vocom.recognition
+package com.kcg.dr.recognition
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
