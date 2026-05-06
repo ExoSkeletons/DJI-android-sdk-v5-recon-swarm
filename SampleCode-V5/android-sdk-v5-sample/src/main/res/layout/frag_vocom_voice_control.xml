@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/uxsdk_white_10_percent"
+    android:backgroundTint="@color/green"
+    android:orientation="vertical">
+
+    <ImageButton
+        android:id="@+id/btnMic"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_gravity="center"
+        android:layout_weight="2"
+        android:background="@color/uxsdk_transparent"
+        android:importantForAccessibility="no"
+        android:src="@android:drawable/ic_btn_speak_now" />
+
+    <TextView
+        android:id="@+id/txtSpeechResult"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_margin="@dimen/uxsdk_10_dp"
+        android:text="@string/speech_prompt"
+        android:textColor="@color/uxsdk_colorPrimary"
+        android:textSize="16sp"
+        android:textStyle="italic" />
+
+    <TextView
+        android:id="@+id/commandResult"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_margin="@dimen/uxsdk_10_dp"
+        android:textSize="16sp" />
+
+</LinearLayout>

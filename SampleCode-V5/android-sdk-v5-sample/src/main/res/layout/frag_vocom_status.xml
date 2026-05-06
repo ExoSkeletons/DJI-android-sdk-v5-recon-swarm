@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/uxsdk_black_20_percent"
+    android:orientation="vertical"
+    android:padding="8dp">
+
+    <TableLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TableRow>
+            <TextView android:text="Device Loc" android:textColor="@android:color/white" android:textSize="12sp" />
+            <TextView android:id="@+id/tv_location_device" android:textColor="@android:color/white" android:textSize="12sp" android:layout_marginStart="8dp" />
+        </TableRow>
+
+        <TableRow>
+            <TextView android:text="Aircraft Loc" android:textColor="@android:color/white" android:textSize="12sp" />
+            <TextView android:id="@+id/tv_location_aircraft" android:textColor="@android:color/white" android:textSize="12sp" android:layout_marginStart="8dp" />
+        </TableRow>
+
+        <TableRow>
+            <TextView android:text="Height" android:textColor="@android:color/white" android:textSize="12sp" />
+            <TextView android:id="@+id/tv_aircraft_height" android:textColor="@android:color/white" android:textSize="12sp" android:layout_marginStart="8dp" />
+        </TableRow>
+
+        <TableRow>
+            <TextView android:text="Battery" android:textColor="@android:color/white" android:textSize="12sp" />
+            <TextView android:id="@+id/tvBatteryPercent" android:textColor="@android:color/white" android:textSize="12sp" android:layout_marginStart="8dp" />
+        </TableRow>
+    </TableLayout>
+
+    <dji.v5.ux.core.widget.hsi.HorizontalSituationIndicatorWidget
+        android:id="@+id/widget_horizontal_situation_indicator"
+        android:layout_width="match_parent"
+        android:layout_height="120dp"
+        android:layout_marginTop="8dp" />
+
+</LinearLayout>
