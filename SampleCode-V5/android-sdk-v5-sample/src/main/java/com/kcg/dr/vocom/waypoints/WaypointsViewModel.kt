@@ -5,7 +5,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
-import com.kcg.dr.waypoint.WPLocationRepository
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
 import kotlinx.coroutines.launch
 

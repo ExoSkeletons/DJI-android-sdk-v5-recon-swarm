@@ -1,4 +1,4 @@
-package com.kcg.dr.waypoint
+package com.kcg.dr.vocom.waypoints
 
 import android.view.LayoutInflater
 import android.view.ViewGroup

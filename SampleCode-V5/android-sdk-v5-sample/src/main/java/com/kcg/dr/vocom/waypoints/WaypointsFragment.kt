@@ -13,7 +13,6 @@ import com.kcg.dr.LocationUtils.distanceTo
 import com.kcg.dr.as2D
 import com.kcg.dr.vocom.flight.AircraftControlViewModel
 import com.kcg.dr.vocom.location.LocationViewModel
-import com.kcg.dr.waypoint.LocationAdapter
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVocomWaypointsBinding
 import kotlinx.coroutines.launch

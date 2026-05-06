@@ -1,4 +1,4 @@
-package com.kcg.dr.waypoint
+package com.kcg.dr.vocom.waypoints
 
 import android.content.Context
 import androidx.datastore.preferences.core.edit
