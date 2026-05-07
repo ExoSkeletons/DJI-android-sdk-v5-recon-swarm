@@ -8,13 +8,18 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.Priority
+import com.kcg.dr.LiveLocationProvider
 import com.kcg.dr.LocaleUtils.getLocalizedResources
 import com.kcg.dr.LocationUtils.distanceTo
 import com.kcg.dr.as2D
 import com.kcg.dr.flight.AircraftControlViewModel
-import com.kcg.dr.location.LocationViewModel
+import com.kcg.dr.location.DeviceLocationViewModel
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVocomWaypointsBinding
+import dji.sdk.keyvalue.value.common.LocationCoordinate3D
 import kotlinx.coroutines.launch
 import java.util.Locale
 
@@ -24,9 +29,10 @@ class WaypointsFragment : Fragment() {
 
     private val waypointsVM: WaypointsViewModel by activityViewModels()
     private val aircraftVM: AircraftControlViewModel by activityViewModels()
-    private val locationVM: LocationViewModel by activityViewModels()
+    private val deviceLocationVM: DeviceLocationViewModel by activityViewModels()
 
     private lateinit var waypointAdapter: LocationAdapter
+    private lateinit var liveLocationProvider: LiveLocationProvider
     private val locale = Locale("iw", "IL")
 
     override fun onCreateView(
@@ -42,12 +48,34 @@ class WaypointsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         waypointsVM.loadWaypoints()
-        locationVM.initProvider(this)
-        locationVM.startLocation()
 
+        setupLocationProvider()
         setupAdapter()
 
+        deviceLocationVM.location.observe(viewLifecycleOwner) { }
         waypointsVM.locations.observe(viewLifecycleOwner) { }
+    }
+
+    private fun setupLocationProvider() {
+        liveLocationProvider = LiveLocationProvider(
+            this,
+            200, 50,
+            500,
+            Priority.PRIORITY_HIGH_ACCURACY
+        ).apply {
+            init(requireContext())
+            locationCallback = object : LocationCallback() {
+                override fun onLocationResult(locationResult: LocationResult) =
+                    deviceLocationVM.location.postValue(locationResult.lastLocation?.let {
+                        LocationCoordinate3D().apply {
+                            latitude = it.latitude
+                            longitude = it.longitude
+                            altitude = it.altitude
+                        }
+                    })
+            }
+            startRequesting()
+        }
     }
 
     private fun setupAdapter() {
@@ -67,7 +95,7 @@ class WaypointsFragment : Fragment() {
                     lookAtWithSpin(loc.as2D, 2.0)
                 }
             },
-            locationVM.deviceLocation, aircraftVM.aircraftLocation
+            deviceLocationVM.standingLocation, aircraftVM.aircraftLocation
         )
 
         binding.rvWaypointLocations.layoutManager = LinearLayoutManager(requireContext())
@@ -87,5 +115,6 @@ class WaypointsFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+        liveLocationProvider.stopRequesting()
     }
 }
