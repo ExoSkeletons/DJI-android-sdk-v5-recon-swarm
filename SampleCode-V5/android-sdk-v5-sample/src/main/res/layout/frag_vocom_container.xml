@@ -1,64 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/container_camera"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
         android:name="com.kcg.dr.camera.CameraFeedFragment"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        tools:layout="@layout/frag_vocom_camera_feed" />
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/container_status"
-        android:layout_width="300dp"
-        android:layout_height="wrap_content"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
         android:name="com.kcg.dr.flight.StatusFragment"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        tools:layout="@layout/frag_vocom_status" />
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/container_waypoints"
-        android:layout_width="250dp"
-        android:layout_height="0dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/container_status" />
         android:name="com.kcg.dr.waypoints.WaypointsFragment"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        tools:layout="@layout/frag_vocom_waypoints" />
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/container_virtual_sticks"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/container_waypoints"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/container_status" />
         android:name="com.kcg.dr.flight.VirtualStickControlsFragment"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        tools:layout="@layout/frag_vocom_virtual_stick" />
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/container_voice"
-        android:layout_width="200dp"
-        android:layout_height="120dp"
-        android:layout_marginBottom="16dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/container_waypoints"
-        app:layout_constraintStart_toStartOf="parent" />
         android:name="com.kcg.dr.voice.VoiceControlFragment"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        tools:layout="@layout/frag_vocom_voice_control" />
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/container_demo"
-        android:layout_width="300dp"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
-        app:layout_constraintBottom_toTopOf="@id/container_voice"
-        app:layout_constraintStart_toStartOf="parent" />
         android:name="com.kcg.dr.demo.DemoFragment"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        tools:layout="@layout/frag_vocom_demo" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+</LinearLayout>
