@@ -28,14 +28,14 @@ import kotlin.time.Duration.Companion.seconds
 
 
 @Serializable
-sealed class Action {
-    abstract suspend fun act(controller: AircraftController): Any?
+sealed interface Action {
+    suspend fun act(controller: AircraftController): Any?
 }
 
 class TemporalActions {
     @Serializable
     @SerialName("delay")
-    data class Delay(val seconds: Double) : Action() {
+    data class Delay(val seconds: Double) : Action {
         override suspend fun act(controller: AircraftController) =
             delay(seconds.seconds)
     }
@@ -49,7 +49,7 @@ class FlightActions {
         val target: LocationCoordinate3D,
         @SerialName("velocity")
         val maxVelocity: Double
-    ) : Action() {
+    ) : Action {
         override suspend fun act(controller: AircraftController) =
             controller.flyToSticks(target, maxVelocity = maxVelocity)
     }
@@ -60,7 +60,7 @@ class FlightActions {
         @Serializable(with = LocationCoordinate2DSerializer::class)
         val target: LocationCoordinate2D,
         val height: Double? = null
-    ) : Action() {
+    ) : Action {
         override suspend fun act(controller: AircraftController) =
             controller.lookAtWithSpin(target, this@LookAt.height)
     }
@@ -76,7 +76,7 @@ class PatternActions {
         val clockwise: Boolean = true,
         @SerialName("facing")
         val faceMode: AircraftController.CircleFaceMode = AircraftController.CircleFaceMode.CENTER,
-    ) : Action() {
+    ) : Action {
         override suspend fun act(controller: AircraftController) =
             controller.flyCircle(radius, velocity, count, clockwise, faceMode)
     }
@@ -87,7 +87,7 @@ class PatternActions {
         val side: Double,
         val velocity: Double,
         val clockwise: Boolean = true,
-    ) : Action() {
+    ) : Action {
         override suspend fun act(controller: AircraftController) =
             controller.flySquare(side, velocity, clockwise)
     }
@@ -96,14 +96,14 @@ class PatternActions {
 class CameraActions {
     @Serializable
     @SerialName("gimbal_pitch")
-    data class GimbalPitch(val angle: Double) : Action() {
+    data class GimbalPitch(val angle: Double) : Action {
         override suspend fun act(controller: AircraftController) =
             controller.pitchCamera(angle)
     }
 
     @Serializable
     @SerialName("wave")
-    data class Wave(val count: Int = 2) : Action() {
+    data class Wave(val count: Int = 2) : Action {
         override suspend fun act(controller: AircraftController) =
             controller.wave(count)
     }
