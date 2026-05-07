@@ -2,9 +2,10 @@ package com.kcg.dr.voice
 
 import android.app.Application
 import android.speech.tts.TextToSpeech
+import android.util.Log
+import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
 import com.kcg.dr.SFXManager
 import dji.sampleV5.aircraft.R
 import java.util.Locale
@@ -15,16 +16,16 @@ class VoiceViewModel(application: Application) : AndroidViewModel(application) {
     val commandResult = MutableLiveData<String>()
 
     private val commandResolver = CommandResolver()
-    private var tts: TextToSpeech? = null
-    private val locale = Locale("iw", "IL")
-
-    fun initTTS(context: Context, onInit: (Int) -> Unit) {
-        if (tts == null) {
-            tts = TextToSpeech(context) { status ->
-                onInit(status)
-            }
+    private var tts: TextToSpeech = TextToSpeech(getApplication()) { status ->
+        if (status != TextToSpeech.SUCCESS) {
+            silent.postValue(true)
+            Toast.makeText(getApplication(), "TTS init failed", Toast.LENGTH_SHORT).show()
+            Log.e("VoiceViewModel", "TTS init failed")
+            return@TextToSpeech
         }
+        Log.i("VoiceViewModel", "TTS init success")
     }
+    private val locale = Locale("iw", "IL")
 
     fun speak(text: String) {
         if (text.isNotBlank() && silent.value != true) tts.apply {
