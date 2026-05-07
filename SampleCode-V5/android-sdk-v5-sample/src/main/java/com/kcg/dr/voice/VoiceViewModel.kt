@@ -25,9 +25,8 @@ class VoiceViewModel(application: Application) : AndroidViewModel(application) {
         }
         Log.i("VoiceViewModel", "TTS init success")
     }
-    private val locale = Locale("iw", "IL")
 
-    fun speak(text: String) {
+    fun speak(text: String, locale: Locale = Locale("iw", "IL")) {
         if (text.isNotBlank() && silent.value != true) tts.apply {
             if (isLanguageAvailable(locale) >= TextToSpeech.LANG_AVAILABLE) {
                 language = locale
