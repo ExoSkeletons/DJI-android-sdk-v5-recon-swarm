@@ -38,7 +38,8 @@ class VoiceViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun setCommands(commands: List<CommandResolver.Command>) {
+    // user of vm calls this to set the commands
+    fun setCommands(commands: Collection<CommandResolver.Command> = emptyList()) {
         commandResolver.commands.clear()
         commandResolver.commands.addAll(commands)
     }
