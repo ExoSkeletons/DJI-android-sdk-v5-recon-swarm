@@ -57,7 +57,7 @@ class VoiceControlFragment : Fragment() {
         }
     }
 
-    private fun startListening() {
+    private fun startListening(locale: Locale = this.locale) {
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, locale.toLanguageTag())
