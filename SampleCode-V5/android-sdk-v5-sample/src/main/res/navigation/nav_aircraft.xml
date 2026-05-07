@@ -13,8 +13,53 @@
 
     <fragment
         android:id="@+id/virtual_stick_page_vocom"
-        android:name="com.kcg.dr.vocom.VirtualStickFragmentVoCom"
-        android:label="virtual_stick_vocom_page" />
+        android:name="com.kcg.dr.VirtualStickFragmentVoCom"
+        android:label="virtual_stick_vocom_page"
+        tools:layout="@layout/frag_virtual_stick_vocom_page" />
+
+    <fragment
+        android:id="@+id/virtual_stick_page_vocom_container"
+        android:name="com.kcg.dr.VoComContainerFragment"
+        android:label="virtual_stick_vocom_container_page"
+        tools:layout="@layout/frag_vocom_container"/>
+
+    <fragment
+        android:id="@+id/virtual_stick_page_vocom_camera"
+        android:name="com.kcg.dr.camera.CameraFeedFragment"
+        android:label="virtual_stick_vocom_camera_page"
+        tools:layout="@layout/frag_vocom_camera_feed"/>
+
+    <fragment
+        android:id="@+id/virtual_stick_page_vocom_status"
+        android:name="com.kcg.dr.flight.StatusFragment"
+        android:label="virtual_stick_vocom_status_page"
+        tools:layout="@layout/frag_vocom_status"/>
+
+    <fragment
+        android:id="@+id/virtual_stick_page_vocom_stick"
+        android:name="com.kcg.dr.flight.VirtualStickControlsFragment"
+        android:label="virtual_stick_vocom_stick_page"
+        tools:layout="@layout/frag_vocom_virtual_stick"/>
+
+    <fragment
+        android:id="@+id/virtual_stick_page_vocom_waypoints"
+        android:name="com.kcg.dr.waypoints.WaypointsFragment"
+        android:label="virtual_stick_vocom_waypoints_page"
+        tools:layout="@layout/frag_vocom_waypoints"/>
+
+    <fragment
+        android:id="@+id/virtual_stick_page_vocom_voice"
+        android:name="com.kcg.dr.voice.VoiceControlFragment"
+        android:label="virtual_stick_vocom_voice_page"
+        tools:layout="@layout/frag_vocom_voice_control"/>
+
+    <fragment
+        android:id="@+id/virtual_stick_page_vocom_demo"
+        android:name="com.kcg.dr.demo.DemoFragment"
+        android:label="virtual_stick_vocom_demo_page"
+        tools:layout="@layout/frag_vocom_demo"/>
+
+
     <fragment
         android:id="@+id/flight_record_page"
         android:name="dji.sampleV5.aircraft.pages.FlightRecordFragment"
