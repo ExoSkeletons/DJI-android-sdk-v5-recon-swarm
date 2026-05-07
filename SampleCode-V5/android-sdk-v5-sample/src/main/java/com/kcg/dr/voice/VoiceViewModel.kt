@@ -1,15 +1,15 @@
 package com.kcg.dr.voice
 
-import android.content.Context
-import android.content.res.Resources
+import android.app.Application
 import android.speech.tts.TextToSpeech
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.kcg.dr.SFXManager
 import dji.sampleV5.aircraft.R
 import java.util.Locale
 
-class VoiceViewModel : ViewModel() {
+class VoiceViewModel(application: Application) : AndroidViewModel(application) {
     val silent = MutableLiveData(false)
     val speechResult = MutableLiveData<String>()
     val commandResult = MutableLiveData<String>()
@@ -44,8 +44,11 @@ class VoiceViewModel : ViewModel() {
         commandResolver.commands.addAll(commands)
     }
 
-    fun processSpeech(spokenText: String, resources: Resources) {
+    fun processSpeech(spokenText: String) {
         speechResult.postValue(spokenText)
+
+        val resources = getApplication<Application>().resources
+
         val resolve = commandResolver.resolve(spokenText, resources)
         if (resolve == null) {
             commandResult.postValue(resources.getString(R.string.error_speech_unrecognised))
