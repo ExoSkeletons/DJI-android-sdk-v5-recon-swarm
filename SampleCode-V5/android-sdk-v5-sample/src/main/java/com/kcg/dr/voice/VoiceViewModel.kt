@@ -13,7 +13,7 @@ class VoiceViewModel(application: Application) : AndroidViewModel(application) {
     val silent = MutableLiveData(false)
     val speechResult = MutableLiveData<String>()
     val commandResult = MutableLiveData<String>()
-    
+
     private val commandResolver = CommandResolver()
     private var tts: TextToSpeech? = null
     private val locale = Locale("iw", "IL")
@@ -27,14 +27,12 @@ class VoiceViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun speak(text: String) {
-        if (text.isNotBlank() && silent.value != true) {
-            tts?.let {
-                if (it.isLanguageAvailable(locale) >= TextToSpeech.LANG_AVAILABLE) {
-                    it.language = locale
-                    it.setSpeechRate(1.3f)
-                    SFXManager.playSfx(SFXManager.SFX.NOTIFY_INFO)
-                    it.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
-                }
+        if (text.isNotBlank() && silent.value != true) tts.apply {
+            if (isLanguageAvailable(locale) >= TextToSpeech.LANG_AVAILABLE) {
+                language = locale
+                setSpeechRate(1.3f)
+                SFXManager.playSfx(SFXManager.SFX.NOTIFY_INFO)
+                speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
             }
         }
     }
@@ -71,8 +69,9 @@ class VoiceViewModel(application: Application) : AndroidViewModel(application) {
 
     override fun onCleared() {
         super.onCleared()
-        tts?.stop()
-        tts?.shutdown()
-        tts = null
+        tts.apply {
+            stop()
+            shutdown()
+        }
     }
 }
