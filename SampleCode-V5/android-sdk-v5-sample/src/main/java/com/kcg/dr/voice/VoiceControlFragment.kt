@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.speech.RecognizerIntent
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -67,7 +68,8 @@ class VoiceControlFragment : Fragment() {
 
         try {
             speechRecognizerLauncher.launch(intent)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e("VoiceControlFragment", "Failed to start speech recognition", e)
             binding.txtSpeechResult.text = getString(R.string.dji_msdk_error_common_unsupported)
         }
     }
