@@ -24,6 +24,9 @@ class AircraftControlViewModel(application: Application) : AndroidViewModel(appl
     val attitude = MediatorLiveData<Attitude?>()
     val heading = MediatorLiveData<Double>()
 
+    // FIXME: Not ideal. Use vm factory or god willing actually
+    //  convert the controller to a vm (by changing the vm calls in controller
+    //  to fire the actual api keys directly) as it should've been from the start loll
     fun initController(
         virtualStickVM: VirtualStickVM,
         basicAircraftControlVM: BasicAircraftControlVM,
@@ -32,7 +35,7 @@ class AircraftControlViewModel(application: Application) : AndroidViewModel(appl
         wayPointV3VM: WayPointV3VM
     ) {
         if (_controller != null) return
-        
+
         val c = AircraftController(
             viewModelScope,
             virtualStickVM,
@@ -43,9 +46,9 @@ class AircraftControlViewModel(application: Application) : AndroidViewModel(appl
         )
         _controller = c
         ControllerBridge.controller = c
-        
+
         c.init()
-        
+
         aircraftLocation.addSource(c.location) { aircraftLocation.value = it }
         aircraftHeight.addSource(c.height) { aircraftHeight.value = it }
         batteryPercent.addSource(c.batteryPercent) { batteryPercent.value = it }
