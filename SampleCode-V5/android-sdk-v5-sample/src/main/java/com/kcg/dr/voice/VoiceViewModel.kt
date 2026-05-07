@@ -10,6 +10,8 @@ import com.kcg.dr.SFXManager
 import dji.sampleV5.aircraft.R
 import java.util.Locale
 
+private const val TAG = "VoiceViewModel"
+
 class VoiceViewModel(application: Application) : AndroidViewModel(application) {
     val silent = MutableLiveData(false)
     val speechResult = MutableLiveData<String>()
@@ -20,10 +22,10 @@ class VoiceViewModel(application: Application) : AndroidViewModel(application) {
         if (status != TextToSpeech.SUCCESS) {
             silent.postValue(true)
             Toast.makeText(getApplication(), "TTS init failed", Toast.LENGTH_SHORT).show()
-            Log.e("VoiceViewModel", "TTS init failed")
+            Log.e(TAG, "TTS init failed")
             return@TextToSpeech
         }
-        Log.i("VoiceViewModel", "TTS init success")
+        Log.i(TAG, "TTS init success")
     }
 
     fun speak(text: String, locale: Locale = Locale("iw", "IL")) {
@@ -43,28 +45,38 @@ class VoiceViewModel(application: Application) : AndroidViewModel(application) {
         commandResolver.commands.addAll(commands)
     }
 
-    fun processSpeech(spokenText: String) {
-        speechResult.postValue(spokenText)
+    fun processSpeech(spokenText: String?) {
+        spokenText?.let { s ->
+            speechResult.postValue(s)
 
-        val resources = getApplication<Application>().resources
+            val resources = getApplication<Application>().resources
 
-        val resolve = commandResolver.resolve(spokenText, resources)
-        if (resolve == null) {
-            commandResult.postValue(resources.getString(R.string.error_speech_unrecognised))
-            return
-        }
-
-        val (com, match) = resolve
-        try {
-            com.func(match)
-            SFXManager.playSfx(SFXManager.SFX.ACTION_CONFIRM)
-            com.response(resources)?.let {
-                speak(resources.getString(R.string.commands_response_fmt_accepted) + ". " + it)
+            val resolve = commandResolver.resolve(s, resources)
+            if (resolve == null) {
+                commandResult.postValue(resources.getString(R.string.error_speech_unrecognised))
+                return
             }
-            commandResult.postValue(com.name(resources))
-        } catch (e: Exception) {
-            SFXManager.playSfx(SFXManager.SFX.NOTIFY_TECHNICAL)
-            commandResult.postValue(e.message ?: e.toString())
+
+            val (com, match) = resolve
+            try {
+                com.func(match)
+                SFXManager.playSfx(SFXManager.SFX.ACTION_CONFIRM)
+                com.response(resources)?.let {
+                    speak(
+                        resources.getString(R.string.commands_response_fmt_accepted)
+                                + ". " + it
+                    )
+                }
+                commandResult.postValue(com.name(resources))
+            } catch (e: Exception) {
+                SFXManager.playSfx(SFXManager.SFX.NOTIFY_TECHNICAL)
+                commandResult.postValue(e.message ?: e.toString())
+            }
+        } ?: {
+            speechResult.postValue(
+                getApplication<Application>()
+                    .getString(R.string.error_speech_unrecognised)
+            )
         }
     }
 

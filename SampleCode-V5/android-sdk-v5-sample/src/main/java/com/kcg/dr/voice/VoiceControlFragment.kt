@@ -11,7 +11,6 @@ import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import com.kcg.dr.LocaleUtils.getLocalizedResources
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVocomVoiceControlBinding
 import java.util.Locale
@@ -31,11 +30,7 @@ class VoiceControlFragment : Fragment() {
                 .getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
                 ?.get(0)
 
-            if (spokenText != null) {
-                voiceVM.processSpeech(spokenText, requireContext().getLocalizedResources(locale))
-            } else {
-                binding.txtSpeechResult.text = getString(R.string.error_speech_unrecognised)
-            }
+            voiceVM.processSpeech(spokenText)
         }
     }
 
