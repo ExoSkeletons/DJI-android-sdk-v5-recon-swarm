@@ -8,6 +8,7 @@ import com.kcg.dr.api.Responses.status
 import com.kcg.dr.api.SerializerSurrogates.LocationCoordinate2DSerializer
 import com.kcg.dr.api.SerializerSurrogates.LocationCoordinate3DSerializer
 import com.kcg.dr.flight.AircraftController
+import com.kcg.dr.flight.AircraftController.CircleFaceMode
 import dji.sdk.keyvalue.value.common.LocationCoordinate2D
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
 import io.ktor.http.HttpStatusCode
@@ -75,7 +76,7 @@ class PatternActions {
         val count: Double = 1.0,
         val clockwise: Boolean = true,
         @SerialName("facing")
-        val faceMode: AircraftController.CircleFaceMode = AircraftController.CircleFaceMode.CENTER,
+        val faceMode: CircleFaceMode = CircleFaceMode.CENTER,
     ) : Action {
         override suspend fun act(controller: AircraftController) =
             controller.flyCircle(radius, velocity, count, clockwise, faceMode)
