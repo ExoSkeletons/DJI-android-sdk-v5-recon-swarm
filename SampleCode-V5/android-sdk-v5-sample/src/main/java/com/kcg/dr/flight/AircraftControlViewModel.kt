@@ -1,7 +1,8 @@
 package com.kcg.dr.flight
 
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MediatorLiveData
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kcg.dr.api.ControllerBridge
 import dji.sampleV5.aircraft.models.BasicAircraftControlVM
@@ -12,7 +13,7 @@ import dji.sampleV5.aircraft.models.WayPointV3VM
 import dji.sdk.keyvalue.value.common.Attitude
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
 
-class AircraftControlViewModel : ViewModel() {
+class AircraftControlViewModel(application: Application) : AndroidViewModel(application) {
     private var _controller: AircraftController? = null
     val controller: AircraftController? get() = _controller
 
