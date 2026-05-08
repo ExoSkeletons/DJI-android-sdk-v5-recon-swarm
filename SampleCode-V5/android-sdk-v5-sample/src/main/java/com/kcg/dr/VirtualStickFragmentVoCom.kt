@@ -381,7 +381,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         initCameraStreamSurface()
         initLiveStreamControls()
         initRecordingControls()
-        cameraVM.setCameraIndex(cameraIndex)
+        cameraVM.cameraIndex.postValue(cameraIndex)
 
         binding?.btnMic?.setOnClickListener { startListening() }
 
@@ -752,7 +752,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
     private fun initRecordingControls() {
         binding?.btnStartRecordVideo?.setOnClickListener {
-            cameraVM.setCameraIndex(cameraIndex)
+            cameraVM.cameraIndex.postValue(cameraIndex)
             cameraVM.startRecord(object : CommonCallbacks.CompletionCallbackWithParam<EmptyMsg> {
                 override fun onSuccess(p0: EmptyMsg?) =
                     ToastUtils.showToast("recording start success")

@@ -2,7 +2,6 @@ package com.kcg.dr.camera
 
 import android.os.Bundle
 import android.view.LayoutInflater
-import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.View
 import android.view.ViewGroup
@@ -54,24 +53,24 @@ class CameraFeedFragment : Fragment() {
     }
 
     private fun putCameraStreamSurface() {
-        if (cameraStreamSurface == null || cameraStreamWidth == -1 || cameraStreamHeight == -1) return
         val holder = binding.svCameraStream.holder
         val surface = holder.surface ?: return
         val w = binding.svCameraStream.width
         val h = binding.svCameraStream.height
         if (!surface.isValid || w <= 0 || h <= 0) return
+        val cameraIndex = cameraVM.cameraIndex.value ?: return
         cameraStreamManager.putCameraStreamSurface(
             cameraIndex,
-            cameraStreamSurface!!,
-            cameraStreamWidth,
-            cameraStreamHeight,
+            surface, w, h,
             cameraStreamScaleType
         )
     }
 
     private fun initRecordingControls() {
+        // todo: add ui for camera index & scale type
+
         binding.btnStartRecordVideo.setOnClickListener {
-            cameraVM.setCameraIndex(cameraIndex)
+            cameraVM.cameraIndex.postValue(ComponentIndexType.LEFT_OR_MAIN)
             cameraVM.startRecord(object : CommonCallbacks.CompletionCallbackWithParam<EmptyMsg> {
                 override fun onSuccess(p0: EmptyMsg?) {}
                 override fun onFailure(error: IDJIError) {}
