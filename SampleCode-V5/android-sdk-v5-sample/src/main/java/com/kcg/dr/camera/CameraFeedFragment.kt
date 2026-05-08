@@ -22,11 +22,7 @@ class CameraFeedFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val cameraVM: CameraActionVM by activityViewModels()
-    
-    private var cameraStreamSurface: Surface? = null
-    private var cameraStreamWidth: Int = -1
-    private var cameraStreamHeight: Int = -1
-    private var cameraIndex: ComponentIndexType = ComponentIndexType.LEFT_OR_MAIN
+
     private val cameraStreamScaleType: ICameraStreamManager.ScaleType = ICameraStreamManager.ScaleType.CENTER_INSIDE
     private val cameraStreamManager = MediaDataCenter.getInstance().cameraStreamManager
 
@@ -44,30 +40,26 @@ class CameraFeedFragment : Fragment() {
     private fun initCameraStreamSurface() {
         binding.svCameraStream.holder.addCallback(object : SurfaceHolder.Callback {
             override fun surfaceCreated(holder: SurfaceHolder) {
-                cameraStreamSurface = holder.surface
-                if (cameraStreamWidth != -1 && cameraStreamHeight != -1) {
-                    putCameraStreamSurface()
-                }
+                putCameraStreamSurface()
             }
 
             override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
-                cameraStreamWidth = width
-                cameraStreamHeight = height
-                cameraStreamSurface = holder.surface
                 putCameraStreamSurface()
             }
 
             override fun surfaceDestroyed(holder: SurfaceHolder) {
-                if (cameraStreamSurface != null) {
-                    cameraStreamManager.removeCameraStreamSurface(holder.surface)
-                }
-                cameraStreamSurface = null
+                cameraStreamManager.removeCameraStreamSurface(holder.surface)
             }
         })
     }
 
     private fun putCameraStreamSurface() {
         if (cameraStreamSurface == null || cameraStreamWidth == -1 || cameraStreamHeight == -1) return
+        val holder = binding.svCameraStream.holder
+        val surface = holder.surface ?: return
+        val w = binding.svCameraStream.width
+        val h = binding.svCameraStream.height
+        if (!surface.isValid || w <= 0 || h <= 0) return
         cameraStreamManager.putCameraStreamSurface(
             cameraIndex,
             cameraStreamSurface!!,
