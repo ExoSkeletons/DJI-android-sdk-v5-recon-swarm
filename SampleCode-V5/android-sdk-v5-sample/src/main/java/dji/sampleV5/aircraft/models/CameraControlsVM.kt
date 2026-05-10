@@ -19,25 +19,32 @@ import dji.v5.et.set
 
 class CameraActionVM(application: Application) : AndroidViewModel(application) {
     private class CameraKeyObserver<T>(
-        val liveData: MutableLiveData<T>,
+        val liveData: MediatorLiveData<T>,
         val camKeyInfo: DJIKeyInfo<T>
     ) {
+        private var mSource: LiveData<ComponentIndexType>? = null
         var camKey: DJIKey<T>? = null
 
-        fun updateIndex(newIndex: ComponentIndexType?) {
-            camKey?.cancelListen(this)
-            camKey = null
-            if (newIndex == null) return
-            camKey = camKeyInfo.createCamera(newIndex)
-            camKey?.listen(this) { liveData.postValue(it) }
+        fun setSource(cameraIndex: MutableLiveData<ComponentIndexType>?) {
+            mSource?.let { liveData.removeSource(it) }
+            mSource = cameraIndex
+            mSource?.let { src ->
+                liveData.addSource(src) { newIndex ->
+                    camKey?.cancelListen(this)
+                    camKey = null
+                    if (newIndex == null) return@addSource
+                    camKey = camKeyInfo.createCamera(newIndex)
+                    camKey?.listen(this) { t -> liveData.postValue(t) }
+                }
+            }
         }
     }
 
     val cameraIndex = MutableLiveData(ComponentIndexType.LEFT_OR_MAIN)
 
-    val isRecording: MutableLiveData<Boolean> = MutableLiveData(false)
-    val isTakingPhoto: MutableLiveData<Boolean> = MutableLiveData(false)
-    val mode: MutableLiveData<CameraMode> = MutableLiveData(CameraMode.PHOTO_NORMAL)
+    val isRecording: MediatorLiveData<Boolean> = MediatorLiveData(false)
+    val isTakingPhoto: MediatorLiveData<Boolean> = MediatorLiveData(false)
+    val mode: MediatorLiveData<CameraMode> = MediatorLiveData(CameraMode.PHOTO_NORMAL)
 
     private val liveDataToKeyListens = listOf(
         CameraKeyObserver(isRecording, CameraKey.KeyIsRecording),
@@ -46,9 +53,8 @@ class CameraActionVM(application: Application) : AndroidViewModel(application) {
     )
 
     init {
-        cameraIndex.observe(getApplication()) { index ->
-            liveDataToKeyListens.forEach { it.updateIndex(index) }
-        }
+        for (key in liveDataToKeyListens)
+            key.setSource(cameraIndex)
     }
 
     fun startRecord(callback: CompletionCallbackWithParam<EmptyMsg>? = null) {
