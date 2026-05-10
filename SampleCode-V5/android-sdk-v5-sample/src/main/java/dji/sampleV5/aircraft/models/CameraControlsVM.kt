@@ -2,6 +2,8 @@ package dji.sampleV5.aircraft.models
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
 import dji.sdk.keyvalue.key.CameraKey
 import dji.sdk.keyvalue.key.DJIKey
@@ -17,7 +19,7 @@ import dji.v5.et.createCamera
 import dji.v5.et.listen
 import dji.v5.et.set
 
-class CameraActionVM(application: Application) : AndroidViewModel(application) {
+class CameraControlsVM(application: Application) : AndroidViewModel(application) {
     private class CameraKeyObserver<T>(
         val liveData: MediatorLiveData<T>,
         val camKeyInfo: DJIKeyInfo<T>

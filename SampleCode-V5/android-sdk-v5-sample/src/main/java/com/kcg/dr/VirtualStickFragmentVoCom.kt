@@ -52,7 +52,7 @@ import com.kcg.dr.waypoints.WPLocationRepository
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVirtualStickVocomPageBinding
 import dji.sampleV5.aircraft.models.BasicAircraftControlVM
-import dji.sampleV5.aircraft.models.CameraActionVM
+import dji.sampleV5.aircraft.models.CameraControlsVM
 import dji.sampleV5.aircraft.models.CameraGimbalVM
 import dji.sampleV5.aircraft.models.IntelligentFlightVM
 import dji.sampleV5.aircraft.models.LiveStreamVM
@@ -106,7 +106,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     private val intelligentFlightVM: IntelligentFlightVM by activityViewModels()
     private val basicAircraftControlVM: BasicAircraftControlVM by activityViewModels()
     private val cameraGimbalVM: CameraGimbalVM by activityViewModels()
-    private val cameraVM: CameraActionVM by activityViewModels()
+    private val cameraVM: CameraControlsVM by activityViewModels()
     private val virtualStickVM: VirtualStickVM by activityViewModels()
     private val wayPointV3VM: WayPointV3VM by activityViewModels()
     private val simulatorVM: SimulatorVM by activityViewModels()
