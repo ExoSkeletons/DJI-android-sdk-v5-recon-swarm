@@ -6,16 +6,26 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import com.kcg.dr.LocationUtils.bearingTo
+import com.kcg.dr.LocationUtils.distanceTo
+import com.kcg.dr.as2D
+import com.kcg.dr.location.DeviceLocationViewModel
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVocomStatusBinding
+import kotlin.math.roundToInt
 
 class StatusFragment : Fragment() {
     private var _binding: FragVocomStatusBinding? = null
     private val binding get() = _binding!!
 
     private val aircraftVM: AircraftControlViewModel by activityViewModels()
+    private val deviceLocationVM: DeviceLocationViewModel by activityViewModels()
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
         _binding = FragVocomStatusBinding.inflate(inflater, container, false)
         return binding.root
     }
@@ -23,20 +33,58 @@ class StatusFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        aircraftVM.aircraftLocation.observe(viewLifecycleOwner) { loc ->
-            binding.tvLocationAircraft.text = loc?.let {
-                String.format(getString(R.string.location_fmt_short), it.latitude, it.longitude, it.altitude)
+        deviceLocationVM.location.observe(viewLifecycleOwner) { loc ->
+            binding.tvLocationDevice.text = loc?.let {
+                String.format(
+                    getString(R.string.location_fmt_short),
+                    it.latitude,
+                    it.longitude,
+                    it.altitude
+                )
             } ?: "-"
         }
 
-        aircraftVM.aircraftHeight.observe(viewLifecycleOwner) {
-            binding.tvAircraftHeight.text = String.format("%.1f", it)
+        aircraftVM.apply {
+            aircraftLocation.observe(viewLifecycleOwner) { loc ->
+                binding.tvLocationAircraft.text = loc?.let {
+                    String.format(
+                        getString(R.string.location_fmt_short),
+                        it.latitude,
+                        it.longitude,
+                        it.altitude
+                    )
+                } ?: "-"
+            }
+            attitude.observe(viewLifecycleOwner) {
+                binding.tvAttitude.text = it?.toJson()?.toString() ?: "-"
+            }
+            aircraftHeight.observe(viewLifecycleOwner) {
+                binding.tvAircraftHeight.text = it?.let { String.format("%.1f", it) } ?: "-"
+            }
+            batteryPercent.observe(viewLifecycleOwner) {
+                binding.tvBatteryPercent.text = it?.let { "$it%" } ?: "-"
+            }
         }
 
-        aircraftVM.batteryPercent.observe(viewLifecycleOwner) {
-            binding.tvBatteryPercent.text = "$it%"
+        // relations between aircraft location and device location
+        aircraftVM.apply {
+            aircraftLocation.observe(viewLifecycleOwner) { aircraft ->
+                val device = deviceLocationVM.location.value
+
+                val dist = aircraft?.let { device?.let { aircraft.distanceTo(device) } }
+                val dist2D = aircraft?.let { device?.let { aircraft.as2D.distanceTo(device.as2D) } }
+                val angleTo = aircraft?.let {
+                    device?.let {
+                        heading.value?.let { aircraft.as2D.bearingTo(device.as2D) - it }
+                    }
+                }
+
+                binding.tvDistance.text = dist?.let { "${it}m" } ?: "-"
+                binding.tvDistance2D.text = dist2D?.let { "${it}m" } ?: "-"
+                binding.tvAngleTo.text = angleTo?.let { "${it.roundToInt()}°" } ?: "-"
+            }
         }
-        
+
         // Setup HSI
         binding.widgetHorizontalSituationIndicator.setSimpleModeEnable(false)
     }

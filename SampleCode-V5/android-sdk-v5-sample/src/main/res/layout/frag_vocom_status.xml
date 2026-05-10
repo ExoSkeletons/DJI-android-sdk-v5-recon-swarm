@@ -8,27 +8,172 @@
 
     <TableLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:visibility="visible">
 
-        <TableRow>
-            <TextView android:text="Device Loc" android:textColor="@android:color/white" android:textSize="12sp" />
-            <TextView android:id="@+id/tv_location_device" android:textColor="@android:color/white" android:textSize="12sp" android:layout_marginStart="8dp" />
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Device Location" />
+
+            <TextView
+                android:id="@+id/tv_location_device"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@android:color/white" />
         </TableRow>
 
-        <TableRow>
-            <TextView android:text="Aircraft Loc" android:textColor="@android:color/white" android:textSize="12sp" />
-            <TextView android:id="@+id/tv_location_aircraft" android:textColor="@android:color/white" android:textSize="12sp" android:layout_marginStart="8dp" />
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Aircraft Location" />
+
+            <TextView
+                android:id="@+id/tv_location_aircraft"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@android:color/white" />
         </TableRow>
 
-        <TableRow>
-            <TextView android:text="Height" android:textColor="@android:color/white" android:textSize="12sp" />
-            <TextView android:id="@+id/tv_aircraft_height" android:textColor="@android:color/white" android:textSize="12sp" android:layout_marginStart="8dp" />
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="visible">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Aircraft Height" />
+
+            <TextView
+                android:id="@+id/tv_aircraft_height"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@android:color/white" />
         </TableRow>
 
-        <TableRow>
-            <TextView android:text="Battery" android:textColor="@android:color/white" android:textSize="12sp" />
-            <TextView android:id="@+id/tvBatteryPercent" android:textColor="@android:color/white" android:textSize="12sp" android:layout_marginStart="8dp" />
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/gimbal" />
+
+            <TextView
+                android:id="@+id/tvGimbalAttitude"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1" />
         </TableRow>
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="visible">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Distance (3D)" />
+
+            <TextView
+                android:id="@+id/tvDistance"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@android:color/white" />
+        </TableRow>
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="visible">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Distance (2D)" />
+
+            <TextView
+                android:id="@+id/tvDistance2D"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@android:color/white" />
+        </TableRow>
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/uxsdk_simulator_attitude_title" />
+
+            <TextView
+                android:id="@+id/tvAttitude"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1" />
+        </TableRow>
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Angle Δ" />
+
+            <TextView
+                android:id="@+id/tv_angle_to"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@android:color/white" />
+        </TableRow>
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/battery" />
+
+            <TextView
+                android:id="@+id/tvBatteryPercent"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textColor="@android:color/white" />
+        </TableRow>
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tvFollowVelocity"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1" />
+        </TableRow>
+
     </TableLayout>
 
     <dji.v5.ux.core.widget.hsi.HorizontalSituationIndicatorWidget
