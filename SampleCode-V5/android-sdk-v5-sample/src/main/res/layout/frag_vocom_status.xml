@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="match_parent"
     android:background="@color/uxsdk_black_20_percent"
+    android:backgroundTint="@color/uxsdk_blue"
     android:orientation="vertical"
     android:padding="8dp">
 
@@ -18,7 +19,8 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Device Location" />
+                android:text="Device Location"
+                android:textColor="@color/design_default_color_on_primary" />
 
             <TextView
                 android:id="@+id/tv_location_device"
@@ -34,7 +36,8 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Aircraft Location" />
+                android:text="Aircraft Location"
+                android:textColor="@color/design_default_color_on_primary" />
 
             <TextView
                 android:id="@+id/tv_location_aircraft"
@@ -51,7 +54,8 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Aircraft Height" />
+                android:text="Aircraft Height"
+                android:textColor="@color/design_default_color_on_primary" />
 
             <TextView
                 android:id="@+id/tv_aircraft_height"
@@ -68,7 +72,8 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/gimbal" />
+                android:text="@string/gimbal"
+                android:textColor="@color/design_default_color_on_primary" />
 
             <TextView
                 android:id="@+id/tvGimbalAttitude"
@@ -85,7 +90,8 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Distance (3D)" />
+                android:text="Distance (3D)"
+                android:textColor="@color/design_default_color_on_primary" />
 
             <TextView
                 android:id="@+id/tvDistance"
@@ -102,7 +108,8 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Distance (2D)" />
+                android:text="Distance (2D)"
+                android:textColor="@color/design_default_color_on_primary" />
 
             <TextView
                 android:id="@+id/tvDistance2D"
@@ -119,7 +126,8 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/uxsdk_simulator_attitude_title" />
+                android:text="@string/uxsdk_simulator_attitude_title"
+                android:textColor="@color/design_default_color_on_primary" />
 
             <TextView
                 android:id="@+id/tvAttitude"
@@ -136,7 +144,8 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Angle Δ" />
+                android:text="Angle Δ"
+                android:textColor="@color/design_default_color_on_primary" />
 
             <TextView
                 android:id="@+id/tv_angle_to"
@@ -152,7 +161,8 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/battery" />
+                android:text="@string/battery"
+                android:textColor="@color/design_default_color_on_primary" />
 
             <TextView
                 android:id="@+id/tvBatteryPercent"
@@ -171,7 +181,8 @@
                 android:id="@+id/tvFollowVelocity"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1" />
+                android:layout_weight="1"
+                android:textColor="@color/design_default_color_on_primary" />
         </TableRow>
 
     </TableLayout>
@@ -180,6 +191,7 @@
         android:id="@+id/widget_horizontal_situation_indicator"
         android:layout_width="match_parent"
         android:layout_height="120dp"
-        android:layout_marginTop="8dp" />
+        android:layout_marginTop="8dp"
+        android:visibility="gone" />
 
 </LinearLayout>
