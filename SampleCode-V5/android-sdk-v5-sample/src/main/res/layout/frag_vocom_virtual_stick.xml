@@ -5,6 +5,15 @@
     android:layout_height="match_parent"
     android:background="@android:color/transparent">
 
+    <View
+        android:id="@+id/sep"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="@+id/left_stick_view"
+        app:layout_constraintEnd_toStartOf="@+id/right_stick_view"
+        app:layout_constraintStart_toEndOf="@+id/sv_actions"
+        app:layout_constraintTop_toTopOf="@+id/right_stick_view" />
+
     <dji.sampleV5.aircraft.virtualstick.OnScreenJoystick
         android:id="@+id/left_stick_view"
         android:layout_width="150dp"
@@ -21,36 +30,41 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <LinearLayout
-        android:id="@+id/flight_actions"
-        android:layout_width="wrap_content"
+    <ScrollView
+        android:id="@+id/sv_actions"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toEndOf="@id/left_stick_view"
-        app:layout_constraintEnd_toStartOf="@id/right_stick_view">
+        app:layout_constraintStart_toEndOf="@+id/left_stick_view">
 
-        <Button
-            android:id="@+id/btn_take_off"
-            style="@style/main_fragment_btn"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:id="@+id/flight_actions"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/btn_take_off" />
+            android:orientation="vertical">
 
-        <Button
-            android:id="@+id/btn_landing"
-            style="@style/main_fragment_btn"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/btn_landing" />
+            <Button
+                android:id="@+id/btn_take_off"
+                style="@style/main_fragment_btn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/btn_take_off" />
 
-        <Button
-            android:id="@+id/btn_stop"
-            style="@style/main_fragment_btn"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:backgroundTint="@color/red"
-            android:text="STOP" />
-    </LinearLayout>
+            <Button
+                android:id="@+id/btn_landing"
+                style="@style/main_fragment_btn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/btn_landing" />
+
+            <Button
+                android:id="@+id/btn_stop"
+                style="@style/main_fragment_btn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:backgroundTint="@color/red"
+                android:text="STOP" />
+        </LinearLayout>
+    </ScrollView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
