@@ -25,9 +25,9 @@
 
     <fragment
         android:id="@+id/virtual_stick_page_vocom_camera"
-        android:name="com.kcg.dr.camera.CameraFeedFragment"
+        android:name="com.kcg.dr.camera.CameraControlsFragment"
         android:label="virtual_stick_vocom_camera_page"
-        tools:layout="@layout/frag_vocom_camera_feed"/>
+        tools:layout="@layout/frag_vocom_camera_controls"/>
 
     <fragment
         android:id="@+id/virtual_stick_page_vocom_status"
