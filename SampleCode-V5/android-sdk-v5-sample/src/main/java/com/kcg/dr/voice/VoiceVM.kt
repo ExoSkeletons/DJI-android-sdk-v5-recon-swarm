@@ -6,6 +6,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
+import com.kcg.dr.LocaleUtils.getLocalizedResources
 import com.kcg.dr.SFXManager
 import dji.sampleV5.aircraft.R
 import java.util.Locale
@@ -51,12 +52,15 @@ class VoiceVM(application: Application) : AndroidViewModel(application) {
         commandResolver.commands.addAll(commands)
     }
 
-    fun processSpeech(spokenText: String?) {
+    fun processSpeech(spokenText: String?, locale: Locale? = null) {
         spokenText?.let { s ->
             speechResult.postValue(s)
 
-            val resources = getApplication<Application>().resources
-
+            val resources = with(getApplication<Application>()) {
+                locale?.let {
+                    this.getLocalizedResources(locale)
+                } ?: this.resources
+            }
             val resolve = commandResolver.resolve(s, resources)
             if (resolve == null) {
                 commandResult.postValue(resources.getString(R.string.error_speech_unrecognised))
