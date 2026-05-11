@@ -1,4 +1,4 @@
-package com.kcg.dr
+package com.kcg.dr.location
 
 import android.Manifest
 import android.content.Context
