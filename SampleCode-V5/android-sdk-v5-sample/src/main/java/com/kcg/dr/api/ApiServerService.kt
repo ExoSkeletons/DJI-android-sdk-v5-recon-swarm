@@ -51,31 +51,12 @@ class ApiServerService() : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    private fun createNotification(): Notification {
-        // Create notification
-        val notification: Notification =
-            NotificationCompat.Builder(this, channelId).apply {
-                setContentTitle("Drone API Server")
-                setContentText("Address: ${getLocalIpAddress() ?: "Unknown"} Port: $port")
-                setSmallIcon(R.drawable.aircraft)
-                setOngoing(true)
-            }.build()
-        return notification
-    }
-
-    fun getLocalIpAddress(): String? {
-        try {
-            val interfaces = NetworkInterface.getNetworkInterfaces().toList()
-            for (inf in interfaces) {
-                if (!inf.isUp || inf.isLoopback) continue
-                val addresses = inf.inetAddresses.toList()
-                for (address in addresses)
-                    if (!address.isLoopbackAddress && address is Inet4Address)
-                        return address.hostAddress
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-        return null
+    private fun createNotification(channelId: String): Notification {
+        return NotificationCompat.Builder(this, channelId).apply {
+            setContentTitle("Drone API Server")
+            setContentText("$host:$port @ ${NetUtils.getLocalIpAddress() ?: "-"}")
+            setSmallIcon(R.drawable.aircraft)
+            setOngoing(true)
+        }.build()
     }
 }
