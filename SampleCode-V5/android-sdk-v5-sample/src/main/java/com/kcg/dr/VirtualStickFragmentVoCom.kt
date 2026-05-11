@@ -390,10 +390,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             override fun onLocationResult(locationResult: LocationResult) {
                 for (location in locationResult.locations) {
                     // update device location
-                    deviceLocation.postValue(LocationCoordinate3D().apply {
-                        latitude = location.latitude
-                        longitude = location.longitude
-
+                    deviceLocation.postValue(location.asDjiLocation.apply {
                         // DJI Aircraft measures alt from ground level, not sea level.
                         altitude = cfg.humanHeight
                     })
