@@ -8,9 +8,9 @@ import androidx.fragment.app.activityViewModels
 import com.kcg.dr.flight.AircraftControlViewModel
 import dji.sampleV5.aircraft.databinding.FragVocomContainerBinding
 import dji.sampleV5.aircraft.models.BasicAircraftControlVM
-import dji.sampleV5.aircraft.models.CameraControlsVM
 import dji.sampleV5.aircraft.models.CameraGimbalVM
 import dji.sampleV5.aircraft.models.IntelligentFlightVM
+import dji.sampleV5.aircraft.models.RecordingVM
 import dji.sampleV5.aircraft.models.VirtualStickVM
 import dji.sampleV5.aircraft.models.WayPointV3VM
 import dji.sampleV5.aircraft.pages.DJIFragment
@@ -19,7 +19,7 @@ class VoComContainerFragment : DJIFragment() {
     private var _binding: FragVocomContainerBinding? = null
     private val binding get() = _binding!!
 
-    private val cameraVM: CameraControlsVM by activityViewModels()
+    private val recordingVM: RecordingVM by activityViewModels()
     private val aircraftControlVM: AircraftControlViewModel by activityViewModels()
 
     // Original DJI ViewModels needed for controller init
@@ -54,7 +54,7 @@ class VoComContainerFragment : DJIFragment() {
         // and will automatically be instantiated and added.
 
         // Observe camera index to update fpv video source widget
-        cameraVM.cameraIndex.observe(viewLifecycleOwner, binding.fpvWidget::updateVideoSource)
+        recordingVM.cameraIndex.observe(viewLifecycleOwner, binding.fpvWidget::updateVideoSource)
     }
 
     override fun onDestroyView() {

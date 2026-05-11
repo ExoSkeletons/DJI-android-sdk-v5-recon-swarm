@@ -19,7 +19,7 @@ import dji.v5.et.createCamera
 import dji.v5.et.listen
 import dji.v5.et.set
 
-class CameraControlsVM(application: Application) : AndroidViewModel(application) {
+class RecordingVM(application: Application) : AndroidViewModel(application) {
     private class CameraKeyObserver<T>(
         val liveData: MediatorLiveData<T>,
         val camKeyInfo: DJIKeyInfo<T>

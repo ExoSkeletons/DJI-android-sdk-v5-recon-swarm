@@ -52,10 +52,10 @@ import com.kcg.dr.waypoints.WPLocationRepository
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVirtualStickVocomPageBinding
 import dji.sampleV5.aircraft.models.BasicAircraftControlVM
-import dji.sampleV5.aircraft.models.CameraControlsVM
 import dji.sampleV5.aircraft.models.CameraGimbalVM
 import dji.sampleV5.aircraft.models.IntelligentFlightVM
 import dji.sampleV5.aircraft.models.LiveStreamVM
+import dji.sampleV5.aircraft.models.RecordingVM
 import dji.sampleV5.aircraft.models.SimulatorVM
 import dji.sampleV5.aircraft.models.VirtualStickVM
 import dji.sampleV5.aircraft.models.WayPointV3VM
@@ -106,7 +106,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     private val intelligentFlightVM: IntelligentFlightVM by activityViewModels()
     private val basicAircraftControlVM: BasicAircraftControlVM by activityViewModels()
     private val cameraGimbalVM: CameraGimbalVM by activityViewModels()
-    private val cameraVM: CameraControlsVM by activityViewModels()
+    private val recordingVM: RecordingVM by activityViewModels()
     private val virtualStickVM: VirtualStickVM by activityViewModels()
     private val wayPointV3VM: WayPointV3VM by activityViewModels()
     private val simulatorVM: SimulatorVM by activityViewModels()
@@ -381,7 +381,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         initCameraStreamSurface()
         initLiveStreamControls()
         initRecordingControls()
-        cameraVM.cameraIndex.postValue(cameraIndex)
+        recordingVM.cameraIndex.postValue(cameraIndex)
 
         binding?.btnMic?.setOnClickListener { startListening() }
 
@@ -594,7 +594,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             cameraStreamManager.removeCameraStreamSurface(cameraStreamSurface!!)
             cameraStreamSurface = null
         }
-        cameraVM.stopRecord() // Stop any recordings to avoid corrupting card
+        recordingVM.stopRecord() // Stop any recordings to avoid corrupting card
         if (liveStreamVM.isStreaming()) liveStreamVM.stopStream(null)
     }
 
@@ -752,8 +752,8 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
     private fun initRecordingControls() {
         binding?.btnStartRecordVideo?.setOnClickListener {
-            cameraVM.cameraIndex.postValue(cameraIndex)
-            cameraVM.startRecord(object : CommonCallbacks.CompletionCallbackWithParam<EmptyMsg> {
+            recordingVM.cameraIndex.postValue(cameraIndex)
+            recordingVM.startRecord(object : CommonCallbacks.CompletionCallbackWithParam<EmptyMsg> {
                 override fun onSuccess(p0: EmptyMsg?) =
                     ToastUtils.showToast("recording start success")
 
@@ -763,8 +763,8 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         }
 
         binding?.btnStopRecordVideo?.setOnClickListener {
-            if (cameraVM.isRecording.value == true)
-                cameraVM.stopRecord(object : CommonCallbacks.CompletionCallbackWithParam<EmptyMsg> {
+            if (recordingVM.isRecording.value == true)
+                recordingVM.stopRecord(object : CommonCallbacks.CompletionCallbackWithParam<EmptyMsg> {
                     override fun onSuccess(p0: EmptyMsg?) =
                         ToastUtils.showToast("recording stop success")
 
@@ -773,7 +773,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                 })
         }
 
-        cameraVM.isRecording.observe(viewLifecycleOwner) { v ->
+        recordingVM.isRecording.observe(viewLifecycleOwner) { v ->
             val recording = v ?: false
             binding?.tvVideoRecordingStatus?.text = "Recording: $recording"
             binding?.btnStartRecordVideo?.isEnabled = !recording
