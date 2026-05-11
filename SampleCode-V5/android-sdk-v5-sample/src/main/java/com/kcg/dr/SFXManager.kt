@@ -16,6 +16,7 @@ object SFXManager {
     private lateinit var soundPool: SoundPool
 
     fun init(context: Context) {
+        val context = context.applicationContext
         val audioAttributes = AudioAttributes.Builder()
             .setUsage(AudioAttributes.USAGE_MEDIA)
             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
