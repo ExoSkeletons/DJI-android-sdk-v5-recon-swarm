@@ -1,6 +1,7 @@
 package com.kcg.dr.api
 
 import android.util.Log
+import androidx.lifecycle.MutableLiveData
 import com.kcg.dr.CoroutineUtils.actionOrExcept
 import com.kcg.dr.DJIErrorException
 import com.kcg.dr.api.Responses.djiErrorResponse
@@ -27,7 +28,9 @@ import io.ktor.server.cio.CIO
 import io.ktor.server.engine.ApplicationEngine
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.request.httpMethod
 import io.ktor.server.request.receiveText
+import io.ktor.server.request.uri
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.IgnoreTrailingSlash
@@ -44,29 +47,31 @@ import kotlinx.serialization.json.put
 private const val TAG = "ApiHttpServer"
 
 object ControllerBridge {
-    // global injection of controller. remove when controller is refactored to singleton or a vm or smth
     var controller: AircraftController? = null
 }
 
-class ApiHttpServer(private val port: Int) {
+class ApiHttpServer {
     private var server: ApplicationEngine? = null
+
+    val requests = MutableLiveData<List<String>>(emptyList())
+
+    val isRunning = MutableLiveData(false)
 
     fun stop() {
         server?.stop()
         server = null
+        isRunning.value = false
         Log.i(TAG, "Ktor server stopped")
     }
 
-    fun start() {
-        if (server != null) return
+    fun start(host: String, port: Int) {
+        if (server != null) stop()
 
-        val host = "0.0.0.0"
         server = embeddedServer(CIO, host = host, port = port) {
             install(ContentNegotiation) { json() }
             install(IgnoreTrailingSlash)
 
             routing {
-                // Home page
                 get("/") {
                     call.respondText(
                         "<html><body><h2>Drone API Server Running. $host : $port</h2></body></html>",
@@ -75,6 +80,10 @@ class ApiHttpServer(private val port: Int) {
                 }
 
                 intercept(ApplicationCallPipeline.Plugins) {
+                    val log = "${call.request.httpMethod.value} ${call.request.uri}"
+                    requests.value =
+                        requests.value?.let { list -> (list + listOf(log)).take(10) } ?: listOf(log)
+
                     val rcAvailable = RemoteControllerKey.KeyConnection.create().get(false)
                     if (!rcAvailable) {
                         call.respond(
@@ -137,6 +146,7 @@ class ApiHttpServer(private val port: Int) {
                 }
             }
         }.start(wait = false)
+        isRunning.value = true
 
         Log.i(TAG, "Ktor server started on port $port")
     }
@@ -182,7 +192,6 @@ private fun Route.statusRoute() {
             call.respond(exceptResponse(e))
         }
     }
-    // Battery
     get("/battery") {
         try {
             val voltage = BatteryKey.KeyVoltage.create().get()
@@ -214,10 +223,7 @@ private fun Route.statusRoute() {
                 put("valid", valid)
                 put("compass", compass)
             }
-            call.respond(
-                if (valid) ok(build)
-                else nok(build)
-            )
+            call.respond(if (valid) ok(build) else nok(build))
         } catch (e: DJIErrorException) {
             call.respond(djiErrorResponse(e))
         } catch (e: Exception) {

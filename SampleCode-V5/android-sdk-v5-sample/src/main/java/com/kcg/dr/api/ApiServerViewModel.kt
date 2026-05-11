@@ -1,0 +1,89 @@
+package com.kcg.dr.api
+
+import android.app.Application
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
+import android.os.IBinder
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.switchMap
+import com.kcg.dr.ServiceUtils
+
+class ApiServerViewModel(application: Application) : AndroidViewModel(application) {
+
+    val isServiceRunning = MutableLiveData(false)
+    val isServiceBound = MutableLiveData(false)
+
+    private val server = MutableLiveData<ApiHttpServer?>()
+
+    val isServerRunning = server.switchMap {
+        it?.isRunning ?: MutableLiveData(false)
+    }
+    val serverLogs = server.switchMap {
+        it?.requests ?: MutableLiveData(emptyList())
+    }
+
+
+    private val connection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            val binder = service as? ApiServerService.ApiServerBinder
+            server.value = binder?.server
+            isServiceBound.value = true
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            server.value = null
+            isServiceBound.value = false
+        }
+    }
+
+    init {
+        // Sync with service if it's already running
+        val context = application.applicationContext
+        val intent = Intent(context, ApiServerService::class.java)
+        try {
+            context.bindService(intent, connection, Context.BIND_AUTO_CREATE)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun startServer(channelId: String, host: String = "0.0.0.0", port: Int = 8080) {
+        val context = getApplication<Application>().applicationContext
+        if (isServiceRunning.value == true) return
+        ServiceUtils.startService(
+            context,
+            Intent(context, ApiServerService::class.java).apply {
+                putExtra(EXTRA_HOST, host)
+                putExtra(EXTRA_PORT, port)
+            },
+            channelId,
+            connection = connection
+        )
+    }
+
+    fun stopServer() {
+        val context = getApplication<Application>().applicationContext
+        ServiceUtils.stopService(
+            context,
+            ApiServerService::class.java,
+            connection = connection
+        )
+        isServiceBound.value = false
+        isServiceRunning.value = false
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        stopServer()
+        if (isServiceBound.value == true) {
+            try {
+                getApplication<Application>().unbindService(connection)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+}

@@ -41,6 +41,13 @@
             tools:layout="@layout/frag_vocom_camera_controls" />
 
         <androidx.fragment.app.FragmentContainerView
+            android:id="@+id/api_server"
+            android:name="com.kcg.dr.api.ApiServerFragment"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            tools:layout="@layout/frag_api_server" />
+
+        <androidx.fragment.app.FragmentContainerView
             android:id="@+id/demo_tts"
             android:name="com.kcg.dr.demo.DemoFragment"
             android:layout_width="wrap_content"
