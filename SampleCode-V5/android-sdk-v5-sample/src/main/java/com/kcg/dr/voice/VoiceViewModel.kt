@@ -28,14 +28,20 @@ class VoiceViewModel(application: Application) : AndroidViewModel(application) {
         Log.i(TAG, "TTS init success")
     }
 
-    fun speak(text: String, locale: Locale = Locale("iw", "IL")) {
+    fun speak(
+        text: String,
+        locale: Locale = Locale("iw", "IL"),
+        onLangUnavailable: ((TextToSpeech, Locale) -> Unit)? = null
+    ) {
         if (text.isNotBlank() && silent.value != true) tts.apply {
-            if (isLanguageAvailable(locale) >= TextToSpeech.LANG_AVAILABLE) {
-                language = locale
-                setSpeechRate(1.3f)
-                SFXManager.playSfx(SFXManager.SFX.NOTIFY_INFO)
-                speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
+            if (isLanguageAvailable(locale) < TextToSpeech.LANG_AVAILABLE) {
+                onLangUnavailable?.invoke(this, locale)
+                return
             }
+            language = locale
+            setSpeechRate(1.3f)
+            SFXManager.playSfx(SFXManager.SFX.NOTIFY_INFO)
+            speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
         }
     }
 
