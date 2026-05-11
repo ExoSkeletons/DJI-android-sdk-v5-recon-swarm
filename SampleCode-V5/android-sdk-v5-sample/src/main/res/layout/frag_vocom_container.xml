@@ -35,7 +35,7 @@
 
         <androidx.fragment.app.FragmentContainerView
             android:id="@+id/camera_controls"
-            android:name="com.kcg.dr.camera.CameraControlsFragment"
+            android:name="com.kcg.dr.camera.RecordingControlsFragment"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             tools:layout="@layout/frag_vocom_camera_controls" />

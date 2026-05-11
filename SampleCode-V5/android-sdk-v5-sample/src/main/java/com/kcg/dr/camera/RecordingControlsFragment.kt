@@ -7,17 +7,17 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import dji.sampleV5.aircraft.databinding.FragVocomCameraControlsBinding
-import dji.sampleV5.aircraft.models.CameraControlsVM
+import dji.sampleV5.aircraft.models.RecordingVM
 import dji.sdk.keyvalue.value.common.ComponentIndexType
 import dji.sdk.keyvalue.value.common.EmptyMsg
 import dji.v5.common.callback.CommonCallbacks
 import dji.v5.common.error.IDJIError
 
-class CameraControlsFragment : Fragment() {
+class RecordingControlsFragment : Fragment() {
     private var _binding: FragVocomCameraControlsBinding? = null
     private val binding get() = _binding!!
 
-    private val cameraVM: CameraControlsVM by activityViewModels()
+    private val cameraVM: RecordingVM by activityViewModels()
 
 
     override fun onCreateView(
