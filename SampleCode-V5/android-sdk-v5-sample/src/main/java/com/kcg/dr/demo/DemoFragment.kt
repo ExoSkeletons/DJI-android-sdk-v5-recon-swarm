@@ -7,7 +7,7 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import com.kcg.dr.voice.VoiceViewModel
+import com.kcg.dr.voice.VoiceVM
 import dji.sampleV5.aircraft.databinding.FragVocomDemoBinding
 
 class DemoFragment : Fragment() {
@@ -15,7 +15,7 @@ class DemoFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val demoVM: DemoViewModel by activityViewModels()
-    private val voiceVM: VoiceViewModel by activityViewModels()
+    private val voiceVM: VoiceVM by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater,

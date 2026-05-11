@@ -19,7 +19,7 @@ class VoiceControlFragment : Fragment() {
     private var _binding: FragVocomVoiceControlBinding? = null
     private val binding get() = _binding!!
 
-    private val voiceVM: VoiceViewModel by activityViewModels()
+    private val voiceVM: VoiceVM by activityViewModels()
     private val locale = Locale("iw", "IL")
 
     private val speechRecognizerLauncher = registerForActivityResult(
@@ -30,7 +30,7 @@ class VoiceControlFragment : Fragment() {
                 .getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
                 ?.get(0)
 
-            voiceVM.processSpeech(spokenText)
+            voiceVM.processSpeech(spokenText, locale)
         }
     }
 

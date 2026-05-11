@@ -12,7 +12,7 @@ import java.util.Locale
 
 private const val TAG = "VoiceViewModel"
 
-class VoiceViewModel(application: Application) : AndroidViewModel(application) {
+class VoiceVM(application: Application) : AndroidViewModel(application) {
     val silent = MutableLiveData(false)
     val speechResult = MutableLiveData<String>()
     val commandResult = MutableLiveData<String>()
