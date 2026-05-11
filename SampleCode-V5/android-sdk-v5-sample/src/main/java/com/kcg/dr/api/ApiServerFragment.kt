@@ -17,7 +17,7 @@ class ApiServerFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val notificationVM: NotificationVM by activityViewModels()
-    private val viewModel: ApiServerViewModel by viewModels()
+    private val viewModel: ApiServerVM by viewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater,

@@ -11,7 +11,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.switchMap
 import com.kcg.dr.ServiceUtils
 
-class ApiServerViewModel(application: Application) : AndroidViewModel(application) {
+class ApiServerVM(application: Application) : AndroidViewModel(application) {
 
     val isServiceRunning = MutableLiveData(false)
     val isServiceBound = MutableLiveData(false)

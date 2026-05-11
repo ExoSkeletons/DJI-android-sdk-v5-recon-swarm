@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.activityViewModels
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
+import com.kcg.dr.api.ApiServerVM
 import com.kcg.dr.flight.AircraftControlViewModel
 import com.kcg.dr.location.DeviceLocationViewModel
 import com.kcg.dr.location.LiveLocationProvider
@@ -24,6 +25,8 @@ class VoComContainerFragment : DJIFragment() {
     private val binding get() = _binding!!
 
     private val recordingVM: RecordingVM by activityViewModels()
+    val notificationVM: NotificationVM by activityViewModels()
+    private val apiVM: ApiServerVM by activityViewModels()
     private val aircraftControlVM: AircraftControlViewModel by activityViewModels()
 
     private val deviceLocationVM: DeviceLocationViewModel by activityViewModels()
@@ -72,6 +75,13 @@ class VoComContainerFragment : DJIFragment() {
             }
         }
         locationProvider.startRequesting()
+
+        // Start API server
+        apiVM.startServer(notificationVM.controllerChannelId)
+
+        // todo: add follow me and other actions to here
+        // todo: replace takeoff/land buttons with dji widgets? keep stop/abort button?
+        //  move json fired start/stops to json frag?
     }
 
     override fun onPause() {
