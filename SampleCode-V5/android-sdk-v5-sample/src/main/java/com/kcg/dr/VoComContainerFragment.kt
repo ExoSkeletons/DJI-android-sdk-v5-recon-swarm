@@ -64,6 +64,7 @@ class VoComContainerFragment : DJIFragment() {
         recordingVM.cameraIndex.observe(viewLifecycleOwner, binding.fpvWidget::updateVideoSource)
 
         // Start location updates to vm
+        locationProvider.init(requireContext())
         locationProvider.locationCallback = object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult) {
                 for (location in locationResult.locations)
