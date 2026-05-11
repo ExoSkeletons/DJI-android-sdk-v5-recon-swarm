@@ -49,8 +49,6 @@ class ApiServerService() : Service() {
         super.onDestroy()
     }
 
-    override fun onBind(intent: Intent?): IBinder? = null
-
     private fun createNotification(channelId: String): Notification {
         return NotificationCompat.Builder(this, channelId).apply {
             setContentTitle("Drone API Server")

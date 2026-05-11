@@ -4,6 +4,7 @@ import android.app.Notification
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.ServiceConnection
 import android.content.pm.ServiceInfo
 import android.os.Build
 import androidx.core.app.ServiceCompat
@@ -20,21 +21,37 @@ object ServiceUtils {
         } else startForeground(id, notification)
     }
 
-    fun startService(context: Context, intent: Intent, channelId: String? = null) {
-        with(intent) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-                context.startForegroundService(this)
-            else context.startService(this)
-            channelId?.let {
+    fun startService(
+        context: Context,
+        intent: Intent,
+        channelId: String,
+        connection: ServiceConnection? = null
+    ) {
+        context.apply {
+            with(intent) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
                     this.putExtra(Notification.EXTRA_CHANNEL_ID, channelId)
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                    startForegroundService(this)
+                else startService(this)
+
+                connection?.let { bindService(this, it, Context.BIND_AUTO_CREATE) }
             }
         }
     }
 
-    fun stopService(context: Context, clazz: Class<out Service>) {
+    fun stopService(
+        context: Context,
+        clazz: Class<out Service>,
+        connection: ServiceConnection? = null
+    ) {
         val intent = Intent(context, clazz)
-        context.stopService(intent)
-        context.stopService(intent)
+        try {
+            context.stopService(intent)
+            connection?.let { context.unbindService(it) }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 }
