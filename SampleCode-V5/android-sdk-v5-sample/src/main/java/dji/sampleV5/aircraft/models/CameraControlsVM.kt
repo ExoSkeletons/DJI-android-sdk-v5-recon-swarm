@@ -36,7 +36,7 @@ class CameraControlsVM(application: Application) : AndroidViewModel(application)
                     camKey = null
                     if (newIndex == null) return@addSource
                     camKey = camKeyInfo.createCamera(newIndex)
-                    camKey?.listen(this) { t -> liveData.postValue(t) }
+                    camKey?.listen(this) { t -> t?.let { liveData.postValue(it) } }
                 }
             }
         }
