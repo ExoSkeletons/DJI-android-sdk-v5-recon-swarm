@@ -23,6 +23,8 @@
         android:label="virtual_stick_vocom_container_page"
         tools:layout="@layout/frag_vocom_container"/>
 
+    <!--
+
     <fragment
         android:id="@+id/virtual_stick_page_vocom_camera"
         android:name="com.kcg.dr.camera.RecordingControlsFragment"
@@ -58,6 +60,8 @@
         android:name="com.kcg.dr.demo.DemoFragment"
         android:label="virtual_stick_vocom_demo_page"
         tools:layout="@layout/frag_vocom_demo"/>
+
+    -->
 
 
     <fragment

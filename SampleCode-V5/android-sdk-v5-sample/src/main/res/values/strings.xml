@@ -497,6 +497,15 @@ More refer to the release notes." </string>
     <!-- STT commands -->
     <string name="item_vocom_title">Recon Swarm</string>
     <string name="item_vocom_description">Voice Control &amp; Reconnaissance</string>
+    <string name="item_vocom_container_title">Recon Swarm (Fragmented)</string>
+    <string name="item_vocom_camera_title">VoCom Camera</string>
+    <string name="item_vocom_status_title">VoCom Status</string>
+    <string name="item_vocom_waypoints_title">VoCom Waypoints</string>
+    <string name="item_vocom_voice_title">VoCom Voice</string>
+    <string name="item_vocom_sticks_title">VoCom Sticks</string>
+    <string name="item_vocom_demo_title">VoCom Demo</string>
+    <string name="item_vocom_recon_title">VoCom Recon</string>
+    <string name="item_vocom_generic_desc">VoCom Refactored Component</string>
 
     <string name="current_locale">Current Locale</string>
     <string name="language">Language</string>
@@ -596,14 +605,4 @@ More refer to the release notes." </string>
     <string name="obstacle_detected_msg">%1$s %4$s detected %3$s</string>
 
     <string name="location_fmt_short">lat: %f, lon: %f alt: %.2f</string>
-
-    <string name="item_vocom_container_title">VoCom Container</string>
-    <string name="item_vocom_camera_title">VoCom Camera</string>
-    <string name="item_vocom_status_title">VoCom Status</string>
-    <string name="item_vocom_waypoints_title">VoCom Waypoints</string>
-    <string name="item_vocom_voice_title">VoCom Voice</string>
-    <string name="item_vocom_sticks_title">VoCom Sticks</string>
-    <string name="item_vocom_demo_title">VoCom Demo</string>
-    <string name="item_vocom_recon_title">VoCom Recon</string>
-    <string name="item_vocom_generic_desc">VoCom Refactored Component</string>
 </resources>
