@@ -117,7 +117,7 @@ class LiveLocationProvider(
 
 
     fun init(context: Context) {
-        this.context = context
+        this.context = context.applicationContext
         mLocationProviderClient =
             LocationServices.getFusedLocationProviderClient(context)
         mLocationManager =
