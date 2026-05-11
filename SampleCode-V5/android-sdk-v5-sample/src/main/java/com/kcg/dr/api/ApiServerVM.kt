@@ -50,7 +50,7 @@ class ApiServerVM(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun startServer(channelId: String, host: String = "0.0.0.0", port: Int = 8080) {
+    fun startService(channelId: String, host: String = "0.0.0.0", port: Int = 8080) {
         val context = getApplication<Application>().applicationContext
         if (isServiceRunning.value == true) return
         ServiceUtils.startService(
@@ -64,7 +64,7 @@ class ApiServerVM(application: Application) : AndroidViewModel(application) {
         )
     }
 
-    fun stopServer() {
+    fun stopService() {
         val context = getApplication<Application>().applicationContext
         ServiceUtils.stopService(
             context,
@@ -77,7 +77,7 @@ class ApiServerVM(application: Application) : AndroidViewModel(application) {
 
     override fun onCleared() {
         super.onCleared()
-        stopServer()
+        stopService()
         if (isServiceBound.value == true) {
             try {
                 getApplication<Application>().unbindService(connection)

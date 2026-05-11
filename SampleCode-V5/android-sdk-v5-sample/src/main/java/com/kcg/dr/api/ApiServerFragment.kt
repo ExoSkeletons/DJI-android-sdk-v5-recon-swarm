@@ -32,8 +32,8 @@ class ApiServerFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         binding.switchServer.setOnCheckedChangeListener { _, isChecked ->
-            if (isChecked) viewModel.startServer(notificationVM.controllerChannelId)
-            else viewModel.stopServer()
+            if (isChecked) viewModel.startService(notificationVM.controllerChannelId)
+            else viewModel.stopService()
         }
 
         viewModel.isServerRunning.observe(viewLifecycleOwner) {
