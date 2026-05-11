@@ -20,11 +20,15 @@ object ServiceUtils {
         } else startForeground(id, notification)
     }
 
-    fun startService(context: Context, intent: Intent) {
+    fun startService(context: Context, intent: Intent, channelId: String? = null) {
         with(intent) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
                 context.startForegroundService(this)
             else context.startService(this)
+            channelId?.let {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                    this.putExtra(Notification.EXTRA_CHANNEL_ID, channelId)
+            }
         }
     }
 

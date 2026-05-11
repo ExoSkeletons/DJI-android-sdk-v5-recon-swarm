@@ -2,9 +2,6 @@ package com.kcg.dr
 
 import android.app.Activity
 import android.app.AlertDialog
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -112,6 +109,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     private val wayPointV3VM: WayPointV3VM by activityViewModels()
     private val simulatorVM: SimulatorVM by activityViewModels()
     private val liveStreamVM: LiveStreamVM by activityViewModels()
+    private val notificationVM: NotificationVM by activityViewModels()
 
     private lateinit var controller: AircraftController
     private val commandResolver: CommandResolver = CommandResolver()
@@ -315,28 +313,21 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         super.onCreate(savedInstanceState)
 
         requireContext().apply {
-            // Create notification channel
-            val channelId = AircraftController.TAG
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val channel = NotificationChannel(
-                    channelId,
-                    "Aircraft Controller",
-                    NotificationManager.IMPORTANCE_LOW
-                )
-                val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                manager.createNotificationChannel(channel)
-            }
             // API Server foreground service
-            ServiceUtils.startService(this, Intent(this, ApiServerService::class.java).apply {
-                putExtra(EXTRA_PORT, 8080)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-                    putExtra(Notification.EXTRA_CHANNEL_ID, channelId)
-            })
+            ServiceUtils.startService(
+                this,
+                Intent(this, ApiServerService::class.java).apply {
+                    putExtra(EXTRA_PORT, 8080)
+                },
+                notificationVM.controllerChannelId
+            )
             // Media Control foreground service
-            ServiceUtils.startService(this, Intent(this, AudioControlService::class.java).apply {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-                    putExtra(Notification.EXTRA_CHANNEL_ID, channelId)
-            })
+            ServiceUtils.startService(
+                this,
+                Intent(this, AudioControlService::class.java),
+                notificationVM.controllerChannelId
+            )
+            // Register Media Control receiver
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 registerReceiver(
                     audioControlReceiver,
@@ -687,7 +678,10 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             val rtmpConfigView = factory.inflate(R.layout.dialog_livestream_rtmp_config_view, null)
             val etRtmpUrl = rtmpConfigView.findViewById<EditText>(R.id.et_livestream_rtmp_config)
             val configDialog = requireContext().let {
-                androidx.appcompat.app.AlertDialog.Builder(it, R.style.Base_ThemeOverlay_AppCompat_Dialog_Alert)
+                androidx.appcompat.app.AlertDialog.Builder(
+                    it,
+                    R.style.Base_ThemeOverlay_AppCompat_Dialog_Alert
+                )
                     .setIcon(android.R.drawable.ic_menu_camera)
                     .setTitle(R.string.live_share_rtmp_type_name)
                     .setCancelable(false)
@@ -762,7 +756,8 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
         binding?.btnStopRecordVideo?.setOnClickListener {
             if (recordingVM.isRecording.value == true)
-                recordingVM.stopRecord(object : CommonCallbacks.CompletionCallbackWithParam<EmptyMsg> {
+                recordingVM.stopRecord(object :
+                    CommonCallbacks.CompletionCallbackWithParam<EmptyMsg> {
                     override fun onSuccess(p0: EmptyMsg?) =
                         ToastUtils.showToast("recording stop success")
 

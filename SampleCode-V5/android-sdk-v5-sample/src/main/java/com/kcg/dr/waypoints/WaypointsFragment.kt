@@ -11,12 +11,12 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.Priority
-import com.kcg.dr.LiveLocationProvider
 import com.kcg.dr.LocaleUtils.getLocalizedResources
 import com.kcg.dr.LocationUtils.distanceTo
 import com.kcg.dr.as2D
 import com.kcg.dr.flight.AircraftControlViewModel
 import com.kcg.dr.location.DeviceLocationViewModel
+import com.kcg.dr.location.LiveLocationProvider
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVocomWaypointsBinding
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
