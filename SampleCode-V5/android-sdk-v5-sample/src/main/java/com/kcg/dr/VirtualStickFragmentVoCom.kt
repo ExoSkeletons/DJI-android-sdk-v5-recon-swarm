@@ -44,6 +44,7 @@ import com.kcg.dr.api.EXTRA_PORT
 import com.kcg.dr.api.KeyActivator
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.flight.AircraftController.CircleFaceMode
+import com.kcg.dr.location.LiveLocationProvider
 import com.kcg.dr.voice.AudioControlService
 import com.kcg.dr.voice.CommandResolver
 import com.kcg.dr.voice.CommandResolver.Command

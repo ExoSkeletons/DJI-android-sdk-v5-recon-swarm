@@ -5,7 +5,11 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.activityViewModels
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationResult
 import com.kcg.dr.flight.AircraftControlViewModel
+import com.kcg.dr.location.DeviceLocationViewModel
+import com.kcg.dr.location.LiveLocationProvider
 import dji.sampleV5.aircraft.databinding.FragVocomContainerBinding
 import dji.sampleV5.aircraft.models.BasicAircraftControlVM
 import dji.sampleV5.aircraft.models.CameraGimbalVM
@@ -21,6 +25,9 @@ class VoComContainerFragment : DJIFragment() {
 
     private val recordingVM: RecordingVM by activityViewModels()
     private val aircraftControlVM: AircraftControlViewModel by activityViewModels()
+
+    private val deviceLocationVM: DeviceLocationViewModel by activityViewModels()
+    private val locationProvider = LiveLocationProvider(this, 200, 50, 500)
 
     // Original DJI ViewModels needed for controller init
     private val intelligentFlightVM: IntelligentFlightVM by activityViewModels()
@@ -55,10 +62,30 @@ class VoComContainerFragment : DJIFragment() {
 
         // Observe camera index to update fpv video source widget
         recordingVM.cameraIndex.observe(viewLifecycleOwner, binding.fpvWidget::updateVideoSource)
+
+        // Start location updates to vm
+        locationProvider.locationCallback = object : LocationCallback() {
+            override fun onLocationResult(locationResult: LocationResult) {
+                for (location in locationResult.locations)
+                    deviceLocationVM.location.postValue(location.asDjiLocation)
+            }
+        }
+        locationProvider.startRequesting()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        locationProvider.stopRequesting()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        locationProvider.startRequesting()
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+        locationProvider.stopRequesting()
     }
 }
