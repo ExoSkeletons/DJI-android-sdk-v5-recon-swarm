@@ -6,18 +6,31 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.fragment.app.viewModels
 import com.kcg.dr.NotificationVM
+import com.kcg.dr.flight.AircraftControlViewModel
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragApiServerBinding
+import dji.sampleV5.aircraft.models.BasicAircraftControlVM
+import dji.sampleV5.aircraft.models.CameraGimbalVM
+import dji.sampleV5.aircraft.models.IntelligentFlightVM
+import dji.sampleV5.aircraft.models.VirtualStickVM
+import dji.sampleV5.aircraft.models.WayPointV3VM
 
 class ApiServerFragment : Fragment() {
 
     private var _binding: FragApiServerBinding? = null
     private val binding get() = _binding!!
 
+    // controller vms
+    private val virtualStickVM: VirtualStickVM by activityViewModels()
+    private val basicAircraftControlVM: BasicAircraftControlVM by activityViewModels()
+    private val cameraGimbalVM: CameraGimbalVM by activityViewModels()
+    private val intelligentFlightVM: IntelligentFlightVM by activityViewModels()
+    private val wayPointV3VM: WayPointV3VM by activityViewModels()
+    private val controllerVM: AircraftControlViewModel by activityViewModels()
+
     private val notificationVM: NotificationVM by activityViewModels()
-    private val viewModel: ApiServerVM by viewModels()
+    private val viewModel: ApiServerVM by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -30,6 +43,15 @@ class ApiServerFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        controllerVM.initController(
+            virtualStickVM,
+            basicAircraftControlVM,
+            cameraGimbalVM,
+            intelligentFlightVM,
+            wayPointV3VM
+        )
+        viewModel.initController(controllerVM.controller)
 
         binding.switchServer.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) viewModel.startService(notificationVM.controllerChannelId)

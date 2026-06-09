@@ -4,7 +4,6 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.viewModelScope
-import com.kcg.dr.api.ControllerBridge
 import dji.sampleV5.aircraft.models.BasicAircraftControlVM
 import dji.sampleV5.aircraft.models.CameraGimbalVM
 import dji.sampleV5.aircraft.models.IntelligentFlightVM
@@ -14,8 +13,8 @@ import dji.sdk.keyvalue.value.common.Attitude
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
 
 class AircraftControlViewModel(application: Application) : AndroidViewModel(application) {
-    private var _controller: AircraftController? = null
-    val controller: AircraftController? get() = _controller
+    private lateinit var _controller: AircraftController
+    val controller: AircraftController get() = _controller
 
     val aircraftLocation = MediatorLiveData<LocationCoordinate3D?>()
     val aircraftHeight = MediatorLiveData<Double>()
@@ -34,8 +33,6 @@ class AircraftControlViewModel(application: Application) : AndroidViewModel(appl
         intelligentFlightVM: IntelligentFlightVM,
         wayPointV3VM: WayPointV3VM
     ) {
-        if (_controller != null) return
-
         val c = AircraftController(
             viewModelScope,
             virtualStickVM,
@@ -45,7 +42,6 @@ class AircraftControlViewModel(application: Application) : AndroidViewModel(appl
             wayPointV3VM
         )
         _controller = c
-        ControllerBridge.controller = c
 
         c.init()
 
@@ -59,7 +55,6 @@ class AircraftControlViewModel(application: Application) : AndroidViewModel(appl
 
     override fun onCleared() {
         super.onCleared()
-        _controller?.destroy()
-        ControllerBridge.controller = null
+        _controller.destroy()
     }
 }

@@ -10,6 +10,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.switchMap
 import com.kcg.dr.ServiceUtils
+import com.kcg.dr.flight.AircraftController
 
 class ApiServerVM(application: Application) : AndroidViewModel(application) {
 
@@ -17,6 +18,7 @@ class ApiServerVM(application: Application) : AndroidViewModel(application) {
     val isServiceBound = MutableLiveData(false)
 
     private val server = MutableLiveData<ApiHttpServer?>()
+    private var controller : AircraftController? = null
 
     val isServerRunning = server.switchMap {
         it?.isRunning ?: MutableLiveData(false)
@@ -29,8 +31,11 @@ class ApiServerVM(application: Application) : AndroidViewModel(application) {
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             val binder = service as? ApiServerService.ApiServerBinder
+
             server.value = binder?.server
             isServiceBound.value = true
+
+            binder?.server?.setController(controller)
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
@@ -48,6 +53,11 @@ class ApiServerVM(application: Application) : AndroidViewModel(application) {
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+
+    fun initController(c: AircraftController) {
+        controller = c
+        server.value?.setController(c)
     }
 
     fun startService(channelId: String, host: String = "0.0.0.0", port: Int = 8080) {
@@ -77,7 +87,7 @@ class ApiServerVM(application: Application) : AndroidViewModel(application) {
 
     override fun onCleared() {
         super.onCleared()
-        stopService()
+        // stopService()
         if (isServiceBound.value == true) {
             try {
                 getApplication<Application>().unbindService(connection)

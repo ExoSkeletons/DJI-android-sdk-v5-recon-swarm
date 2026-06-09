@@ -46,16 +46,17 @@ import kotlinx.serialization.json.put
 
 private const val TAG = "ApiHttpServer"
 
-object ControllerBridge {
-    var controller: AircraftController? = null
-}
-
 class ApiHttpServer {
     private var server: ApplicationEngine? = null
+    private var controller: AircraftController? = null
 
     val requests = MutableLiveData<List<String>>(emptyList())
 
     val isRunning = MutableLiveData(false)
+
+    fun setController(c: AircraftController?) {
+        controller = c
+    }
 
     fun stop() {
         server?.stop()
@@ -81,8 +82,9 @@ class ApiHttpServer {
 
                 intercept(ApplicationCallPipeline.Plugins) {
                     val log = "${call.request.httpMethod.value} ${call.request.uri}"
-                    requests.value =
+                    requests.postValue(
                         requests.value?.let { list -> (list + listOf(log)).take(10) } ?: listOf(log)
+                    )
 
                     val rcAvailable = RemoteControllerKey.KeyConnection.create().get(false)
                     if (!rcAvailable) {
@@ -106,7 +108,7 @@ class ApiHttpServer {
 
                 route("/status") { statusRoute() }
 
-                route("/c") { controllerRoute { ControllerBridge.controller } }
+                route("/c") { controllerRoute { this@ApiHttpServer.controller } }
 
                 get("/fly") {
                     try {
