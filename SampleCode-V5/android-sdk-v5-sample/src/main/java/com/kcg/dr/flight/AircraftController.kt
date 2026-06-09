@@ -13,7 +13,9 @@ import com.kcg.dr.LocationUtils.distanceTo
 import com.kcg.dr.LocationUtils.translate
 import com.kcg.dr.as2D
 import com.kcg.dr.atAlt
+import com.kcg.dr.dt
 import com.kcg.dr.normalizeAngle
+import com.kcg.dr.sub
 import com.kcg.dr.toDegrees
 import com.kcg.dr.wrap180
 import dji.sampleV5.aircraft.models.BasicAircraftControlVM
@@ -28,6 +30,7 @@ import dji.sdk.keyvalue.value.common.Attitude
 import dji.sdk.keyvalue.value.common.EmptyMsg
 import dji.sdk.keyvalue.value.common.LocationCoordinate2D
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
+import dji.sdk.keyvalue.value.common.XYZ
 import dji.sdk.keyvalue.value.flightcontroller.FlightCoordinateSystem
 import dji.sdk.keyvalue.value.flightcontroller.FlyToMode
 import dji.sdk.keyvalue.value.flightcontroller.RollPitchControlMode
@@ -66,14 +69,17 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sign
+import kotlin.math.sin
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.DurationUnit
 
 open class AircraftController(
     private val scope: CoroutineScope,
@@ -92,6 +98,8 @@ open class AircraftController(
          **/
         private const val TRANSMISSION_FREQUENCY_HZ = 18L
         private const val TRANSMISSION_INTERVAL = (1000.0 / TRANSMISSION_FREQUENCY_HZ).toLong()
+
+        private const val RC_OVERRIDE_THRESHOLD = 30
 
         private val DEFAULT_CALLBACK = object : CommonCallbacks.CompletionCallback {
             override fun onSuccess() {
@@ -1038,6 +1046,47 @@ open class AircraftController(
         clockwise: Boolean = true,
         callback: CommonCallbacks.CompletionCallback = DEFAULT_CALLBACK
     ) = flyRectangle(width, width, velocity, clockwise, callback)
+
+
+    suspend fun oscillate(
+        amplitudesMeters: XYZ, periodSeconds: XYZ = XYZ(5.0, 5.0, 5.0),
+    ) = coroutineScope {
+        var p = XYZ()
+        var t = 0.0
+        val dt = TRANSMISSION_INTERVAL.milliseconds.toDouble(DurationUnit.SECONDS)
+        while (isActive) {
+            val np = XYZ().apply {
+                x =
+                    amplitudesMeters.x * if (periodSeconds.x > 0) sin((2 * PI * t) / periodSeconds.x) else 0.0
+                y =
+                    amplitudesMeters.y * if (periodSeconds.y > 0) sin((2 * PI * t) / periodSeconds.y) else 0.0
+                z =
+                    amplitudesMeters.z * if (periodSeconds.z > 0) sin((2 * PI * t) / periodSeconds.z) else 0.0
+            }
+
+            val dp = np.sub(p)
+
+            val v = dp.dt(dt)
+
+            sendFlightParam(FlightParam().apply {
+                // As per our testing IRL, for aircrafts in body coordinate system
+                // and in velocity mode dji axes map to the
+                // axes of movement direction, not axes to tilt on
+                roll = v.x
+                pitch = v.y
+                verticalThrottle = v.z
+            })
+
+            t += dt
+            p = np
+            delay(dt.seconds)
+        }
+    }
+
+    suspend fun oscillate(amplitudeMeters: Double, periodSeconds: Double) = oscillate(
+        XYZ(0.0, 0.0, amplitudeMeters),
+        XYZ(0.0, 0.0, periodSeconds)
+    )
 
 
     fun pitchCamera(angle: Double) = camGimbalVM.pitch(angle)

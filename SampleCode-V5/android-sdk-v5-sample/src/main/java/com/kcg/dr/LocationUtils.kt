@@ -5,6 +5,8 @@ package com.kcg.dr
 import android.location.Location
 import dji.sdk.keyvalue.value.common.LocationCoordinate2D
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
+import dji.sdk.keyvalue.value.common.Velocity3D
+import dji.sdk.keyvalue.value.common.XYZ
 import kotlinx.serialization.InternalSerializationApi
 import kotlin.math.cos
 import kotlin.math.pow
@@ -31,6 +33,14 @@ private fun Triple<Double, Double, Double>.normalized(): Triple<Double, Double, 
     return Triple(vx / mag, vy / mag, vz / mag)
 }
 
+fun XYZ.add(other: XYZ): XYZ = XYZ(this.x + other.x, this.y + other.y, this.z + other.z)
+
+fun XYZ.sub(other: XYZ): XYZ = XYZ(this.x - other.x, this.y - other.y, this.z - other.z)
+
+fun XYZ.mul(other: XYZ): XYZ = XYZ(this.x * other.x, this.y * other.y, this.z * other.z)
+
+fun XYZ.dt(t: Double): Velocity3D = Velocity3D(this.x / t, this.y / t, this.z / t)
+
 inline val LocationCoordinate3D.as2D get() = LocationCoordinate2D(this.latitude, this.longitude)
 
 fun LocationCoordinate2D.as3D(altitude: Double) =
@@ -39,7 +49,12 @@ fun LocationCoordinate2D.as3D(altitude: Double) =
 fun LocationCoordinate3D.atAlt(altitude: Double) =
     LocationCoordinate3D(this.latitude, this.longitude, altitude)
 
-inline val Location.asDjiLocation get() = LocationCoordinate3D(this.latitude, this.longitude, this.altitude)
+inline val Location.asDjiLocation
+    get() = LocationCoordinate3D(
+        this.latitude,
+        this.longitude,
+        this.altitude
+    )
 
 
 object LocationUtils {
