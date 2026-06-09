@@ -120,7 +120,7 @@ fun Route.controllerRoute(c: () -> AircraftController?) {
     intercept(ApplicationCallPipeline.Plugins) {
         val cr = c()
         if (cr == null) {
-            call.respond(HttpStatusCode.ServiceUnavailable, "Drone Controller not initialized.")
+            call.respond(HttpStatusCode.ServiceUnavailable, "AircraftController not initialized.")
             finish() // This prevents the actual get/post handlers below from running
             return@intercept
         }
