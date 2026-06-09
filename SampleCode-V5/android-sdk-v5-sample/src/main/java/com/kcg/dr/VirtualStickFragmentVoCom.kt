@@ -965,17 +965,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                         else -> "Manual"
                     }
         }
-        virtualStickVM.stickValue.observe(viewLifecycleOwner) {
-            if (controller.isVirtualStickEnabled()) {
-                Log.w("RCSticks", "RC Sticks touched when virtual stick had control")
-
-                ToastUtils.showShortToast("Controller Override")
-                // speakText("Controller Override", Locale.ENGLISH)
-                controller.stop() // stop controller return control to manual RC
-                // FIXME: this seems to trigger a disable virtual stick attempt twice,
-                //  which gets registered as a failure to disable the second time
-            }
-        }
         controller.init()
         controller.takeStickControl(object : CommonCallbacks.CompletionCallback {
             override fun onSuccess() {

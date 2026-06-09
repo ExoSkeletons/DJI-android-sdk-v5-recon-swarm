@@ -26,6 +26,7 @@ import dji.sampleV5.aircraft.models.WayPointV3VM
 import dji.sampleV5.aircraft.util.ToastUtils
 import dji.sdk.keyvalue.key.FlightControllerKey
 import dji.sdk.keyvalue.key.GimbalKey
+import dji.sdk.keyvalue.key.RemoteControllerKey
 import dji.sdk.keyvalue.value.common.Attitude
 import dji.sdk.keyvalue.value.common.EmptyMsg
 import dji.sdk.keyvalue.value.common.LocationCoordinate2D
@@ -55,6 +56,7 @@ import dji.v5.manager.intelligent.flyto.FlyToParam
 import dji.v5.manager.intelligent.flyto.FlyToTarget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.coroutineScope
@@ -122,6 +124,9 @@ open class AircraftController(
             }
         }
     }
+
+    class ControllerOverrideException(message: String = "Manual RC intervention detected") :
+        CancellationException(message)
 
     data class FlightParam(
         var pitch: Double? = null,
@@ -207,6 +212,21 @@ open class AircraftController(
         }
         IntelligentFlightManager.getInstance()
             .addIntelligentFlightInfoListener(intelFlightInfoListener)
+        listOf(
+            RemoteControllerKey.KeyStickLeftHorizontal,
+            RemoteControllerKey.KeyStickLeftVertical,
+            RemoteControllerKey.KeyStickRightHorizontal,
+            RemoteControllerKey.KeyStickRightVertical
+        ).forEach { stickKey ->
+            stickKey.create().listen(this) { value ->
+                val stickVal = value ?: 0
+                if (isVirtualStickEnabled() && abs(stickVal) > RC_OVERRIDE_THRESHOLD) {
+                    Log.w(TAG, "RC Sticks touched when virtual stick had control")
+                    ToastUtils.showShortToast("Controller override")
+                    flightScope?.cancel(ControllerOverrideException())
+                }
+            }
+        }
     }
 
     fun destroy() {
@@ -295,70 +315,92 @@ open class AircraftController(
     }
 
 
-    private var flightJob: Job? = null
+    private var flightScope: CoroutineScope? = null
 
     fun fly(
         callback: CommonCallbacks.CompletionCallback? = DEFAULT_CALLBACK,
+        overrideCallback: () -> Unit = {},
         scope: CoroutineScope = this@AircraftController.scope,
         block: suspend AircraftController.(CommonCallbacks.CompletionCallback) -> Unit
     ) {
-        flightJob?.cancel()
-        val flightJob = scope.launch {
-            runCatching {
-                requireVirtualStickAdvancedMode()
-                block(object : CommonCallbacks.CompletionCallback {
-                    override fun onSuccess() {} // we'll trigger success ourselves later
-                    override fun onFailure(error: IDJIError) {
-                        callback?.onFailure(error)
-                    }
-                })
-            }.onFailure { e ->
-                when (e) {
-                    is CancellationException -> {
-                        Log.w(TAG, "cancellation in flight")
-                        brake()
-                    }
-
-                    is DJIErrorException -> {
-                        val error = e.error
-                        Log.w(
-                            TAG,
-                            "${error.errorType()} error in flight: ${error.errorCode()}, ${error.description()}"
-                        )
-                        callback?.onFailure(error)
-                        brake(true)
-                    }
-
-                    else -> {
-                        Log.w(
-                            TAG,
-                            "exception in flight: ${e.toString()}: ${e.message.toString()}"
-                        )
-                        e.printStackTrace()
-                        brake(true)
-                        callback?.onFailure(
-                            DJICoreError().build(
-                                e.message,
-                                e.javaClass.simpleName,
-                                e.toString(),
-                                0,
-                                e.stackTrace
-                            )
-                        )
-                    }
+        scope.launch {
+            flightScope?.let {
+                if (it.isActive) {
+                    Log.d(TAG, "A previous flight is still active.")
+                    Log.d(TAG, "Cancelling active flight scope...")
+                    it.cancel(CancellationException("New flight starting"))
                 }
-            }.onSuccess {
-                if (!coroutineContext.job.isCancelled) {
-                    Log.d(TAG, "flight mission success")
-                    brake()
-                    callback?.onSuccess()
+                Log.d(TAG, "Joining previous flight job...")
+                // Wait for the previous flight job to actually finish,
+                // after inner cancellation
+                it.coroutineContext.job.join()
+                Log.d(TAG, "Joining previous flight job... prev job finished")
+            }
+
+            coroutineScope {
+                flightScope = this
+
+                runCatching {
+                    requireVirtualStickAdvancedMode()
+                    block(object : CommonCallbacks.CompletionCallback {
+                        override fun onSuccess() {}
+                        override fun onFailure(error: IDJIError) {
+                            callback?.onFailure(error)
+                        }
+                    })
+                }.onFailure { e ->
+                    flightScope = null
+                    when (e) {
+                        is ControllerOverrideException -> {
+                            Log.w(TAG, "manual override in flight")
+                            stop(true)
+                            brake()
+                            overrideCallback()
+                        }
+
+                        is CancellationException -> {
+                            Log.w(TAG, "cancellation in flight")
+                            brake()
+                        }
+
+                        is DJIErrorException -> {
+                            val error = e.error
+                            Log.w(
+                                TAG,
+                                "${error.errorType()} error in flight: ${error.errorCode()}, ${error.description()}"
+                            )
+                            callback?.onFailure(error)
+                            brake(true)
+                        }
+
+                        else -> {
+                            Log.w(
+                                TAG,
+                                "exception in flight: ${e.toString()}: ${e.message.toString()}"
+                            )
+                            e.printStackTrace()
+                            brake(true)
+                            callback?.onFailure(
+                                DJICoreError().build(
+                                    e.message,
+                                    e.javaClass.simpleName,
+                                    e.toString(),
+                                    0,
+                                    e.stackTrace
+                                )
+                            )
+                        }
+                    }
+                }.onSuccess {
+                    flightScope = null
+                    if (isActive) {
+                        Log.d(TAG, "flight mission success")
+                        brake()
+                        callback?.onSuccess()
+                    }
                 }
             }
-            // Clear job
-            if (flightJob == this.coroutineContext.job)
-                flightJob = null
         }
-        this.flightJob = flightJob
     }
 
     fun brake(returnStickControl: Boolean = false) {
@@ -385,7 +427,7 @@ open class AircraftController(
         IntelligentFlightManager.getInstance().poiMissionManager.stopMission(callback)
 
         Log.d(TAG, "stopping flight mission job...")
-        flightJob?.takeIf { it.isActive }?.cancel()
+        flightScope?.takeIf { it.isActive }?.cancel()
     }
 
     fun stop(emergency: Boolean = true) {
