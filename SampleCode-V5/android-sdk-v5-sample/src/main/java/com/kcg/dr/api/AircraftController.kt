@@ -2,7 +2,11 @@
 
 package com.kcg.dr.api
 
+import android.util.Log
 import com.kcg.dr.CoroutineUtils.await
+import com.kcg.dr.DJIErrorException
+import com.kcg.dr.api.Responses.djiErrorResponse
+import com.kcg.dr.api.Responses.exceptResponse
 import com.kcg.dr.api.Responses.ok
 import com.kcg.dr.api.Responses.status
 import com.kcg.dr.api.SerializerSurrogates.LocationCoordinate2DSerializer
@@ -11,7 +15,9 @@ import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.flight.AircraftController.CircleFaceMode
 import dji.sdk.keyvalue.value.common.LocationCoordinate2D
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
+import dji.v5.common.callback.CommonCallbacks
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.ApplicationCallPipeline
 import io.ktor.server.application.call
 import io.ktor.server.request.receive
@@ -113,6 +119,23 @@ class CameraActions {
 @Serializable
 data class FlyRequest(val mission: List<Action>)
 
+suspend fun <T> ApplicationCall.awaitAndRespond(block: (CommonCallbacks.CompletionCallbackWithParam<T>) -> Unit) {
+    Log.d("API", "awaitAndRespond")
+    try {
+        Log.d("API", "awaiting")
+        val res = await(block)
+        Log.d("API", "got $res")
+        this.respond(ok {
+            put("result", res.toElement())
+        })
+    } catch (e: DJIErrorException) {
+        Log.d("API", "got dji ex with error ${e.error.description()}")
+        this.respond(djiErrorResponse(e))
+    } catch (e: Exception) {
+        Log.d("API", "got exception ${e.message}")
+        this.respond(exceptResponse(e))
+    }
+}
 
 @OptIn(ExperimentalSerializationApi::class)
 fun Route.controllerRoute(c: () -> AircraftController?) {
@@ -157,7 +180,7 @@ fun Route.controllerRoute(c: () -> AircraftController?) {
     post("/fly") {
         val request = call.receive<FlyRequest>()
         controller.fly {
-            for (action : Action in request.mission)
+            for (action: Action in request.mission)
                 action.act(controller)
         }
         // respond without waiting for completion
@@ -169,12 +192,10 @@ fun Route.controllerRoute(c: () -> AircraftController?) {
         call.respond(ok())
     }
     post("/takeoff") {
-        await { c -> controller.fly { takeoff(c) } }
-        call.respond(ok())
+        call.awaitAndRespond { c -> controller.fly { takeoff(c) } }
     }
     post("/land") {
-        await { c -> controller.fly { land(c) } }
-        call.respond(ok())
+        call.awaitAndRespond { c -> controller.fly { land(c) } }
     }
 
     get("/(wave|hi|hey|hello)".toRegex()) {
