@@ -34,12 +34,12 @@ object CoroutineUtils {
 
     suspend fun <T> await(block: (CommonCallbacks.CompletionCallbackWithParam<T>) -> Unit): T? {
         return suspendCancellableCoroutine { cont ->
-            val wrapper = object : CommonCallbacks.CompletionCallbackWithParam<T> {
+            val resumeCallback = object : CommonCallbacks.CompletionCallbackWithParam<T> {
                 override fun onSuccess(value: T?) = cont.resume(value)
 
                 override fun onFailure(error: IDJIError) = cont.resumeWithException(DJIErrorException(error))
             }
-            block(wrapper)
+            block(resumeCallback)
         }
     }
 
