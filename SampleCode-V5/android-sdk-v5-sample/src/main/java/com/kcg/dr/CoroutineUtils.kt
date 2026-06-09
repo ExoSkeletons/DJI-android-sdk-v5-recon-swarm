@@ -43,6 +43,16 @@ object CoroutineUtils {
         }
     }
 
+    suspend fun <T> awaitOrNull(block: (CommonCallbacks.CompletionCallbackWithParam<T>) -> Unit): T? {
+        return suspendCancellableCoroutine { cont ->
+            val resumeCallback = object : CommonCallbacks.CompletionCallbackWithParam<T> {
+                override fun onSuccess(value: T?) = cont.resume(value)
+                override fun onFailure(error: IDJIError) = cont.resume(null)
+            }
+            block(resumeCallback)
+        }
+    }
+
 
     suspend fun <R> DJIKey<R>.getOrExcept(): R? =
         suspendCancellableCoroutine { cont ->
