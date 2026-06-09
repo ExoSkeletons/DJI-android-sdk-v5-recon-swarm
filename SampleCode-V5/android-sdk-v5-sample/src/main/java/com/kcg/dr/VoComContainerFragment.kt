@@ -11,6 +11,9 @@ import com.kcg.dr.api.ApiServerVM
 import com.kcg.dr.flight.AircraftControlViewModel
 import com.kcg.dr.location.DeviceLocationViewModel
 import com.kcg.dr.location.LiveLocationProvider
+import com.kcg.dr.voice.CommandResolver.Command
+import com.kcg.dr.voice.VoiceVM
+import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVocomContainerBinding
 import dji.sampleV5.aircraft.models.BasicAircraftControlVM
 import dji.sampleV5.aircraft.models.CameraGimbalVM
@@ -25,7 +28,9 @@ class VoComContainerFragment : DJIFragment() {
     private val binding get() = _binding!!
 
     private val recordingVM: RecordingVM by activityViewModels()
-    val notificationVM: NotificationVM by activityViewModels()
+    private val voiceVM: VoiceVM by activityViewModels()
+
+    private val notificationVM: NotificationVM by activityViewModels()
     private val apiVM: ApiServerVM by activityViewModels()
     private val aircraftControlVM: AircraftControlViewModel by activityViewModels()
 
@@ -60,6 +65,23 @@ class VoComContainerFragment : DJIFragment() {
             wayPointV3VM
         )
 
+        voiceVM.setCommands(
+            listOf(
+                Command(
+                    R.string.command_hello,
+                ) {
+                    voiceVM.speak("Hello there!")
+                    aircraftControlVM.controller.fly { wave() }
+                },
+                Command(
+                    R.string.commands_spin,
+                ) {
+                    voiceVM.speak("Wheeee Heee eeeeee whhheeee whheee")
+                    aircraftControlVM.controller.fly { spinBy(720.0, velocity = 180.0) }
+                },
+            )
+        )
+
         // The child fragments are declared in the XML layout via FragmentContainerView
         // and will automatically be instantiated and added.
 
@@ -77,7 +99,8 @@ class VoComContainerFragment : DJIFragment() {
         locationProvider.startRequesting()
 
         // Start API server
-        apiVM.startServer(notificationVM.controllerChannelId)
+        //apiVM.startService(notificationVM.controllerChannelId)
+        // fixme: this causes a start loop? infinite starts?
 
         // todo: add follow me and other actions to here
         // todo: replace takeoff/land buttons with dji widgets? keep stop/abort button?
