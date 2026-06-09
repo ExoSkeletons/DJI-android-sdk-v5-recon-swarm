@@ -33,6 +33,8 @@ class AircraftControlViewModel(application: Application) : AndroidViewModel(appl
         intelligentFlightVM: IntelligentFlightVM,
         wayPointV3VM: WayPointV3VM
     ) {
+        if (this::_controller.isInitialized) return
+
         val c = AircraftController(
             viewModelScope,
             virtualStickVM,
