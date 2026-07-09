@@ -16,11 +16,8 @@ import com.kcg.dr.voice.VoiceVM
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVocomContainerBinding
 import dji.sampleV5.aircraft.models.BasicAircraftControlVM
-import dji.sampleV5.aircraft.models.CameraGimbalVM
-import dji.sampleV5.aircraft.models.IntelligentFlightVM
 import dji.sampleV5.aircraft.models.RecordingVM
 import dji.sampleV5.aircraft.models.VirtualStickVM
-import dji.sampleV5.aircraft.models.WayPointV3VM
 import dji.sampleV5.aircraft.pages.DJIFragment
 
 class VoComContainerFragment : DJIFragment() {
@@ -38,11 +35,8 @@ class VoComContainerFragment : DJIFragment() {
     private val locationProvider = LiveLocationProvider(this, 200, 50, 500)
 
     // Original DJI ViewModels needed for controller init
-    private val intelligentFlightVM: IntelligentFlightVM by activityViewModels()
     private val basicAircraftControlVM: BasicAircraftControlVM by activityViewModels()
-    private val cameraGimbalVM: CameraGimbalVM by activityViewModels()
     private val virtualStickVM: VirtualStickVM by activityViewModels()
-    private val wayPointV3VM: WayPointV3VM by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -60,9 +54,6 @@ class VoComContainerFragment : DJIFragment() {
         aircraftControlVM.initController(
             virtualStickVM,
             basicAircraftControlVM,
-            cameraGimbalVM,
-            intelligentFlightVM,
-            wayPointV3VM
         )
 
         voiceVM.setCommands(

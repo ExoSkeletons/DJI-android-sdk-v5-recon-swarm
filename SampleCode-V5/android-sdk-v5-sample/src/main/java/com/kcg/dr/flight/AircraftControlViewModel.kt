@@ -4,11 +4,12 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.viewModelScope
+import com.kcg.dr.flight.dji.DJIAircraft
+import com.kcg.dr.flight.dji.DJIGimbal
+import com.kcg.dr.flight.dji.DJIRCStick
+import com.kcg.dr.flight.dji.DJIVirtualStick
 import dji.sampleV5.aircraft.models.BasicAircraftControlVM
-import dji.sampleV5.aircraft.models.CameraGimbalVM
-import dji.sampleV5.aircraft.models.IntelligentFlightVM
 import dji.sampleV5.aircraft.models.VirtualStickVM
-import dji.sampleV5.aircraft.models.WayPointV3VM
 import dji.sdk.keyvalue.value.common.Attitude
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
 
@@ -29,30 +30,26 @@ class AircraftControlViewModel(application: Application) : AndroidViewModel(appl
     fun initController(
         virtualStickVM: VirtualStickVM,
         basicAircraftControlVM: BasicAircraftControlVM,
-        cameraGimbalVM: CameraGimbalVM,
-        intelligentFlightVM: IntelligentFlightVM,
-        wayPointV3VM: WayPointV3VM
     ) {
         if (this::_controller.isInitialized) return
 
         val c = AircraftController(
             viewModelScope,
-            virtualStickVM,
-            basicAircraftControlVM,
-            cameraGimbalVM,
-            intelligentFlightVM,
-            wayPointV3VM
+            DJIVirtualStick(virtualStickVM),
+            DJIRCStick(),
+            DJIAircraft(basicAircraftControlVM, virtualStickVM),
+            DJIGimbal()
         )
         _controller = c
 
         c.init()
 
-        aircraftLocation.addSource(c.location) { aircraftLocation.value = it }
-        aircraftHeight.addSource(c.height) { aircraftHeight.value = it }
-        batteryPercent.addSource(c.batteryPercent) { batteryPercent.value = it }
-        gimbalAttitude.addSource(c.gimbalAttitude) { gimbalAttitude.value = it }
-        attitude.addSource(c.attitude) { attitude.value = it }
-        heading.addSource(c.heading) { heading.value = it }
+        aircraftLocation.addSource(c.ac.location) { aircraftLocation.value = it }
+        aircraftHeight.addSource(c.ac.height) { aircraftHeight.value = it }
+        batteryPercent.addSource(c.ac.batteryPercent) { batteryPercent.value = it }
+        gimbalAttitude.addSource(c.ac.gimbalAttitude) { gimbalAttitude.value = it }
+        attitude.addSource(c.ac.attitude) { attitude.value = it }
+        heading.addSource(c.ac.heading) { heading.value = it }
     }
 
     override fun onCleared() {

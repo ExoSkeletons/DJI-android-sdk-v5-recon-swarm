@@ -1,5 +1,9 @@
 package com.kcg.dr
 
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import dji.sdk.keyvalue.key.DJIKey
 import dji.v5.common.callback.CommonCallbacks
 import dji.v5.common.error.IDJIError
@@ -9,6 +13,7 @@ import dji.v5.et.set
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
@@ -37,7 +42,8 @@ object CoroutineUtils {
             val resumeCallback = object : CommonCallbacks.CompletionCallbackWithParam<T> {
                 override fun onSuccess(value: T?) = cont.resume(value)
 
-                override fun onFailure(error: IDJIError) = cont.resumeWithException(DJIErrorException(error))
+                override fun onFailure(error: IDJIError) =
+                    cont.resumeWithException(DJIErrorException(error))
             }
             block(resumeCallback)
         }
@@ -53,6 +59,14 @@ object CoroutineUtils {
         }
     }
 
+
+    fun <T, F : Flow<T>> F.observe(lifecycleOwner: LifecycleOwner, observer: (T) -> Unit) {
+        lifecycleOwner.lifecycleScope.launch {
+            lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                this@observe.collect(observer)
+            }
+        }
+    }
 
     suspend fun <R> DJIKey<R>.getOrExcept(): R? =
         suspendCancellableCoroutine { cont ->

@@ -31,16 +31,19 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.Priority
+import com.kcg.dr.CoroutineUtils.observe
 import com.kcg.dr.LocaleUtils.getLocalizedResources
 import com.kcg.dr.LocationUtils.bearingTo
 import com.kcg.dr.LocationUtils.distanceTo
 import com.kcg.dr.LocationUtils.translate
-import com.kcg.dr.api.ApiServerService
-import com.kcg.dr.api.ControllerBridge
-import com.kcg.dr.api.EXTRA_PORT
+import com.kcg.dr.api.ApiServerVM
 import com.kcg.dr.api.KeyActivator
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.flight.AircraftController.CircleFaceMode
+import com.kcg.dr.flight.dji.DJIAircraft
+import com.kcg.dr.flight.dji.DJIGimbal
+import com.kcg.dr.flight.dji.DJIRCStick
+import com.kcg.dr.flight.dji.DJIVirtualStick
 import com.kcg.dr.location.LiveLocationProvider
 import com.kcg.dr.voice.AudioControlService
 import com.kcg.dr.voice.CommandResolver
@@ -50,13 +53,10 @@ import com.kcg.dr.waypoints.WPLocationRepository
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVirtualStickVocomPageBinding
 import dji.sampleV5.aircraft.models.BasicAircraftControlVM
-import dji.sampleV5.aircraft.models.CameraGimbalVM
-import dji.sampleV5.aircraft.models.IntelligentFlightVM
 import dji.sampleV5.aircraft.models.LiveStreamVM
 import dji.sampleV5.aircraft.models.RecordingVM
 import dji.sampleV5.aircraft.models.SimulatorVM
 import dji.sampleV5.aircraft.models.VirtualStickVM
-import dji.sampleV5.aircraft.models.WayPointV3VM
 import dji.sampleV5.aircraft.pages.DJIFragment
 import dji.sampleV5.aircraft.util.Helper
 import dji.sampleV5.aircraft.util.ToastUtils
@@ -101,15 +101,13 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
     private val locale = Locale("iw", "IL")
 
-    private val intelligentFlightVM: IntelligentFlightVM by activityViewModels()
     private val basicAircraftControlVM: BasicAircraftControlVM by activityViewModels()
-    private val cameraGimbalVM: CameraGimbalVM by activityViewModels()
     private val recordingVM: RecordingVM by activityViewModels()
     private val virtualStickVM: VirtualStickVM by activityViewModels()
-    private val wayPointV3VM: WayPointV3VM by activityViewModels()
     private val simulatorVM: SimulatorVM by activityViewModels()
     private val liveStreamVM: LiveStreamVM by activityViewModels()
     private val notificationVM: NotificationVM by activityViewModels()
+    private val apiServerVM: ApiServerVM by activityViewModels()
 
     private lateinit var controller: AircraftController
     private val commandResolver: CommandResolver = CommandResolver()
@@ -314,11 +312,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
         requireContext().apply {
             // API Server foreground service
-            ServiceUtils.startService(
-                this,
-                Intent(this, ApiServerService::class.java).apply {
-                    putExtra(EXTRA_PORT, 8080)
-                },
+            apiServerVM.startService(
                 notificationVM.controllerChannelId
             )
             // Media Control foreground service
@@ -401,16 +395,16 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
         initWaypointControls()
 
-        controller.location.observe(viewLifecycleOwner) { aircraft ->
+        controller.ac.location.observe(viewLifecycleOwner) { aircraft ->
             aircraftLocation = aircraft
 
             val device = deviceLocation.value
 
-            val dist = aircraft?.let { device?.let { aircraft.distanceTo(device) } }
-            val dist2D = aircraft?.let { device?.let { aircraft.as2D.distanceTo(device.as2D) } }
-            val angleTo = aircraft?.let {
+            val dist = aircraft.let { device?.let { aircraft.distanceTo(device) } }
+            val dist2D = aircraft.let { device?.let { aircraft.as2D.distanceTo(device.as2D) } }
+            val angleTo = aircraft.let {
                 device?.let {
-                    controller.heading.value?.let { aircraft.as2D.bearingTo(device.as2D) - it }
+                    controller.ac.heading.value.let { aircraft.as2D.bearingTo(device.as2D) - it }
                 }
             }
 
@@ -425,16 +419,16 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             binding?.tvDistance?.text = dist?.let { "${it}m" } ?: "-"
             binding?.tvDistance2D?.text = dist2D?.let { "${it}m" } ?: "-"
             binding?.tvAngleTo?.text = angleTo?.let { "${it.roundToInt()}°" } ?: "-"
-            binding?.tvAttitude?.text = controller.attitude.value?.toJson()?.toString() ?: "-"
+            binding?.tvAttitude?.text = controller.ac.attitude.value.toJson()?.toString() ?: "-"
         }
-        controller.height.observe(viewLifecycleOwner) {
+        controller.ac.height.observe(viewLifecycleOwner) {
             binding?.tvAircraftHeight?.text = it.toString()
         }
-        controller.batteryPercent.observe(viewLifecycleOwner) {
+        controller.ac.batteryPercent.observe(viewLifecycleOwner) {
             binding?.tvBatteryPercent?.text = resources.getString(R.string.battery_percent, it)
         }
-        controller.gimbalAttitude.observe(viewLifecycleOwner) {
-            binding?.tvGimbalAttitude?.text = "${it?.toJson() ?: "-"}"
+        controller.camGim.attitude.observe(viewLifecycleOwner) {
+            binding?.tvGimbalAttitude?.text = "${it.toJson() ?: "-"}"
         }
 
         binding?.btnSetVirtualStickSpeedLevel?.setOnClickListener {
@@ -589,7 +583,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
     override fun onDestroy() {
         super.onDestroy()
-        ServiceUtils.stopService(requireContext(), ApiServerService::class.java) // Stop API service
+        apiServerVM.stopService()
         ServiceUtils.stopService(
             requireContext(),
             AudioControlService::class.java
@@ -796,13 +790,13 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             onLookAt = { loc ->
                 controller.fly {
                     // if at location, can't look at self
-                    if ((location.value?.distanceTo(loc) ?: 0.0) <= cfg.flyToTolerance)
+                    if (ac.location.value.distanceTo(loc) <= cfg.flyToTolerance)
                         return@fly
                     // look at location
                     lookAtWithSpin(loc.as2D, cfg.humanHeight)
                 }
             },
-            deviceLocation, controller.location
+            deviceLocation, controller.ac.location
         )
         binding?.rvWaypointLocations?.layoutManager = LinearLayoutManager(requireContext())
         binding?.rvWaypointLocations?.adapter = waypointAdapter
@@ -952,12 +946,13 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         controller = AircraftController(
             lifecycleScope,
 
-            virtualStickVM,
-            basicAircraftControlVM,
-            cameraGimbalVM,
-            intelligentFlightVM,
-            wayPointV3VM
+            DJIVirtualStick(virtualStickVM),
+            DJIRCStick(),
+            DJIAircraft(basicAircraftControlVM, virtualStickVM),
+            DJIGimbal(),
         )
+        apiServerVM.initController(controller)
+
         virtualStickVM.currentVirtualStickStateInfo.observe(viewLifecycleOwner) {
             binding?.tvControllerOwner?.text = "Control : " +
                     when (it?.state?.isVirtualStickEnable) {
@@ -968,7 +963,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         controller.init()
         controller.takeStickControl(object : CommonCallbacks.CompletionCallback {
             override fun onSuccess() {
-                ControllerBridge.controller = controller
                 if (binding?.leftStickView != null && binding?.rightStickView != null)
                     attachOnScreenSticks(
                         binding?.leftStickView!!, binding?.rightStickView!!,
@@ -1091,7 +1085,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                         }
                         delay(1.seconds)
 
-                        val startHeight = height.value ?: cfg.cruiseHeight
+                        val startHeight = ac.height.value
                         val reconHeight = (startHeight - 15.0)
                             // go no lower than human height (don't hit ground)
                             .coerceAtLeast(cfg.humanHeight)
@@ -1146,7 +1140,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                         } else {
                             // generic area scan
                             pitchCamera(-90.0)
-                            val startHeight = height.value ?: cfg.cruiseHeight
+                            val startHeight = ac.height.value
                             ascendTo(
                                 cfg.scanHeightHigh.coerceAtLeast(startHeight),
                                 cfg.ascendVelocity
@@ -1461,7 +1455,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         val dl = deviceLocation.value!!
         val pl = dl.atAlt(cfg.cruiseHeight)
         if (abs(
-                location.value!!.as2D.distanceTo(dl.as2D)
+                ac.location.value.as2D.distanceTo(dl.as2D)
                         - cfg.followDistance
             ) > cfg.flyToTolerance
         ) {
@@ -1472,7 +1466,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                 pl.translate(
                     cfg.followDistance,
                     LocationUtils.RelativeDirection.BACKWARD,
-                    heading.value!!
+                    ac.heading.value
                 ),
                 maxVelocity = cfg.maxVelocity,
                 accelerationDist = cfg.accelerationDist,

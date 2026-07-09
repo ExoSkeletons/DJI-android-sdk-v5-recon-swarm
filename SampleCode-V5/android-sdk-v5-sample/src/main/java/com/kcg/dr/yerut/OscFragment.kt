@@ -34,9 +34,6 @@ class OscFragment : Fragment() {
         controllerVM.initController(
             virtualStickVM,
             basicAircraftControlVM,
-            cameraGimbalVM,
-            intelligentFlightVM,
-            wayPointV3VM
         )
     }
 
