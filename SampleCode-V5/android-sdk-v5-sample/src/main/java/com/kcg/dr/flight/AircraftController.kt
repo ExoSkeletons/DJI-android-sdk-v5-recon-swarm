@@ -302,9 +302,50 @@ open class AircraftController(
 
     private var flightScope: CoroutineScope? = null
 
+    suspend fun safely(onRCOverride: () -> Unit = {}, block: suspend () -> Unit) = coroutineScope {
+        runCatching {
+            block()
+        }.onFailure { e ->
+            when (e) {
+                is ControllerOverrideException -> {
+                    Log.w(TAG, "manual override in flight")
+                    stop(true)
+                    brake()
+                    onRCOverride()
+                }
+
+                is CancellationException -> {
+                    Log.w(TAG, "cancellation in flight")
+                    brake()
+                }
+
+                is DJIErrorException -> {
+                    val error = e.error
+                    Log.w(
+                        TAG,
+                        "${error.errorType()} error in flight: ${error.errorCode()}, ${error.description()}"
+                    )
+                    brake(true)
+                    throw e
+                }
+
+                else -> {
+                    Log.w(
+                        TAG,
+                        "exception in flight: ${e.toString()}: ${e.message.toString()}"
+                    )
+                    e.printStackTrace()
+                    brake(true)
+                    throw e
+                }
+            }
+        }.onSuccess {
+            if (isActive) brake()
+        }
+    }
+
     fun fly(
         onRCOverride: () -> Unit = {},
-        scope: CoroutineScope = this@AircraftController.scope,
         block: suspend AircraftController.() -> Unit
     ) {
         scope.launch {
@@ -323,51 +364,9 @@ open class AircraftController(
 
             coroutineScope {
                 flightScope = this
-
-                runCatching {
-                    block()
-                }.onFailure { e ->
-                    flightScope = null
-                    when (e) {
-                        is ControllerOverrideException -> {
-                            Log.w(TAG, "manual override in flight")
-                            stop(true)
-                            brake()
-                            onRCOverride()
-                        }
-
-                        is CancellationException -> {
-                            Log.w(TAG, "cancellation in flight")
-                            brake()
-                        }
-
-                        is DJIErrorException -> {
-                            val error = e.error
-                            Log.w(
-                                TAG,
-                                "${error.errorType()} error in flight: ${error.errorCode()}, ${error.description()}"
-                            )
-                            brake(true)
-                            throw e
-                        }
-
-                        else -> {
-                            Log.w(
-                                TAG,
-                                "exception in flight: ${e.toString()}: ${e.message.toString()}"
-                            )
-                            e.printStackTrace()
-                            brake(true)
-                            throw e
-                        }
-                    }
-                }.onSuccess {
-                    flightScope = null
-                    if (isActive) {
-                        Log.d(TAG, "flight mission success")
-                        brake()
-                    }
-                }
+                safely(onRCOverride) { block() }
+                Log.d(TAG, "flight mission success")
+                flightScope = null
             }
         }
     }
