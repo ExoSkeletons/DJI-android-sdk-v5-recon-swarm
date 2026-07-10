@@ -790,7 +790,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             onLookAt = { loc ->
                 controller.fly {
                     // if at location, can't look at self
-                    if (ac.location.value.distanceTo(loc) <= cfg.flyToTolerance)
+                    if ((ac.location.value?.distanceTo(loc) ?: 0.0) <= cfg.flyToTolerance)
                         return@fly
                     // look at location
                     lookAtWithSpin(loc.as2D, cfg.humanHeight)
@@ -1454,8 +1454,8 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         val dl = deviceLocation.value!!
         val pl = dl.atAlt(cfg.cruiseHeight)
         if (abs(
-                ac.location.value.as2D.distanceTo(dl.as2D)
-                        - cfg.followDistance
+                ac.location.value?.as2D?.distanceTo(dl.as2D)
+                    ?.minus(cfg.followDistance) ?: 0.0
             ) > cfg.flyToTolerance
         ) {
             ToastUtils.showToast("looking for device")

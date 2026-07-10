@@ -33,7 +33,7 @@ class DJIAircraft(
 ) : IAircraft {
     private val _isFlying = MutableStateFlow(false)
     private val _height = MutableStateFlow(0.0)
-    private val _location = MutableStateFlow(LocationCoordinate3D())
+    private val _location : MutableStateFlow<LocationCoordinate3D?> = MutableStateFlow(null)
     private val _batteryPercent = MutableStateFlow(0)
     private val _attitude = MutableStateFlow(Attitude())
     private val _heading = MutableStateFlow(0.0)
@@ -105,19 +105,19 @@ class DJIAircraft(
     override suspend fun init() {
         FlightControllerKey.KeyIsFlying.create().get(false) == true
         FlightControllerKey.KeyAircraftLocation3D.create().listen(this) {
-            location.postValue(it)
+            location.value = it
         }
         FlightControllerKey.KeyAltitude.create().listen(this) {
-            it?.let { updated -> height.postValue(updated) }
+            it?.let { height.value = it }
         }
         FlightControllerKey.KeyBatteryPowerPercent.create().listen(this) {
-            it?.let { batteryPercent.postValue(it) }
+            it?.let { batteryPercent.value = it }
         }
         FlightControllerKey.KeyAircraftAttitude.create().listen(this) {
-            it?.let { attitude.postValue(it) }
+            it?.let { attitude.value = it }
         }
         FlightControllerKey.KeyCompassHeading.create().listen(this) {
-            it?.let { heading.postValue(it) }
+            it?.let { heading.value = it }
         }
         IntelligentFlightManager.getInstance()
             .addIntelligentFlightInfoListener(intelFlightInfoListener)

@@ -59,6 +59,18 @@ object CoroutineUtils {
         }
     }
 
+    suspend fun await0(block: (() -> Unit, ((IDJIError) -> Unit)) -> Unit) {
+        await { s, e -> block({ s(Unit) }, e) }
+    }
+
+    suspend fun <R> await(block: (((R?) -> Unit), ((IDJIError) -> Unit)) -> Unit): R? {
+        return suspendCancellableCoroutine { cont ->
+            block(
+                { cont.resume(it) },
+                { cont.resumeWithException(DJIErrorException(it)) }
+            )
+        }
+    }
 
     fun <T, F : Flow<T>> F.observe(lifecycleOwner: LifecycleOwner, observer: (T) -> Unit) {
         lifecycleOwner.lifecycleScope.launch {

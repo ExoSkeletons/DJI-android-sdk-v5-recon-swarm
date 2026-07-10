@@ -19,7 +19,7 @@ class AircraftControlViewModel(application: Application) : AndroidViewModel(appl
     private lateinit var _controller: AircraftController
     val controller: AircraftController get() = _controller
 
-    lateinit var aircraftLocation: LiveData<LocationCoordinate3D>
+    lateinit var aircraftLocation: LiveData<LocationCoordinate3D?>
     lateinit var aircraftHeight: LiveData<Double>
     lateinit var batteryPercent: LiveData<Int>
     lateinit var gimbalAttitude: LiveData<Attitude?>

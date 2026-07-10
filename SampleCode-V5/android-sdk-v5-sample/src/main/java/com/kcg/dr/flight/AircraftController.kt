@@ -97,7 +97,7 @@ open class AircraftController(
     interface IAircraft {
         val isFlying: StateFlow<Boolean>
         val height: StateFlow<Double>
-        val location: StateFlow<LocationCoordinate3D>
+        val location: StateFlow<LocationCoordinate3D?>
         val batteryPercent: StateFlow<Int>
         val attitude: StateFlow<Attitude>
         val heading: StateFlow<Double>
@@ -546,12 +546,12 @@ open class AircraftController(
         decelerationDist: Double = 5.0,
         approachTolerance: Double = 1.0,
     ) = coroutineScope {
-        val start = ac.location.value
+        val start = ac.location.value ?: return@coroutineScope
 
         while (isActive) {
             delay(TRANSMISSION_INTERVAL)
 
-            val cur = ac.location.value
+            val cur = ac.location.value ?: continue
             val curYaw = ac.attitude.value.yaw ?: continue
 
             // Distance check (3D)
@@ -590,14 +590,14 @@ open class AircraftController(
         approachTolerance: Double = 2.0,
         escapeTolerance: Double = 1.0
     ) = coroutineScope {
-        var start = ac.location.value
+        var start = ac.location.value ?: return@coroutineScope
         var curTarget: LocationCoordinate3D? = target.value
         var targetReached = false
 
         while (isActive) {
             delay(TRANSMISSION_INTERVAL)
 
-            val cur = ac.location.value
+            val cur = ac.location.value ?: continue
             val curYaw = ac.attitude.value.yaw ?: continue
 
             // Adjust to live target
@@ -949,7 +949,7 @@ open class AircraftController(
         fovTolerance: Double = 0.0,
         angleOffset: Double = 0.0,
     ) {
-        val currentLocation = ac.location.value
+        val currentLocation = ac.location.value ?: return
         val heading = ac.heading.value
         val currentHeight = ac.height.value
 
@@ -981,7 +981,7 @@ open class AircraftController(
             while (isActive) {
                 delay(TRANSMISSION_INTERVAL)
 
-                val curLoc = ac.location.value
+                val curLoc = ac.location.value ?: continue
                 val curAtt = ac.attitude.value
                 val targetLoc = liveTarget.value ?: continue
 
@@ -1007,7 +1007,7 @@ open class AircraftController(
             while (isActive) {
                 delay(gimbalUpdateInterval)
 
-                val cur = ac.location.value
+                val cur = ac.location.value ?: continue
                 val target = liveTarget.value ?: continue
                 val height = ac.height.value
 
@@ -1112,13 +1112,13 @@ open class AircraftController(
         perchDistance: Double,
         followVelocity: Double,
         targetHeading: LiveData<Double>? = null,
-        watch12Duration: Duration = Duration.Companion.INFINITE,
+        watch12Duration: Duration = Duration.INFINITE,
         watch6Duration: Duration? = null,
     ) = coroutineScope {
         val perchLocation = MediatorLiveData<LocationCoordinate3D>().apply {
             fun update() {
                 val tl = targetLocation.value ?: return
-                val al = ac.location.value
+                val al = ac.location.value ?: return
 
                 // If live target heading is not specified, simply calc the heading to target (facing away from us).
                 val heading = targetHeading?.value ?: al.as2D.bearingTo(tl.as2D)
@@ -1178,7 +1178,7 @@ open class AircraftController(
         while (isActive) {
             delay(TRANSMISSION_INTERVAL)
             val target = targetLocation.value ?: continue
-            val current = ac.location.value
+            val current = ac.location.value ?: continue
 
             // face target
             lookAtWithSpin(

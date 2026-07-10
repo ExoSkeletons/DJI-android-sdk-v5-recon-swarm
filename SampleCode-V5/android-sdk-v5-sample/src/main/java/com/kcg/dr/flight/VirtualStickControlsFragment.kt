@@ -57,15 +57,15 @@ class VirtualStickControlsFragment : Fragment() {
         })
 
         binding.btnTakeOff.setOnClickListener {
-            aircraftVM.controller?.fly { takeoff() }
+            aircraftVM.controller.fly { takeoff() }
         }
 
         binding.btnLanding.setOnClickListener {
-            aircraftVM.controller?.fly { land() }
+            aircraftVM.controller.fly { land() }
         }
 
         binding.btnStop.setOnClickListener {
-            aircraftVM.controller?.stop()
+            aircraftVM.controller.stop()
         }
     }
 

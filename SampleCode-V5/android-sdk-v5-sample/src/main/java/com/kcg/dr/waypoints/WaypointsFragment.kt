@@ -91,7 +91,7 @@ class WaypointsFragment : Fragment() {
             },
             onLookAt = { loc ->
                 aircraftVM.controller.fly {
-                    if (ac.location.value.distanceTo(loc) <= 1.0) return@fly
+                    if ((ac.location.value?.distanceTo(loc) ?: 0.0) <= 1.0) return@fly
                     lookAtWithSpin(loc.as2D, 2.0)
                 }
             },
