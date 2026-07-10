@@ -114,13 +114,13 @@ open class AircraftController(
     interface IGimbal {
         val attitude: StateFlow<Attitude>
 
-        fun setCameraGimbalMode(mode: GimbalMode)
+        suspend fun setCameraGimbalMode(mode: GimbalMode)
 
         fun reset()
 
-        fun angleCamera(rotation: GimbalAngleRotation, mode: GimbalMode? = null)
+        suspend fun angleCamera(rotation: GimbalAngleRotation, mode: GimbalMode? = null)
 
-        fun angleCamera(
+        suspend fun angleCamera(
             pitchDegrees: Double? = null,
             yawDegrees: Double? = null,
             rollDegrees: Double? = null,
@@ -145,7 +145,7 @@ open class AircraftController(
             angleCamera(rotation, gimbalMode)
         }
 
-        fun pitch(
+        suspend fun pitch(
             degrees: Double,
             durationSec: Double = 0.0,
             angleMode: GimbalAngleRotationMode = GimbalAngleRotationMode.ABSOLUTE_ANGLE,
@@ -157,13 +157,13 @@ open class AircraftController(
             gimbalMode = gimbalMode,
         )
 
-        fun roll(
+        suspend fun roll(
             degrees: Double,
             durationSec: Double = 0.0,
             angleMode: GimbalAngleRotationMode = GimbalAngleRotationMode.ABSOLUTE_ANGLE,
         ) = angleCamera(rollDegrees = degrees, durationSec = durationSec, angleMode = angleMode)
 
-        fun yaw(
+        suspend fun yaw(
             degrees: Double,
             durationSec: Double = 0.0,
             angleMode: GimbalAngleRotationMode = GimbalAngleRotationMode.ABSOLUTE_ANGLE,
@@ -174,13 +174,17 @@ open class AircraftController(
             gimbalMode = GimbalMode.FREE,
         )
 
-        fun lookTo(
+        suspend fun lookTo(
             forwardOffset: Double,
             verticalOffset: Double,
             callback: CommonCallbacks.CompletionCallback? = null
         ) = pitch(atan2(verticalOffset, forwardOffset).toDegrees())
 
-        fun lookTo(forwardOffset: Double, verticalOffset: Double, horizontalOffset: Double) {
+        suspend fun lookTo(
+            forwardOffset: Double,
+            verticalOffset: Double,
+            horizontalOffset: Double
+        ) {
             val dx = forwardOffset
             val dy = horizontalOffset
             val dz = verticalOffset
@@ -258,13 +262,12 @@ open class AircraftController(
         }
     }
 
-    fun init() {
-        scope.launch {
-            ac.init()
-            rc.listen()
-            vSticks.enable()
-            camGim.reset()
-        }
+    suspend fun init() {
+        ac.init()
+        rc.listen()
+        vSticks.enable()
+        camGim.reset()
+        startFlightParamTransmission()
 
         // todo: replace with rc consume
         listOf(
@@ -286,7 +289,7 @@ open class AircraftController(
 
     fun destroy() {
         stop(true)
-        flightParamTransmissionJob?.cancel()
+        stopFlightParamTransmission()
         scope.launch {
             rc.stopListening()
             vSticks.disable()
@@ -300,7 +303,6 @@ open class AircraftController(
     private var flightScope: CoroutineScope? = null
 
     fun fly(
-        callback: CommonCallbacks.CompletionCallback? = DEFAULT_CALLBACK,
         onRCOverride: () -> Unit = {},
         scope: CoroutineScope = this@AircraftController.scope,
         block: suspend AircraftController.() -> Unit
@@ -364,7 +366,6 @@ open class AircraftController(
                     if (isActive) {
                         Log.d(TAG, "flight mission success")
                         brake()
-                        callback?.onSuccess()
                     }
                 }
             }
@@ -378,7 +379,7 @@ open class AircraftController(
         }
     }
 
-    suspend fun brakeFor(duration: Duration, returnStickControl: Boolean = false) = coroutineScope {
+    suspend fun brakeFor(duration: Duration, returnStickControl: Boolean = false) {
         brake(returnStickControl)
         delay(duration)
     }
@@ -937,8 +938,8 @@ open class AircraftController(
     )
 
 
-    fun pitchCamera(angle: Double) = camGim.pitch(angle)
-    fun setCameraGimbalMode(mode: GimbalMode) = camGim.setCameraGimbalMode(mode)
+    suspend fun pitchCamera(angle: Double) = camGim.pitch(angle)
+    suspend fun setCameraGimbalMode(mode: GimbalMode) = camGim.setCameraGimbalMode(mode)
 
 
     suspend fun lookAtWithSpin(
