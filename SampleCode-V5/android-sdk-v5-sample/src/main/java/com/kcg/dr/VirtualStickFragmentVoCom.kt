@@ -26,12 +26,12 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.asLiveData
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.Priority
-import com.kcg.dr.CoroutineUtils.observe
 import com.kcg.dr.LocaleUtils.getLocalizedResources
 import com.kcg.dr.LocationUtils.bearingTo
 import com.kcg.dr.LocationUtils.distanceTo
@@ -395,7 +395,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
         initWaypointControls()
 
-        controller.ac.location.observe(viewLifecycleOwner) { aircraft ->
+        controller.ac.location.asLiveData().observe(viewLifecycleOwner) { aircraft ->
             aircraftLocation = aircraft
 
             val device = deviceLocation.value
@@ -421,13 +421,13 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             binding?.tvAngleTo?.text = angleTo?.let { "${it.roundToInt()}°" } ?: "-"
             binding?.tvAttitude?.text = controller.ac.attitude.value.toJson()?.toString() ?: "-"
         }
-        controller.ac.height.observe(viewLifecycleOwner) {
+        controller.ac.height.asLiveData().observe(viewLifecycleOwner) {
             binding?.tvAircraftHeight?.text = it.toString()
         }
-        controller.ac.batteryPercent.observe(viewLifecycleOwner) {
+        controller.ac.batteryPercent.asLiveData().observe(viewLifecycleOwner) {
             binding?.tvBatteryPercent?.text = resources.getString(R.string.battery_percent, it)
         }
-        controller.camGim.attitude.observe(viewLifecycleOwner) {
+        controller.camGim.attitude.asLiveData().observe(viewLifecycleOwner) {
             binding?.tvGimbalAttitude?.text = "${it.toJson() ?: "-"}"
         }
 
@@ -796,7 +796,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                     lookAtWithSpin(loc.as2D, cfg.humanHeight)
                 }
             },
-            deviceLocation, controller.ac.location
+            deviceLocation, controller.ac.location.asLiveData()
         )
         binding?.rvWaypointLocations?.layoutManager = LinearLayoutManager(requireContext())
         binding?.rvWaypointLocations?.adapter = waypointAdapter
@@ -960,9 +960,9 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                         else -> "Manual"
                     }
         }
-        controller.init()
-        controller.takeStickControl(object : CommonCallbacks.CompletionCallback {
-            override fun onSuccess() {
+        lifecycleScope.launch {
+            try {
+                controller.init()
                 if (binding?.leftStickView != null && binding?.rightStickView != null)
                     attachOnScreenSticks(
                         binding?.leftStickView!!, binding?.rightStickView!!,
@@ -975,12 +975,11 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                         },
                         deviation = deviation
                     )
+            } catch (e: Exception) {
+                ToastUtils.showToast("error initializing controller: ${e.message}")
+                Log.e("Controller", "error initializing controller: ${e.message}")
             }
-
-            override fun onFailure(error: IDJIError) {
-                ToastUtils.showToast("error activating controller: ${error.errorCode()}")
-            }
-        })
+        }
     }
 
     private fun initVoiceCommandResolver() {

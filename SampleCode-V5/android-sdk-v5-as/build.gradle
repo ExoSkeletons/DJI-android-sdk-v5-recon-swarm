@@ -4,7 +4,6 @@ apply from: rootProject.file('dependencies.gradle')
 buildscript {
     repositories {
         google()
-        jcenter()
         mavenCentral()
         maven { url 'https://maven.fabric.io/public' }
         maven { url 'https://plugins.gradle.org/m2/' }
@@ -35,6 +34,15 @@ allprojects {
             flatDir {
                 dirs new File(rootProject.projectDir.getAbsolutePath() + '/libs')
             }
+        }
+    }
+}
+
+subprojects {
+    configurations.configureEach {
+        resolutionStrategy {
+            // This is a fix for the D8 NullPointerException in AGP 7.4.2
+            force 'net.java.dev.jna:jna:5.13.0'
         }
     }
 }

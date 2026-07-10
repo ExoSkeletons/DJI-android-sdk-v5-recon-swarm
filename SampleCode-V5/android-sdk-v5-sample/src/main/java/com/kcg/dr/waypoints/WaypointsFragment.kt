@@ -85,13 +85,13 @@ class WaypointsFragment : Fragment() {
         waypointAdapter = LocationAdapter(
             viewLifecycleOwner,
             onFlyTo = { loc ->
-                aircraftVM.controller?.fly {
+                aircraftVM.controller.fly {
                     flyToSticks(loc, maxVelocity = 8.0)
                 }
             },
             onLookAt = { loc ->
-                aircraftVM.controller?.fly {
-                    if ((location.value?.distanceTo(loc) ?: 0.0) <= 1.0) return@fly
+                aircraftVM.controller.fly {
+                    if (ac.location.value.distanceTo(loc) <= 1.0) return@fly
                     lookAtWithSpin(loc.as2D, 2.0)
                 }
             },
