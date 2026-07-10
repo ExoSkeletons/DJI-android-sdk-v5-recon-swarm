@@ -1,5 +1,6 @@
 package com.kcg.dr
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.BroadcastReceiver
@@ -307,6 +308,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     }
     private var silent = MutableLiveData(false)
 
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -400,11 +402,13 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
             val device = deviceLocation.value
 
-            val dist = aircraft.let { device?.let { aircraft.distanceTo(device) } }
-            val dist2D = aircraft.let { device?.let { aircraft.as2D.distanceTo(device.as2D) } }
+            val dist = aircraft.let { device?.let { aircraft?.distanceTo(device) } }
+            val dist2D = aircraft.let { device?.let { aircraft?.as2D?.distanceTo(device.as2D) } }
             val angleTo = aircraft.let {
                 device?.let {
-                    controller.ac.heading.value.let { aircraft.as2D.bearingTo(device.as2D) - it }
+                    controller.ac.heading.value.let {
+                        aircraft?.as2D?.bearingTo(device.as2D)?.minus(it)
+                    }
                 }
             }
 
