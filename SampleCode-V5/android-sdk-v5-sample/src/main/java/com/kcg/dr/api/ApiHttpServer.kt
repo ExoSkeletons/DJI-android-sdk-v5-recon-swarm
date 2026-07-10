@@ -28,6 +28,7 @@ import io.ktor.server.cio.CIO
 import io.ktor.server.engine.ApplicationEngine
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.request.httpMethod
 import io.ktor.server.request.receiveText
 import io.ktor.server.request.uri
@@ -71,6 +72,16 @@ class ApiHttpServer {
         server = embeddedServer(CIO, host = host, port = port) {
             install(ContentNegotiation) { json() }
             install(IgnoreTrailingSlash)
+            install(StatusPages) {
+                exception<DJIErrorException> { call, e ->
+                    Log.d("API", "got dji ex with error ${e.error.description()}")
+                    call.respond(djiErrorResponse(e))
+                }
+                exception<Exception> { call, e ->
+                    Log.d("API", "got exception ${e.message}")
+                    call.respond(exceptResponse(e))
+                }
+            }
 
             routing {
                 get("/") {

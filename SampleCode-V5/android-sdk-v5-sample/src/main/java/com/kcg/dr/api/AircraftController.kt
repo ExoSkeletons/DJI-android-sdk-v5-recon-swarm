@@ -2,11 +2,6 @@
 
 package com.kcg.dr.api
 
-import android.util.Log
-import com.kcg.dr.CoroutineUtils.await
-import com.kcg.dr.DJIErrorException
-import com.kcg.dr.api.Responses.djiErrorResponse
-import com.kcg.dr.api.Responses.exceptResponse
 import com.kcg.dr.api.Responses.ok
 import com.kcg.dr.api.Responses.status
 import com.kcg.dr.api.SerializerSurrogates.LocationCoordinate2DSerializer
@@ -15,9 +10,7 @@ import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.flight.AircraftController.CircleFaceMode
 import dji.sdk.keyvalue.value.common.LocationCoordinate2D
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
-import dji.v5.common.callback.CommonCallbacks
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.ApplicationCallPipeline
 import io.ktor.server.application.call
 import io.ktor.server.request.receive
@@ -119,24 +112,6 @@ class CameraActions {
 @Serializable
 data class FlyRequest(val mission: List<Action>)
 
-suspend fun <T> ApplicationCall.awaitAndRespond(block: (CommonCallbacks.CompletionCallbackWithParam<T>) -> Unit) {
-    Log.d("API", "awaitAndRespond")
-    try {
-        Log.d("API", "awaiting")
-        val res = await(block)
-        Log.d("API", "got $res")
-        this.respond(ok {
-            put("result", res.toElement())
-        })
-    } catch (e: DJIErrorException) {
-        Log.d("API", "got dji ex with error ${e.error.description()}")
-        this.respond(djiErrorResponse(e))
-    } catch (e: Exception) {
-        Log.d("API", "got exception ${e.message}")
-        this.respond(exceptResponse(e))
-    }
-}
-
 @OptIn(ExperimentalSerializationApi::class)
 fun Route.controllerRoute(c: () -> AircraftController?) {
     lateinit var controller: AircraftController
@@ -189,13 +164,12 @@ fun Route.controllerRoute(c: () -> AircraftController?) {
 
     post("/stop") {
         controller.stop()
-        call.respond(ok())
     }
     post("/takeoff") {
-        call.awaitAndRespond { c -> controller.fly { takeoff(c) } }
+        controller.fly { takeoff() }
     }
     post("/land") {
-        call.awaitAndRespond { c -> controller.fly { land(c) } }
+        controller.fly { land() }
     }
 
     get("/(wave|hi|hey|hello)".toRegex()) {
