@@ -37,6 +37,7 @@ class DJIAircraft(
     private val _attitude = MutableStateFlow(Attitude())
     private val _heading = MutableStateFlow(0.0)
     override val isFlying = _isFlying
+    val areMotorsOn = MutableStateFlow(false)
     override val height = _height
     override val location = _location
     override val batteryPercent = _batteryPercent
@@ -50,7 +51,7 @@ class DJIAircraft(
     override suspend fun land() = coroutineScope {
         awaitCallback { acVM.startLanding(it) }
 
-        while (isActive && !isFlying.value) {
+        while (isActive && !isFlying.value && !areMotorsOn.value) {
             delay(500.milliseconds)
         }
     }
@@ -96,6 +97,9 @@ class DJIAircraft(
     override suspend fun init() {
         FlightControllerKey.KeyIsFlying.create().listen(this) {
             isFlying.value = it == true
+        }
+        FlightControllerKey.KeyAreMotorsOn.create().listen(this) {
+            areMotorsOn.value = it == true
         }
         FlightControllerKey.KeyAircraftLocation3D.create().listen(this) {
             location.value = it
