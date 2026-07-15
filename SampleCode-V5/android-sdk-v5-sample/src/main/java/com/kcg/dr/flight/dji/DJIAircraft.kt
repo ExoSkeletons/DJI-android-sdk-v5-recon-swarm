@@ -1,7 +1,7 @@
 package com.kcg.dr.flight.dji
 
 import android.util.Log
-import com.kcg.dr.DJIErrorException
+import com.kcg.dr.CoroutineUtils.awaitCallback
 import com.kcg.dr.flight.AircraftController.Companion.TAG
 import com.kcg.dr.flight.AircraftController.IAircraft
 import dji.sampleV5.aircraft.models.BasicAircraftControlVM
@@ -9,7 +9,6 @@ import dji.sampleV5.aircraft.models.VirtualStickVM
 import dji.sampleV5.aircraft.util.ToastUtils
 import dji.sdk.keyvalue.key.FlightControllerKey
 import dji.sdk.keyvalue.value.common.Attitude
-import dji.sdk.keyvalue.value.common.EmptyMsg
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
 import dji.v5.common.callback.CommonCallbacks
 import dji.v5.common.error.IDJIError
@@ -23,9 +22,6 @@ import dji.v5.manager.intelligent.IntelligentFlightInfoListener
 import dji.v5.manager.intelligent.IntelligentFlightManager
 import dji.v5.manager.intelligent.MissionType
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 class DJIAircraft(
     private val acVM: BasicAircraftControlVM,
@@ -33,7 +29,7 @@ class DJIAircraft(
 ) : IAircraft {
     private val _isFlying = MutableStateFlow(false)
     private val _height = MutableStateFlow(0.0)
-    private val _location : MutableStateFlow<LocationCoordinate3D?> = MutableStateFlow(null)
+    private val _location: MutableStateFlow<LocationCoordinate3D?> = MutableStateFlow(null)
     private val _batteryPercent = MutableStateFlow(0)
     private val _attitude = MutableStateFlow(Attitude())
     private val _heading = MutableStateFlow(0.0)
@@ -45,23 +41,11 @@ class DJIAircraft(
     override val heading = _heading
 
     override suspend fun takeoff() {
-        val msg = suspendCancellableCoroutine { cont ->
-            acVM.startTakeOff(object : CommonCallbacks.CompletionCallbackWithParam<EmptyMsg> {
-                override fun onSuccess(msg: EmptyMsg?) {
-                    Log.d(TAG, "takeoff success")
-                    cont.resume(msg)
-                }
-
-                override fun onFailure(error: IDJIError) {
-                    Log.d(TAG, "takeoff fail ${error.description()}")
-                    cont.resumeWithException(DJIErrorException(error))
-                }
-            })
-        }
+        awaitCallback { acVM.startTakeOff(it) }
     }
 
     override suspend fun land() {
-        TODO("Not yet implemented")
+        awaitCallback { acVM.startLanding(it) }
     }
 
     override suspend fun stop(emergency: Boolean) {
