@@ -23,7 +23,7 @@ class DJIGimbal : IGimbal {
     }
 
     override fun reset() {
-        GimbalKey.KeyGimbalReset.create().cancelListen(this)
+        GimbalKey.KeyGimbalAttitude.create().cancelListen(this)
         GimbalKey.KeyGimbalAttitude.create().listen(this) {
             it?.let { _attitude.value = it }
         }
