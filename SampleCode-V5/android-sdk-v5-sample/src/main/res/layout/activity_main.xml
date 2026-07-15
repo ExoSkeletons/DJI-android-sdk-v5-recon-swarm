@@ -100,7 +100,8 @@
                 android:gravity="center"
                 android:text="@string/is_sdk_debug"
                 android:textColor="@color/white"
-                android:textSize="14sp" />
+                android:textSize="14sp"
+                android:visibility="invisible" />
 
         </LinearLayout>
 
@@ -135,17 +136,18 @@
                     android:id="@+id/default_layout_button"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:elevation="10dp"
-                    android:foreground="?selectableItemBackground"
                     android:layout_marginLeft="8dp"
-                    android:layout_marginTop="8dp"
                     android:layout_marginRight="8dp"
+                    android:layout_marginTop="8dp"
                     android:background="@color/white"
+                    android:elevation="10dp"
                     android:enabled="false"
+                    android:foreground="?selectableItemBackground"
                     android:gravity="center"
                     android:padding="8dp"
                     android:text="@string/default_layout"
-                    android:textColor="@color/selector_enable_button" />
+                    android:textColor="@color/selector_enable_button"
+                    android:visibility="gone" />
 
                 <Button
                     android:id="@+id/widget_list_button"
