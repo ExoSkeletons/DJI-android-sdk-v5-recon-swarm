@@ -51,7 +51,7 @@ class DJIAircraft(
     override suspend fun land() = coroutineScope {
         awaitCallback { acVM.startLanding(it) }
 
-        while (isActive && !isFlying.value && !areMotorsOn.value) {
+        while (isActive && (isFlying.value || areMotorsOn.value)) {
             delay(500.milliseconds)
         }
     }
