@@ -21,7 +21,11 @@ import dji.v5.manager.intelligent.IntelligentFlightInfo
 import dji.v5.manager.intelligent.IntelligentFlightInfoListener
 import dji.v5.manager.intelligent.IntelligentFlightManager
 import dji.v5.manager.intelligent.MissionType
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.isActive
+import kotlin.time.Duration.Companion.milliseconds
 
 class DJIAircraft(
     private val acVM: BasicAircraftControlVM,
@@ -43,8 +47,12 @@ class DJIAircraft(
         awaitCallback { acVM.startTakeOff(it) }
     }
 
-    override suspend fun land() {
+    override suspend fun land() = coroutineScope {
         awaitCallback { acVM.startLanding(it) }
+
+        while (isActive && !isFlying.value) {
+            delay(500.milliseconds)
+        }
     }
 
     override suspend fun stop(emergency: Boolean) {
