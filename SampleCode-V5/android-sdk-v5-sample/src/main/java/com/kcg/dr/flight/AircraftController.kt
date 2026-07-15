@@ -118,6 +118,8 @@ open class AircraftController(
 
         suspend fun reset()
 
+        suspend fun resetAngle() = angleCamera(GimbalAngleRotation())
+
         suspend fun angleCamera(rotation: GimbalAngleRotation, mode: GimbalMode? = null)
 
         suspend fun angleCamera(
@@ -1021,10 +1023,10 @@ open class AircraftController(
     suspend fun wave(waves: Int = 2) {
         val t = 0.2
         val tm = (t * 1000).toLong()
-        val rollAngle = 15.0
+        val rollAngle = 10.0
         val waveAngle = 40.0
 
-        camGim.reset()
+        camGim.resetAngle()
 
         camGim.roll(rollAngle, t / 2, GimbalAngleRotationMode.RELATIVE_ANGLE)
         delay(tm)
@@ -1045,7 +1047,7 @@ open class AircraftController(
 
         delay(100)
 
-        camGim.reset()
+        camGim.resetAngle()
     }
 
     suspend fun gimbalFan() = coroutineScope {

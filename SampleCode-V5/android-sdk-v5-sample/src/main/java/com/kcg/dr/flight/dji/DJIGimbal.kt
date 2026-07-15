@@ -35,9 +35,6 @@ class DJIGimbal : IGimbal {
         await { onSuccess, onFailure ->
             GimbalKey.KeyGimbalReset.create().action(GimbalResetType.RECENTER, onSuccess, onFailure)
         }
-        await { onSuccess, onFailure ->
-            GimbalKey.KeyRotateByAngle.create().action(GimbalAngleRotation(), onSuccess, onFailure)
-        }
         await0 { onSuccess, onFailure ->
             GimbalKey.KeyGimbalMode.create().set(GimbalMode.YAW_FOLLOW, onSuccess, onFailure)
         }
