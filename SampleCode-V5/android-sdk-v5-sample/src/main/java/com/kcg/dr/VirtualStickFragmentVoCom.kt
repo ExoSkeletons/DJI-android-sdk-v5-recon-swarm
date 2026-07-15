@@ -952,7 +952,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
             DJIVirtualStick(virtualStickVM),
             DJIRCStick(),
-            DJIAircraft(basicAircraftControlVM, virtualStickVM),
+            DJIAircraft(basicAircraftControlVM),
             DJIGimbal(),
         )
         apiServerVM.initController(controller)

@@ -39,7 +39,7 @@ class AircraftControlViewModel(application: Application) : AndroidViewModel(appl
             viewModelScope,
             DJIVirtualStick(virtualStickVM),
             DJIRCStick(),
-            DJIAircraft(basicAircraftControlVM, virtualStickVM),
+            DJIAircraft(basicAircraftControlVM),
             DJIGimbal()
         )
         _controller = c

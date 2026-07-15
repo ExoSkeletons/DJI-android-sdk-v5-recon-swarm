@@ -25,7 +25,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 
 class DJIAircraft(
     private val acVM: BasicAircraftControlVM,
-    private val stickVM: VirtualStickVM
 ) : IAircraft {
     private val _isFlying = MutableStateFlow(false)
     private val _height = MutableStateFlow(0.0)
