@@ -37,8 +37,8 @@ object CoroutineUtils {
         block: suspend () -> Unit
     ) = whileSuspendedBy(listOf(suspender), block)
 
-    suspend fun <T> await(block: (CommonCallbacks.CompletionCallbackWithParam<T>) -> Unit): T? {
-        return suspendCancellableCoroutine { cont ->
+    suspend fun <T> awaitCallback(block: (CommonCallbacks.CompletionCallbackWithParam<T>) -> Unit): T? =
+        suspendCancellableCoroutine { cont ->
             val resumeCallback = object : CommonCallbacks.CompletionCallbackWithParam<T> {
                 override fun onSuccess(value: T?) = cont.resume(value)
 
@@ -47,30 +47,26 @@ object CoroutineUtils {
             }
             block(resumeCallback)
         }
-    }
 
-    suspend fun <T> awaitOrNull(block: (CommonCallbacks.CompletionCallbackWithParam<T>) -> Unit): T? {
-        return suspendCancellableCoroutine { cont ->
+    suspend fun <T> awaitOrNull(block: (CommonCallbacks.CompletionCallbackWithParam<T>) -> Unit) =
+        suspendCancellableCoroutine { cont ->
             val resumeCallback = object : CommonCallbacks.CompletionCallbackWithParam<T> {
                 override fun onSuccess(value: T?) = cont.resume(value)
                 override fun onFailure(error: IDJIError) = cont.resume(null)
             }
             block(resumeCallback)
         }
-    }
 
-    suspend fun await0(block: (() -> Unit, ((IDJIError) -> Unit)) -> Unit) {
+    suspend fun await0(block: (() -> Unit, ((IDJIError) -> Unit)) -> Unit) =
         await { s, e -> block({ s(Unit) }, e) }
-    }
 
-    suspend fun <R> await(block: (((R?) -> Unit), ((IDJIError) -> Unit)) -> Unit): R? {
-        return suspendCancellableCoroutine { cont ->
+    suspend fun <R> await(block: (((R?) -> Unit), ((IDJIError) -> Unit)) -> Unit) =
+        suspendCancellableCoroutine { cont ->
             block(
                 { cont.resume(it) },
                 { cont.resumeWithException(DJIErrorException(it)) }
             )
         }
-    }
 
     fun <T, F : Flow<T>> F.observe(lifecycleOwner: LifecycleOwner, observer: (T) -> Unit) {
         lifecycleOwner.lifecycleScope.launch {
