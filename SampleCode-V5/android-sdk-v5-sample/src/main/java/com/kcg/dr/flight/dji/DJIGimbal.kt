@@ -6,7 +6,9 @@ import com.kcg.dr.flight.AircraftController.IGimbal
 import dji.sdk.keyvalue.key.GimbalKey
 import dji.sdk.keyvalue.value.common.Attitude
 import dji.sdk.keyvalue.value.gimbal.GimbalAngleRotation
+import dji.sdk.keyvalue.value.gimbal.GimbalAngleRotationMode
 import dji.sdk.keyvalue.value.gimbal.GimbalMode
+import dji.sdk.keyvalue.value.gimbal.GimbalResetType
 import dji.v5.et.action
 import dji.v5.et.cancelListen
 import dji.v5.et.create
@@ -24,10 +26,20 @@ class DJIGimbal : IGimbal {
         }
     }
 
-    override fun reset() {
+    override suspend fun reset() {
         GimbalKey.KeyGimbalAttitude.create().cancelListen(this)
         GimbalKey.KeyGimbalAttitude.create().listen(this) {
             it?.let { _attitude.value = it }
+        }
+
+        await { onSuccess, onFailure ->
+            GimbalKey.KeyGimbalReset.create().action(GimbalResetType.RECENTER, onSuccess, onFailure)
+        }
+        await { onSuccess, onFailure ->
+            GimbalKey.KeyRotateByAngle.create().action(GimbalAngleRotation(), onSuccess, onFailure)
+        }
+        await0 { onSuccess, onFailure ->
+            GimbalKey.KeyGimbalMode.create().set(GimbalMode.YAW_FOLLOW, onSuccess, onFailure)
         }
     }
 
