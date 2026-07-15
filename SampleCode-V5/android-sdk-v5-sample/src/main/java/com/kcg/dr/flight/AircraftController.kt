@@ -116,7 +116,7 @@ open class AircraftController(
 
         suspend fun setCameraGimbalMode(mode: GimbalMode)
 
-        fun reset()
+        suspend fun reset()
 
         suspend fun angleCamera(rotation: GimbalAngleRotation, mode: GimbalMode? = null)
 
@@ -326,7 +326,7 @@ open class AircraftController(
                         "${error.errorType()} error in flight: ${error.errorCode()}, ${error.description()}"
                     )
                     brake(true)
-                    throw e
+                    // throw e
                 }
 
                 else -> {
@@ -336,7 +336,7 @@ open class AircraftController(
                     )
                     e.printStackTrace()
                     brake(true)
-                    throw e
+                    // throw e
                 }
             }
         }.onSuccess {
