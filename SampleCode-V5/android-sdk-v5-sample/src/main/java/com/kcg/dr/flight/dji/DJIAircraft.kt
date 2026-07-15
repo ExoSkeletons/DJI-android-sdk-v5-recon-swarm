@@ -94,7 +94,9 @@ class DJIAircraft(
     }
 
     override suspend fun init() {
-        FlightControllerKey.KeyIsFlying.create().get(false) == true
+        FlightControllerKey.KeyIsFlying.create().listen(this) {
+            isFlying.value = it == true
+        }
         FlightControllerKey.KeyAircraftLocation3D.create().listen(this) {
             location.value = it
         }
