@@ -48,6 +48,18 @@ object CoroutineUtils {
             block(resumeCallback)
         }
 
+    suspend fun awaitCallback0(block: (CommonCallbacks.CompletionCallback) -> Unit) =
+        suspendCancellableCoroutine {
+            val resumeCallback = object : CommonCallbacks.CompletionCallback {
+                override fun onSuccess() =
+                    it.resume(Unit)
+
+                override fun onFailure(error: IDJIError) =
+                    it.resumeWithException(DJIErrorException(error))
+            }
+            block(resumeCallback)
+        }
+
     suspend fun <T> awaitOrNull(block: (CommonCallbacks.CompletionCallbackWithParam<T>) -> Unit) =
         suspendCancellableCoroutine { cont ->
             val resumeCallback = object : CommonCallbacks.CompletionCallbackWithParam<T> {
