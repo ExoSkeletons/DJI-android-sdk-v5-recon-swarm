@@ -83,7 +83,11 @@ open class AircraftController(
 
         suspend fun sendStickParam(param: FlightParam)
 
-        suspend fun brake()
+        suspend fun brake() {
+            Log.d(TAG, "braking")
+            setLeftPosition(0, 0)
+            setRightPosition(0, 0)
+        }
     }
 
     interface IRCState {

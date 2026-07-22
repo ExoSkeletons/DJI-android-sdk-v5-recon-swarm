@@ -142,11 +142,4 @@ class DJIVirtualStick(private val stickVM: VirtualStickVM) : IVirtualStick {
 
     override suspend fun sendStickParam(param: FlightParam) {
         stickVM.sendVirtualStickAdvancedParam(param.build())
-    }
-
-    override suspend fun brake() {
-        Log.d(TAG, "braking")
-        stickVM.setLeftPosition(0, 0)
-        stickVM.setRightPosition(0, 0)
-    }
 }
