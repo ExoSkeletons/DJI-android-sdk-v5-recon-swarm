@@ -109,17 +109,13 @@ class DJIVirtualStick(private val stickVM: VirtualStickVM) : IVirtualStick {
         returnStickControl() // todo: wrap with dji callback cancelable coroutine
     }
 
-    override fun setSpeedLevel(speedLevel: Double) {
-        stickVM.setSpeedLevel(speedLevel)
-    }
+    override fun setSpeedLevel(speedLevel: Double) = stickVM.setSpeedLevel(speedLevel)
 
-    override fun setLeftPosition(horizontal: Int, vertical: Int) {
+    override fun setLeftPosition(horizontal: Int, vertical: Int) =
         stickVM.setLeftPosition(horizontal, vertical)
-    }
 
-    override fun setRightPosition(horizontal: Int, vertical: Int) {
+    override fun setRightPosition(horizontal: Int, vertical: Int) =
         stickVM.setRightPosition(horizontal, vertical)
-    }
 
     fun FlightParam.build(): VirtualStickFlightControlParam {
         val mPitch = pitch
@@ -140,6 +136,6 @@ class DJIVirtualStick(private val stickVM: VirtualStickVM) : IVirtualStick {
         }
     }
 
-    override suspend fun sendStickParam(param: FlightParam) {
+    override suspend fun sendStickParam(param: FlightParam) =
         stickVM.sendVirtualStickAdvancedParam(param.build())
 }
