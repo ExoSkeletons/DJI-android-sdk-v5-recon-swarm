@@ -34,8 +34,8 @@ import dji.v5.common.error.IDJIError
 import dji.v5.et.create
 import dji.v5.et.listen
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.coroutineScope
@@ -63,17 +63,17 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.DurationUnit
 
 open class AircraftController(
-    private val scope: CoroutineScope,
-
     val vSticks: IVirtualStick,
     val rc: IRCState,
     val ac: IAircraft,
     val camGim: IGimbal,
 ) {
     interface IVirtualStick {
-        suspend fun enable()
+        suspend fun takeControl()
 
-        suspend fun disable()
+        suspend fun relinquishControl()
+
+        val ownsControl: Boolean
 
         fun setSpeedLevel(speedLevel: Double)
 
@@ -268,11 +268,12 @@ open class AircraftController(
         }
     }
 
-    suspend fun init() {
+    suspend fun init(takeStickControl: Boolean = true) {
         ac.init()
         rc.listen()
-        vSticks.enable()
         camGim.reset()
+
+        if (takeStickControl) vSticks.takeControl()
         startFlightParamTransmission()
 
         // todo: replace with rc consume
@@ -283,11 +284,18 @@ open class AircraftController(
             RemoteControllerKey.KeyStickRightVertical
         ).forEach { stickKey ->
             stickKey.create().listen(this) { value ->
-                val stickVal = value ?: 0
+                val stickVal = value ?: return@listen
                 if (abs(stickVal) > RC_OVERRIDE_THRESHOLD) {
-                    Log.w(TAG, "RC Sticks touched when virtual stick had control")
-                    ToastUtils.showShortToast("Controller override")
-                    flightScope?.cancel(ControllerOverrideException())
+                    if (vSticks.ownsControl) {
+                        Log.d(TAG, "RC touched while stick is enabled. disabling.")
+                        scope.launch { vSticks.relinquishControl() }
+                    }
+                    flightJob?.let {
+                        if (it.isActive) {
+                            Log.w(TAG, "RC touched while flight is active. cancelling.")
+                            it.cancel(ControllerOverrideException())
+                        }
+                    }
                 }
             }
         }
@@ -298,7 +306,7 @@ open class AircraftController(
         stopFlightParamTransmission()
         scope.launch {
             rc.stopListening()
-            vSticks.disable()
+            vSticks.relinquishControl()
             ac.destroy()
         }
     }
@@ -306,23 +314,27 @@ open class AircraftController(
     fun isFlying(): Boolean = ac.isFlying.value
 
 
-    private var flightScope: CoroutineScope? = null
+    private val scope = CoroutineScope(Dispatchers.IO)
+    private var flightJob: Job? = null
 
     suspend fun safely(onRCOverride: () -> Unit = {}, block: suspend () -> Unit) = coroutineScope {
         runCatching {
             block()
         }.onFailure { e ->
+            Log.w(TAG, "safely onFailure: ${e.toString()}: ${e.message.toString()}")
             when (e) {
                 is ControllerOverrideException -> {
                     Log.w(TAG, "manual override in flight")
-                    stop(true)
-                    brake()
+                    brake(true)
+                    ac.stop(true)
                     onRCOverride()
+                    throw e
                 }
 
                 is CancellationException -> {
                     Log.w(TAG, "cancellation in flight")
                     brake()
+                    throw e
                 }
 
                 is DJIErrorException -> {
@@ -346,6 +358,7 @@ open class AircraftController(
                 }
             }
         }.onSuccess {
+            Log.d(TAG, "safely onSuccess")
             if (isActive) brake()
         }
     }
@@ -354,34 +367,39 @@ open class AircraftController(
         onRCOverride: () -> Unit = {},
         block: suspend AircraftController.() -> Unit
     ) {
-        scope.launch {
-            flightScope?.let {
-                if (it.isActive) {
-                    Log.d(TAG, "A previous flight is still active.")
-                    Log.d(TAG, "Cancelling active flight scope...")
-                    it.cancel(CancellationException("New flight starting"))
-                }
-                Log.d(TAG, "Joining previous flight job...")
-                // Wait for the previous flight job to actually finish,
-                // after inner cancellation
-                it.coroutineContext.job.join()
-                Log.d(TAG, "Joining previous flight job... prev job finished")
+        val prevFlight = flightJob
+        prevFlight?.let {
+            if (it.isActive) {
+                Log.w(TAG, "Previous flight $it is still active.")
+                Log.d(TAG, "Cancelling previous flight scope...")
+                it.cancel(CancellationException("New flight wants to start"))
             }
-
-            coroutineScope {
-                flightScope = this
+        }
+        flightJob = scope.launch {
+            val job = this.coroutineContext.job
+            Log.d(TAG, "Launch new flight scope")
+            prevFlight?.let {
+                Log.i(TAG, "Joining previous flight...")
+                // Wait for the previous flight to actually finish,
+                // after inner cancellation
+                it.join()
+                Log.i(TAG, "Joining previous flight... prev finished")
+            }
+            try {
+                Log.d(TAG, "flight mission started (in flight job)")
                 safely(onRCOverride) { block() }
                 Log.d(TAG, "flight mission success")
-                flightScope = null
+            } finally {
+                if (flightJob === job)
+                    flightJob = null
             }
         }
     }
 
-    fun brake(returnStickControl: Boolean = false) {
-        scope.launch {
-            vSticks.brake()
-            if (returnStickControl) vSticks.disable()
-        }
+    suspend fun brake(returnStickControl: Boolean = false) {
+        Log.d(TAG, "braking" + if (returnStickControl) " (& return control)" else "")
+        vSticks.brake()
+        if (returnStickControl) vSticks.relinquishControl()
     }
 
     suspend fun brakeFor(duration: Duration, returnStickControl: Boolean = false) {
@@ -393,7 +411,7 @@ open class AircraftController(
     fun stop(emergency: Boolean = true) {
         scope.launch {
             ac.stop(emergency)
-            if (emergency) vSticks.disable()
+            if (emergency) vSticks.relinquishControl()
         }
     }
 
@@ -409,12 +427,12 @@ open class AircraftController(
             return
         }
 
-        if (takeStickControl) vSticks.enable()
+        if (takeStickControl) vSticks.takeControl()
         // Start takeoff
         Log.d(TAG, "starting takeoff")
         ac.takeoff()
         // Take stick control if required
-        if (takeStickControl) vSticks.enable()
+        if (takeStickControl) vSticks.takeControl()
         // Wait for aircraft stabilisation
         if (awaitStabilisation) {
             val takeoffStabilisationDelay = 6.seconds
@@ -480,7 +498,7 @@ open class AircraftController(
         duration: Duration,
         flightControlParam: FlightParam
     ) {
-        vSticks.enable()
+        vSticks.takeControl()
 
         val iterations = ((duration.inWholeMilliseconds) / TRANSMISSION_INTERVAL).toInt()
 
@@ -734,6 +752,7 @@ open class AircraftController(
         targetToleranceDegrees: Double = 1.0,
         callback: CommonCallbacks.CompletionCallback = DEFAULT_CALLBACK
     ) = coroutineScope {
+        Log.d(TAG, "spinning by $angleDegrees degrees")
         require(velocity > 0) { "velocity must be positive" }
         require(minVelocity >= 0) { "min velocity must be non-negative" }
         require(velocity >= minVelocity) { "min velocity cannot be greater than target velocity" }
@@ -1025,6 +1044,8 @@ open class AircraftController(
     }
 
     suspend fun wave(waves: Int = 2) {
+        Log.d(TAG, "waving")
+        require(waves > 0) { "wave count must be positive" }
         val t = 0.2
         val tm = (t * 1000).toLong()
         val rollAngle = 10.0
