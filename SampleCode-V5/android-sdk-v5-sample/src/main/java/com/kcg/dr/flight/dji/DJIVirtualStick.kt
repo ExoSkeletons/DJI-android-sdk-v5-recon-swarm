@@ -109,6 +109,8 @@ class DJIVirtualStick(private val stickVM: VirtualStickVM) : IVirtualStick {
         returnStickControl() // todo: wrap with dji callback cancelable coroutine
     }
 
+    override val ownsControl: Boolean get() = isVirtualStickEnabled()
+
     override fun setSpeedLevel(speedLevel: Double) = stickVM.setSpeedLevel(speedLevel)
 
     override fun setLeftPosition(horizontal: Int, vertical: Int) =
