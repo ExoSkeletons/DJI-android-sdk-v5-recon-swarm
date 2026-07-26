@@ -64,6 +64,9 @@ class ApiServerFragment : Fragment() {
             )
             binding.tvLogs.alpha = if (it) 1f else 0.5f
         }
+        viewModel.tunnelingUrl.observe(viewLifecycleOwner) {
+            binding.tvTunnelingUrl.text = it
+        }
         viewModel.serverLogs.observe(viewLifecycleOwner) { logs ->
             binding.tvLogs.text =
                 if (logs.isEmpty()) "Waiting for requests..."

@@ -319,14 +319,11 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
         requireContext().apply {
             // API Server foreground service
-            apiServerVM.startService(
-                notificationVM.controllerChannelId
-            )
+            apiServerVM.startService(AircraftController.TAG)
             // Media Control foreground service
             ServiceUtils.startService(
                 this,
                 Intent(this, AudioControlService::class.java),
-                notificationVM.controllerChannelId
             )
             // Register Media Control receiver
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -567,6 +564,10 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         virtualStickVM.virtualStickAdvancedParam.observe(viewLifecycleOwner) { updateVirtualStickInfo() }
         simulatorVM.simulatorStateSb.observe(viewLifecycleOwner) {
             binding?.simulatorStateInfoTv?.text = it
+        }
+
+        apiServerVM.tunnelingUrl.observe(viewLifecycleOwner) {
+            ToastUtils.showToast("tunneling url: $it")
         }
     }
 
