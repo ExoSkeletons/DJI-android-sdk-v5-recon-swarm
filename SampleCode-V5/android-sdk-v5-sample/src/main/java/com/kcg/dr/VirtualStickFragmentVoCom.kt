@@ -113,7 +113,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     private val virtualStickVM: VirtualStickVM by activityViewModels()
     private val simulatorVM: SimulatorVM by activityViewModels()
     private val liveStreamVM: LiveStreamVM by activityViewModels()
-    private val notificationVM: NotificationVM by activityViewModels()
     private val apiServerVM: ApiServerVM by activityViewModels()
 
     private lateinit var controller: AircraftController

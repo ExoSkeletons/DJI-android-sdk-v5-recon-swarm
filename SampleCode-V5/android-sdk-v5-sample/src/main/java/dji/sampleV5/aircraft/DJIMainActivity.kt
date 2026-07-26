@@ -2,10 +2,9 @@ package dji.sampleV5.aircraft
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.content.Context
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Intent
-import android.content.res.Configuration
-import android.content.res.Resources
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -14,6 +13,7 @@ import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import com.kcg.dr.flight.AircraftController
 import dji.sampleV5.aircraft.databinding.ActivityMainBinding
 import dji.sampleV5.aircraft.models.BaseMainActivityVm
 import dji.sampleV5.aircraft.models.MSDKInfoVm
@@ -25,7 +25,6 @@ import dji.v5.utils.common.LogUtils
 import dji.v5.utils.common.PermissionUtil
 import dji.v5.utils.common.StringUtils
 import io.reactivex.rxjava3.disposables.CompositeDisposable
-import java.util.Locale
 
 
 /**
@@ -52,6 +51,7 @@ abstract class DJIMainActivity : AppCompatActivity() {
 //                add(Manifest.permission.READ_MEDIA_IMAGES)
 //                add(Manifest.permission.READ_MEDIA_VIDEO)
 //                add(Manifest.permission.READ_MEDIA_AUDIO)
+                add(Manifest.permission.POST_NOTIFICATIONS)
             } else {
                 add(Manifest.permission.READ_EXTERNAL_STORAGE)
                 add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
@@ -114,7 +114,28 @@ abstract class DJIMainActivity : AppCompatActivity() {
         }
     }
 
+    private fun createNotificationChannels() {
+        val channels = mapOf(
+            AircraftController.TAG to mapOf(
+                "name" to "Drone Background Services",
+                "icon" to R.drawable.aircraft,
+            )
+        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val manager = getSystemService(NotificationManager::class.java)
+            for ((id, data) in channels)
+                manager.createNotificationChannel(
+                    NotificationChannel(
+                        id,
+                        data["name"] as String,
+                        NotificationManager.IMPORTANCE_LOW,
+                    )
+                )
+        }
+    }
+
     private fun handleAfterPermissionPermitted() {
+        createNotificationChannels()
         prepareTestingToolsActivity()
     }
 

@@ -6,8 +6,8 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import com.kcg.dr.NotificationVM
 import com.kcg.dr.flight.AircraftControlViewModel
+import com.kcg.dr.flight.AircraftController
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragApiServerBinding
 import dji.sampleV5.aircraft.models.BasicAircraftControlVM
@@ -23,7 +23,6 @@ class ApiServerFragment : Fragment() {
     private val basicAircraftControlVM: BasicAircraftControlVM by activityViewModels()
     private val controllerVM: AircraftControlViewModel by activityViewModels()
 
-    private val notificationVM: NotificationVM by activityViewModels()
     private val viewModel: ApiServerVM by activityViewModels()
 
     override fun onCreateView(
@@ -45,7 +44,7 @@ class ApiServerFragment : Fragment() {
         viewModel.initController(controllerVM.controller)
 
         binding.switchServer.setOnCheckedChangeListener { _, isChecked ->
-            if (isChecked) viewModel.startService(notificationVM.controllerChannelId)
+            if (isChecked) viewModel.startService(AircraftController.TAG)
             else viewModel.stopService()
         }
 

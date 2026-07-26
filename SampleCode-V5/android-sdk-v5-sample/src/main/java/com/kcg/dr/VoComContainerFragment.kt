@@ -28,7 +28,6 @@ class VoComContainerFragment : DJIFragment() {
     private val recordingVM: RecordingVM by activityViewModels()
     private val voiceVM: VoiceVM by activityViewModels()
 
-    private val notificationVM: NotificationVM by activityViewModels()
     private val apiVM: ApiServerVM by activityViewModels()
     private val aircraftControlVM: AircraftControlViewModel by activityViewModels()
 
