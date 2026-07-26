@@ -172,6 +172,7 @@ class ApiServer {
         Log.i(TAG, "Ktor server started on port $port")
     }
 }
+
 private fun Routing.keyActivationRoute() {
     post("/key") {
         try {

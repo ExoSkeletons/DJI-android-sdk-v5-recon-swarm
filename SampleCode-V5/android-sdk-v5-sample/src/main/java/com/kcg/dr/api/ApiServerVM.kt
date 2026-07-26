@@ -10,15 +10,18 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.switchMap
 import com.kcg.dr.utils.ServiceUtils
+import androidx.lifecycle.viewModelScope
 import com.kcg.dr.flight.AircraftController
+import kotlinx.coroutines.launch
 
 class ApiServerVM(application: Application) : AndroidViewModel(application) {
 
     val isServiceRunning = MutableLiveData(false)
     val isServiceBound = MutableLiveData(false)
+    val isTunneling = MutableLiveData(false)
 
     private val server = MutableLiveData<ApiServer?>()
-    private var controller : AircraftController? = null
+    private var controller: AircraftController? = null
 
     val isServerRunning = server.switchMap {
         it?.isRunning ?: MutableLiveData(false)
@@ -72,6 +75,10 @@ class ApiServerVM(application: Application) : AndroidViewModel(application) {
             channelId,
             connection = connection
         )
+        viewModelScope.launch {
+            Tunneling.startTunneling(context = context, port = port)
+            isTunneling.value = true
+        }
     }
 
     fun stopService() {
@@ -81,6 +88,7 @@ class ApiServerVM(application: Application) : AndroidViewModel(application) {
             ApiServerService::class.java,
             connection = connection
         )
+        // stop tunneling
         isServiceBound.value = false
         isServiceRunning.value = false
     }
