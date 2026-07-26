@@ -138,7 +138,7 @@ class ApiServer {
                     }
                 }
 
-                route("/status") { statusRoute() }
+                route("/status") { aircraftStatusRoute() }
 
                 route("/c") {
                     controllerRoute { this@ApiServer.controller }
@@ -188,7 +188,7 @@ private fun Routing.keyActivationRoute() {
     }
 }
 
-private fun Route.statusRoute() {
+private fun Route.aircraftStatusRoute() {
     get("/") {
         try {
             val isFlying = FlightControllerKey.KeyIsFlying.create().get(false)
