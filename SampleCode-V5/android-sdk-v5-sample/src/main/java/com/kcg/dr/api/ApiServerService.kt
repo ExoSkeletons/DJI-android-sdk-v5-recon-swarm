@@ -7,8 +7,8 @@ import android.os.Binder
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import com.kcg.dr.NetUtils
-import com.kcg.dr.ServiceUtils.startAsForeground
+import com.kcg.dr.utils.NetUtils
+import com.kcg.dr.utils.ServiceUtils.startAsForeground
 import dji.sampleV5.aircraft.R
 
 private const val TAG = "DroneApiService"

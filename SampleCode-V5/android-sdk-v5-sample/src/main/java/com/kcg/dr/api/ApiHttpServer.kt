@@ -2,8 +2,8 @@ package com.kcg.dr.api
 
 import android.util.Log
 import androidx.lifecycle.MutableLiveData
-import com.kcg.dr.CoroutineUtils.actionOrExcept
-import com.kcg.dr.DJIErrorException
+import com.kcg.dr.utils.CoroutineUtils.actionOrExcept
+import com.kcg.dr.utils.DJIErrorException
 import com.kcg.dr.api.Responses.djiErrorResponse
 import com.kcg.dr.api.Responses.errorResponse
 import com.kcg.dr.api.Responses.exceptResponse

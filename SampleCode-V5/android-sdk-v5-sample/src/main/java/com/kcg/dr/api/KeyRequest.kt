@@ -16,9 +16,9 @@ package com.kcg.dr.api
 
 import android.util.Log
 import com.google.gson.annotations.SerializedName
-import com.kcg.dr.CoroutineUtils.actionOrExcept
-import com.kcg.dr.CoroutineUtils.getOrExcept
-import com.kcg.dr.CoroutineUtils.setOrExcept
+import com.kcg.dr.utils.CoroutineUtils.actionOrExcept
+import com.kcg.dr.utils.CoroutineUtils.getOrExcept
+import com.kcg.dr.utils.CoroutineUtils.setOrExcept
 import dji.sdk.keyvalue.key.DJIActionKeyInfo
 import dji.sdk.keyvalue.key.DJIKey
 import dji.sdk.keyvalue.key.DJIKeyInfo

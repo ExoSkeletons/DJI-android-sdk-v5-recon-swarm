@@ -33,10 +33,10 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.Priority
-import com.kcg.dr.LocaleUtils.getLocalizedResources
-import com.kcg.dr.LocationUtils.bearingTo
-import com.kcg.dr.LocationUtils.distanceTo
-import com.kcg.dr.LocationUtils.translate
+import com.kcg.dr.utils.LocaleUtils.getLocalizedResources
+import com.kcg.dr.utils.LocationUtils.bearingTo
+import com.kcg.dr.utils.LocationUtils.distanceTo
+import com.kcg.dr.utils.LocationUtils.translate
 import com.kcg.dr.api.ApiServerVM
 import com.kcg.dr.api.KeyActivator
 import com.kcg.dr.flight.AircraftController
@@ -46,6 +46,12 @@ import com.kcg.dr.flight.dji.DJIGimbal
 import com.kcg.dr.flight.dji.DJIRCStick
 import com.kcg.dr.flight.dji.DJIVirtualStick
 import com.kcg.dr.location.LiveLocationProvider
+import com.kcg.dr.utils.LocationUtils
+import com.kcg.dr.utils.SFXManager
+import com.kcg.dr.utils.ServiceUtils
+import com.kcg.dr.utils.as2D
+import com.kcg.dr.utils.asDjiLocation
+import com.kcg.dr.utils.atAlt
 import com.kcg.dr.voice.AudioControlService
 import com.kcg.dr.voice.CommandResolver
 import com.kcg.dr.voice.CommandResolver.Command
@@ -1373,7 +1379,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                 val (com, match) = resolve
                 try {
                     com.func(match)
-                    SFXManager.playSfx(SFXManager.SFX.ACTION_CONFIRM)
+                    com.kcg.dr.utils.SFXManager.playSfx(com.kcg.dr.utils.SFXManager.SFX.ACTION_CONFIRM)
                     com.response(res)?.let {
                         speakText(
                             res.getString(R.string.commands_response_fmt_accepted) + ". " +
@@ -1383,7 +1389,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                     binding?.commandResult?.text =
                         com.name(res)
                 } catch (e: Exception) {
-                    SFXManager.playSfx(SFXManager.SFX.NOTIFY_TECHNICAL)
+                    com.kcg.dr.utils.SFXManager.playSfx(com.kcg.dr.utils.SFXManager.SFX.NOTIFY_TECHNICAL)
                     ToastUtils.showToast(e.message ?: e.toString())
                 }
             }

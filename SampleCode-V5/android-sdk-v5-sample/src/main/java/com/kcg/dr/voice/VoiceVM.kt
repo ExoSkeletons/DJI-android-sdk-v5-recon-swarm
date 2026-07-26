@@ -6,8 +6,8 @@ import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
-import com.kcg.dr.LocaleUtils.getLocalizedResources
-import com.kcg.dr.SFXManager
+import com.kcg.dr.utils.LocaleUtils.getLocalizedResources
+import com.kcg.dr.utils.SFXManager
 import dji.sampleV5.aircraft.R
 import java.util.Locale
 

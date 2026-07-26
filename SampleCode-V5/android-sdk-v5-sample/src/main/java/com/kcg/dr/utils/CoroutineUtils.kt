@@ -1,4 +1,4 @@
-package com.kcg.dr
+package com.kcg.dr.utils
 
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner

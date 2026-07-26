@@ -6,7 +6,7 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.commit
 import androidx.navigation.Navigation
-import com.kcg.dr.SFXManager
+import com.kcg.dr.utils.SFXManager
 import dji.sampleV5.aircraft.databinding.ActivityTestingToolsBinding
 import dji.sampleV5.aircraft.models.MSDKCommonOperateVm
 import dji.sampleV5.aircraft.util.DJIToastUtil

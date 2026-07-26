@@ -15,7 +15,7 @@ import android.view.KeyEvent
 import androidx.core.app.NotificationCompat
 import androidx.core.content.IntentCompat
 import androidx.media.session.MediaButtonReceiver
-import com.kcg.dr.ServiceUtils.startAsForeground
+import com.kcg.dr.utils.ServiceUtils.startAsForeground
 import dji.sampleV5.aircraft.R
 
 class AudioControlService : Service() {

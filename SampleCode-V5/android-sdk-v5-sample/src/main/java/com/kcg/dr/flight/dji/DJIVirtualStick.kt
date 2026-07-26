@@ -1,7 +1,7 @@
 package com.kcg.dr.flight.dji
 
 import android.util.Log
-import com.kcg.dr.CoroutineUtils.awaitCallback0
+import com.kcg.dr.utils.CoroutineUtils.awaitCallback0
 import com.kcg.dr.flight.AircraftController.Companion.TAG
 import com.kcg.dr.flight.AircraftController.FlightParam
 import com.kcg.dr.flight.AircraftController.IVirtualStick

@@ -1,4 +1,4 @@
-package com.kcg.dr
+package com.kcg.dr.utils
 
 import android.content.Context
 import android.content.res.Configuration

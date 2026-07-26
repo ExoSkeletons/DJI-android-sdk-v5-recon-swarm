@@ -11,6 +11,7 @@ import com.kcg.dr.api.ApiServerVM
 import com.kcg.dr.flight.AircraftControlViewModel
 import com.kcg.dr.location.DeviceLocationViewModel
 import com.kcg.dr.location.LiveLocationProvider
+import com.kcg.dr.utils.asDjiLocation
 import com.kcg.dr.voice.CommandResolver.Command
 import com.kcg.dr.voice.VoiceVM
 import dji.sampleV5.aircraft.R

@@ -12,6 +12,8 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.kcg.dr.recognition.ReconTTSFragment
+import com.kcg.dr.utils.LocaleUtils
+import com.kcg.dr.utils.SFXManager
 import com.kcg.dr.voice.VoiceControlFragment
 import dji.sampleV5.aircraft.R
 import java.util.Locale

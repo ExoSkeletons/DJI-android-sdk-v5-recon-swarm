@@ -9,7 +9,7 @@ import android.os.IBinder
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.switchMap
-import com.kcg.dr.ServiceUtils
+import com.kcg.dr.utils.ServiceUtils
 import com.kcg.dr.flight.AircraftController
 
 class ApiServerVM(application: Application) : AndroidViewModel(application) {
