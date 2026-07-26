@@ -20,13 +20,13 @@ const val DEFAULT_PORT: Int = 8080
 const val NOTIFICATION_ID = 1304
 
 class ApiServerService : Service() {
-    private var server = ApiHttpServer()
+    private var server = ApiServer()
 
     var host: String = DEFAULT_HOST
     var port: Int = DEFAULT_PORT
 
     inner class ApiServerBinder : Binder() {
-        val server: ApiHttpServer get() = this@ApiServerService.server
+        val server: ApiServer get() = this@ApiServerService.server
     }
 
     private val binder = ApiServerBinder()

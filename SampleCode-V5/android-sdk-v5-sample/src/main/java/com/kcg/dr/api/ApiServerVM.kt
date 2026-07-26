@@ -17,7 +17,7 @@ class ApiServerVM(application: Application) : AndroidViewModel(application) {
     val isServiceRunning = MutableLiveData(false)
     val isServiceBound = MutableLiveData(false)
 
-    private val server = MutableLiveData<ApiHttpServer?>()
+    private val server = MutableLiveData<ApiServer?>()
     private var controller : AircraftController? = null
 
     val isServerRunning = server.switchMap {

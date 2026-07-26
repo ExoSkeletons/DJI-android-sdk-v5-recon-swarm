@@ -48,7 +48,7 @@ import kotlinx.serialization.json.put
 
 private const val TAG = "ApiHttpServer"
 
-class ApiHttpServer {
+class ApiServer {
     private var server: ApplicationEngine? = null
     private var controller: AircraftController? = null
 
@@ -120,7 +120,7 @@ class ApiHttpServer {
 
                 route("/status") { statusRoute() }
 
-                route("/c") { controllerRoute { this@ApiHttpServer.controller } }
+                route("/c") { controllerRoute { this@ApiServer.controller } }
 
                 quickActionsRoute()
                 keyActivationRoute()
