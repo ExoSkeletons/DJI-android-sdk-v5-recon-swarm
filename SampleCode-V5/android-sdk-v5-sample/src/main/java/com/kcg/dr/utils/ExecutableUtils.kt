@@ -1,0 +1,32 @@
+package com.kcg.dr.utils
+
+import android.content.Context
+import android.os.Build
+import android.util.Log
+import com.kcg.dr.utils.AssetUtils.getAssetOrExtract
+import java.io.File
+import java.io.IOException
+
+object ExecutableUtils {
+    fun Context.getExecutableFromLibs(fileName: String): File {
+        val libDir = File(this.applicationInfo.nativeLibraryDir)
+        val libFile = File(libDir, "lib$fileName.so")
+        if (!libFile.exists())
+            throw IOException("Executible lib file ${libFile.absolutePath} is missing from native library directory ${libDir.absolutePath}")
+        return libFile
+    }
+
+    @Deprecated("W^X violation on Android 10+", ReplaceWith("getExecutibleFromLibs(context, fileName)"))
+    fun Context.getExecutableFromAssets(fileName: String): File {
+        val file = this.getAssetOrExtract( fileName, false)
+        Log.d("Asset", "making $fileName executable...")
+        // Note: chmod exec perm set fails on Android 10+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            Log.d("Asset", "making $fileName executable...")
+            ProcessBuilder("chmod", "755", file.absolutePath)
+                .start()
+                .waitFor()
+        }
+        return file
+    }
+}
