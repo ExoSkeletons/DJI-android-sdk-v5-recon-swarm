@@ -954,8 +954,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
     private fun initController() {
         controller = AircraftController(
-            lifecycleScope,
-
             DJIVirtualStick(virtualStickVM),
             DJIRCStick(),
             DJIAircraft(basicAircraftControlVM),
@@ -1379,7 +1377,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                 val (com, match) = resolve
                 try {
                     com.func(match)
-                    com.kcg.dr.utils.SFXManager.playSfx(com.kcg.dr.utils.SFXManager.SFX.ACTION_CONFIRM)
+                    SFXManager.playSfx(SFXManager.SFX.ACTION_CONFIRM)
                     com.response(res)?.let {
                         speakText(
                             res.getString(R.string.commands_response_fmt_accepted) + ". " +
@@ -1389,7 +1387,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                     binding?.commandResult?.text =
                         com.name(res)
                 } catch (e: Exception) {
-                    com.kcg.dr.utils.SFXManager.playSfx(com.kcg.dr.utils.SFXManager.SFX.NOTIFY_TECHNICAL)
+                    SFXManager.playSfx(SFXManager.SFX.NOTIFY_TECHNICAL)
                     ToastUtils.showToast(e.message ?: e.toString())
                 }
             }

@@ -36,7 +36,6 @@ class AircraftControlViewModel(application: Application) : AndroidViewModel(appl
         if (this::_controller.isInitialized) return
 
         val c = AircraftController(
-            viewModelScope,
             DJIVirtualStick(virtualStickVM),
             DJIRCStick(),
             DJIAircraft(basicAircraftControlVM),
