@@ -56,7 +56,7 @@ import com.kcg.dr.voice.AudioControlService
 import com.kcg.dr.voice.CommandResolver
 import com.kcg.dr.voice.CommandResolver.Command
 import com.kcg.dr.waypoints.LocationAdapter
-import com.kcg.dr.waypoints.WPLocationRepository
+import com.kcg.dr.waypoints.WaypointRepo
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVirtualStickVocomPageBinding
 import dji.sampleV5.aircraft.models.BasicAircraftControlVM
@@ -149,7 +149,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
     // Waypoints
     private lateinit var waypointAdapter: LocationAdapter
-    private lateinit var waypointRepo: WPLocationRepository
+    private lateinit var waypointRepo: WaypointRepo
 
     // Scenarios
     class DemoFlightConfig(
@@ -780,7 +780,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
     private fun initWaypointControls() {
         // waypoint repo
-        waypointRepo = WPLocationRepository(requireContext())
+        waypointRepo = WaypointRepo(requireContext())
         // saved waypoint names
         val savedWaypointNames = requireContext().getLocalizedResources(locale)
             .getStringArray(R.array.commands_mission_targets)

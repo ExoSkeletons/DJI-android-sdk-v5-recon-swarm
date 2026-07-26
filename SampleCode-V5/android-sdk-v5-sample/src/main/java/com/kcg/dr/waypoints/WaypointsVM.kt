@@ -12,8 +12,8 @@ import dji.sdk.keyvalue.value.common.LocationCoordinate3D
 import kotlinx.coroutines.launch
 import java.util.Locale
 
-class WaypointsViewModel(application: Application) : AndroidViewModel(application) {
-    private var waypointRepo: WPLocationRepository = WPLocationRepository(getApplication())
+class WaypointsVM(application: Application) : AndroidViewModel(application) {
+    private var waypointRepo: WaypointRepo = WaypointRepo(getApplication())
 
     private val _locations = MutableLiveData<Map<String, LocationCoordinate3D?>>(emptyMap())
     val locations: LiveData<Map<String, LocationCoordinate3D?>> = _locations

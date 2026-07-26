@@ -27,7 +27,7 @@ class WaypointsFragment : Fragment() {
     private var _binding: FragVocomWaypointsBinding? = null
     private val binding get() = _binding!!
 
-    private val waypointsVM: WaypointsViewModel by activityViewModels()
+    private val waypointsVM: WaypointsVM by activityViewModels()
     private val aircraftVM: AircraftControlViewModel by activityViewModels()
     private val deviceLocationVM: DeviceLocationViewModel by activityViewModels()
 
