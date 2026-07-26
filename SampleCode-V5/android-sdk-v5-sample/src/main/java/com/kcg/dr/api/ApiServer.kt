@@ -140,7 +140,28 @@ class ApiServer {
 
                 route("/status") { statusRoute() }
 
-                route("/c") { controllerRoute { this@ApiServer.controller } }
+                route("/c") {
+                    controllerRoute { this@ApiServer.controller }
+                    route("/ws") {
+                        webSocket("/echo") {
+                            send("Echo connected")
+                            for (frame in incoming) {
+                                frame as? Frame.Text ?: continue
+                                val receivedText = frame.readText()
+                                if (Regex("bye|x|stop").matches(receivedText)) {
+                                    close(CloseReason(CloseReason.Codes.NORMAL, "Client said BYE"))
+                                } else {
+                                    send(Frame.Text("Hi, $receivedText!"))
+                                }
+                            }
+                        }
+                        webSocket("/sticks") {
+                            send("Connected to sticks websocket")
+                            sticksControlSession()
+                        }
+                    }
+                }
+
 
                 quickActionsRoute()
                 keyActivationRoute()
@@ -288,4 +309,30 @@ private fun Routing.quickActionsRoute() {
             call.respond(djiErrorResponse(e))
         }
     }
+}
+
+private suspend fun DefaultWebSocketServerSession.sticksControlSession() {
+    val responseFlow = MutableSharedFlow<JsonObject>()
+    val responderJob = launch {
+        responseFlow.collect { response ->
+            sendSerialized(response)
+        }
+    }
+
+    runCatching {
+        for (frame in incoming) {
+            frame as? Frame.Text ?: continue
+            val receivedText = frame.readText()
+            // todo: handle response with stick values dto?
+            val messageResponse = ok {
+                put("message", receivedText)
+            }
+            responseFlow.emit(messageResponse)
+        }
+    }.onFailure { e ->
+        when (e) {
+            is ClosedChannelException -> Log.i(TAG, "WebSocket closed ${closeReason.await()}")
+            else -> Log.e(TAG, "WebSocket exception ${closeReason.await()}", e)
+        }
+    }.also { responderJob.cancel() }
 }
