@@ -2,14 +2,14 @@ package com.kcg.dr.api
 
 import android.util.Log
 import androidx.lifecycle.MutableLiveData
-import com.kcg.dr.utils.CoroutineUtils.actionOrExcept
-import com.kcg.dr.utils.DJIErrorException
 import com.kcg.dr.api.Responses.djiErrorResponse
 import com.kcg.dr.api.Responses.errorResponse
 import com.kcg.dr.api.Responses.exceptResponse
 import com.kcg.dr.api.Responses.nok
 import com.kcg.dr.api.Responses.ok
 import com.kcg.dr.flight.AircraftController
+import com.kcg.dr.utils.CoroutineUtils.actionOrExcept
+import com.kcg.dr.utils.DJIErrorException
 import dji.sdk.keyvalue.key.AirLinkKey
 import dji.sdk.keyvalue.key.BatteryKey
 import dji.sdk.keyvalue.key.FlightControllerKey
@@ -36,6 +36,7 @@ import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.IgnoreTrailingSlash
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.Routing
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
@@ -121,47 +122,28 @@ class ApiHttpServer {
 
                 route("/c") { controllerRoute { this@ApiHttpServer.controller } }
 
-                get("/fly") {
-                    try {
-                        val isFlying = FlightControllerKey.KeyIsFlying.create().get(false)
-                        if (isFlying) {
-                            call.respond(errorResponse { "Aircraft already in air" })
-                            return@get
-                        }
-                        FlightControllerKey.KeyStartTakeoff.create().actionOrExcept()
-                        call.respond(ok())
-                    } catch (e: DJIErrorException) {
-                        call.respond(djiErrorResponse(e))
-                    }
-                }
-                get("/land") {
-                    try {
-                        FlightControllerKey.KeyStartAutoLanding.create().actionOrExcept()
-                        call.respond(ok())
-                    } catch (e: DJIErrorException) {
-                        call.respond(djiErrorResponse(e))
-                    }
-                }
-
-                // Key activation
-                post("/key") {
-                    try {
-                        val jsonStr = call.receiveText()
-                        val element = Json.parseToJsonElement(jsonStr)
-                        val result = KeyActivator.handleKeyRequest(element)
-
-                        call.respond(ok { put("result", result) })
-                    } catch (e: DJIErrorException) {
-                        call.respond(djiErrorResponse(e))
-                    } catch (e: Exception) {
-                        call.respond(exceptResponse(e))
-                    }
-                }
+                quickActionsRoute()
+                keyActivationRoute()
             }
         }.start(wait = false)
         isRunning.value = true
 
         Log.i(TAG, "Ktor server started on port $port")
+    }
+}
+private fun Routing.keyActivationRoute() {
+    post("/key") {
+        try {
+            val jsonStr = call.receiveText()
+            val element = Json.parseToJsonElement(jsonStr)
+            val result = KeyActivator.handleKeyRequest(element)
+
+            call.respond(ok { put("result", result) })
+        } catch (e: DJIErrorException) {
+            call.respond(djiErrorResponse(e))
+        } catch (e: Exception) {
+            call.respond(exceptResponse(e))
+        }
     }
 }
 
@@ -260,6 +242,30 @@ private fun Route.statusRoute() {
             call.respond(djiErrorResponse(e))
         } catch (e: Exception) {
             call.respond(exceptResponse(e))
+        }
+    }
+}
+
+private fun Routing.quickActionsRoute() {
+    get("/fly") {
+        try {
+            val isFlying = FlightControllerKey.KeyIsFlying.create().get(false)
+            if (isFlying) {
+                call.respond(errorResponse { "Aircraft already in air" })
+                return@get
+            }
+            FlightControllerKey.KeyStartTakeoff.create().actionOrExcept()
+            call.respond(ok())
+        } catch (e: DJIErrorException) {
+            call.respond(djiErrorResponse(e))
+        }
+    }
+    get("/land") {
+        try {
+            FlightControllerKey.KeyStartAutoLanding.create().actionOrExcept()
+            call.respond(ok())
+        } catch (e: DJIErrorException) {
+            call.respond(djiErrorResponse(e))
         }
     }
 }
