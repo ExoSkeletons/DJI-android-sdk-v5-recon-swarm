@@ -1,4 +1,4 @@
-package com.kcg.dr
+package com.kcg.dr.utils
 
 import android.app.Notification
 import android.app.Service
@@ -24,14 +24,10 @@ object ServiceUtils {
     fun startService(
         context: Context,
         intent: Intent,
-        channelId: String,
         connection: ServiceConnection? = null
     ) {
         context.apply {
             with(intent) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-                    this.putExtra(Notification.EXTRA_CHANNEL_ID, channelId)
-
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
                     startForegroundService(this)
                 else startService(this)

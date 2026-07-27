@@ -1,6 +1,6 @@
 @file:OptIn(InternalSerializationApi::class)
 
-package com.kcg.dr
+package com.kcg.dr.utils
 
 import android.location.Location
 import dji.sdk.keyvalue.value.common.LocationCoordinate2D

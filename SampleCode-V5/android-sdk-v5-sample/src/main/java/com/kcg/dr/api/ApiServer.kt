@@ -2,14 +2,14 @@ package com.kcg.dr.api
 
 import android.util.Log
 import androidx.lifecycle.MutableLiveData
-import com.kcg.dr.CoroutineUtils.actionOrExcept
-import com.kcg.dr.DJIErrorException
 import com.kcg.dr.api.Responses.djiErrorResponse
 import com.kcg.dr.api.Responses.errorResponse
 import com.kcg.dr.api.Responses.exceptResponse
 import com.kcg.dr.api.Responses.nok
 import com.kcg.dr.api.Responses.ok
 import com.kcg.dr.flight.AircraftController
+import com.kcg.dr.utils.CoroutineUtils.actionOrExcept
+import com.kcg.dr.utils.DJIErrorException
 import dji.sdk.keyvalue.key.AirLinkKey
 import dji.sdk.keyvalue.key.BatteryKey
 import dji.sdk.keyvalue.key.FlightControllerKey
@@ -20,6 +20,7 @@ import dji.v5.et.create
 import dji.v5.et.get
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
+import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.ApplicationCallPipeline
 import io.ktor.server.application.call
@@ -36,18 +37,32 @@ import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.IgnoreTrailingSlash
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.Routing
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
+import io.ktor.server.websocket.DefaultWebSocketServerSession
+import io.ktor.server.websocket.WebSockets
+import io.ktor.server.websocket.sendSerialized
+import io.ktor.server.websocket.webSocket
+import io.ktor.websocket.CloseReason
+import io.ktor.websocket.Frame
+import io.ktor.websocket.close
+import io.ktor.websocket.readText
+import io.ktor.websocket.send
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonObjectBuilder
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import java.nio.channels.ClosedChannelException
 
 private const val TAG = "ApiHttpServer"
 
-class ApiHttpServer {
+class ApiServer {
     private var server: ApplicationEngine? = null
     private var controller: AircraftController? = null
 
@@ -72,6 +87,12 @@ class ApiHttpServer {
         server = embeddedServer(CIO, host = host, port = port) {
             install(ContentNegotiation) { json() }
             install(IgnoreTrailingSlash)
+            install(WebSockets) {
+                contentConverter = KotlinxWebsocketSerializationConverter(Json {
+                    ignoreUnknownKeys = true
+                    isLenient = true
+                })
+            }
             install(StatusPages) {
                 exception<DJIErrorException> { call, e ->
                     Log.d("API", "got dji ex with error ${e.error.description()}")
@@ -117,46 +138,33 @@ class ApiHttpServer {
                     }
                 }
 
-                route("/status") { statusRoute() }
+                route("/status") { aircraftStatusRoute() }
 
-                route("/c") { controllerRoute { this@ApiHttpServer.controller } }
-
-                get("/fly") {
-                    try {
-                        val isFlying = FlightControllerKey.KeyIsFlying.create().get(false)
-                        if (isFlying) {
-                            call.respond(errorResponse { "Aircraft already in air" })
-                            return@get
+                route("/c") {
+                    controllerRoute { this@ApiServer.controller }
+                    route("/ws") {
+                        webSocket("/echo") {
+                            send("Echo connected")
+                            for (frame in incoming) {
+                                frame as? Frame.Text ?: continue
+                                val receivedText = frame.readText()
+                                if (Regex("bye|x|stop").matches(receivedText)) {
+                                    close(CloseReason(CloseReason.Codes.NORMAL, "Client said BYE"))
+                                } else {
+                                    send(Frame.Text("Hi, $receivedText!"))
+                                }
+                            }
                         }
-                        FlightControllerKey.KeyStartTakeoff.create().actionOrExcept()
-                        call.respond(ok())
-                    } catch (e: DJIErrorException) {
-                        call.respond(djiErrorResponse(e))
-                    }
-                }
-                get("/land") {
-                    try {
-                        FlightControllerKey.KeyStartAutoLanding.create().actionOrExcept()
-                        call.respond(ok())
-                    } catch (e: DJIErrorException) {
-                        call.respond(djiErrorResponse(e))
+                        webSocket("/sticks") {
+                            send("Connected to sticks websocket")
+                            sticksControlSession()
+                        }
                     }
                 }
 
-                // Key activation
-                post("/key") {
-                    try {
-                        val jsonStr = call.receiveText()
-                        val element = Json.parseToJsonElement(jsonStr)
-                        val result = KeyActivator.handleKeyRequest(element)
 
-                        call.respond(ok { put("result", result) })
-                    } catch (e: DJIErrorException) {
-                        call.respond(djiErrorResponse(e))
-                    } catch (e: Exception) {
-                        call.respond(exceptResponse(e))
-                    }
-                }
+                quickActionsRoute()
+                keyActivationRoute()
             }
         }.start(wait = false)
         isRunning.value = true
@@ -165,7 +173,23 @@ class ApiHttpServer {
     }
 }
 
-private fun Route.statusRoute() {
+private fun Routing.keyActivationRoute() {
+    post("/key") {
+        try {
+            val jsonStr = call.receiveText()
+            val element = Json.parseToJsonElement(jsonStr)
+            val result = KeyActivator.handleKeyRequest(element)
+
+            call.respond(ok { put("result", result) })
+        } catch (e: DJIErrorException) {
+            call.respond(djiErrorResponse(e))
+        } catch (e: Exception) {
+            call.respond(exceptResponse(e))
+        }
+    }
+}
+
+private fun Route.aircraftStatusRoute() {
     get("/") {
         try {
             val isFlying = FlightControllerKey.KeyIsFlying.create().get(false)
@@ -262,4 +286,54 @@ private fun Route.statusRoute() {
             call.respond(exceptResponse(e))
         }
     }
+}
+
+private fun Routing.quickActionsRoute() {
+    get("/fly") {
+        try {
+            val isFlying = FlightControllerKey.KeyIsFlying.create().get(false)
+            if (isFlying) {
+                call.respond(errorResponse { "Aircraft already in air" })
+                return@get
+            }
+            FlightControllerKey.KeyStartTakeoff.create().actionOrExcept()
+            call.respond(ok())
+        } catch (e: DJIErrorException) {
+            call.respond(djiErrorResponse(e))
+        }
+    }
+    get("/land") {
+        try {
+            FlightControllerKey.KeyStartAutoLanding.create().actionOrExcept()
+            call.respond(ok())
+        } catch (e: DJIErrorException) {
+            call.respond(djiErrorResponse(e))
+        }
+    }
+}
+
+private suspend fun DefaultWebSocketServerSession.sticksControlSession() {
+    val responseFlow = MutableSharedFlow<JsonObject>()
+    val responderJob = launch {
+        responseFlow.collect { response ->
+            sendSerialized(response)
+        }
+    }
+
+    runCatching {
+        for (frame in incoming) {
+            frame as? Frame.Text ?: continue
+            val receivedText = frame.readText()
+            // todo: handle response with stick values dto?
+            val messageResponse = ok {
+                put("message", receivedText)
+            }
+            responseFlow.emit(messageResponse)
+        }
+    }.onFailure { e ->
+        when (e) {
+            is ClosedChannelException -> Log.i(TAG, "WebSocket closed ${closeReason.await()}")
+            else -> Log.e(TAG, "WebSocket exception ${closeReason.await()}", e)
+        }
+    }.also { responderJob.cancel() }
 }

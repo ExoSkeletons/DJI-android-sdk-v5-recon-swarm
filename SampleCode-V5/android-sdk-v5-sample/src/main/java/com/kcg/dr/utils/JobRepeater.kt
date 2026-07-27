@@ -1,4 +1,4 @@
-package com.kcg.dr
+package com.kcg.dr.utils
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job

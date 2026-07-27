@@ -12,6 +12,7 @@ import com.kcg.dr.api.ApiServerVM
 import com.kcg.dr.flight.AircraftControlViewModel
 import com.kcg.dr.location.DeviceLocationViewModel
 import com.kcg.dr.location.LiveLocationProvider
+import com.kcg.dr.utils.asDjiLocation
 import com.kcg.dr.voice.CommandResolver.Command
 import com.kcg.dr.voice.VoiceVM
 import dji.sampleV5.aircraft.R
@@ -29,7 +30,6 @@ class VoComContainerFragment : DJIFragment() {
     private val recordingVM: RecordingVM by activityViewModels()
     private val voiceVM: VoiceVM by activityViewModels()
 
-    private val notificationVM: NotificationVM by activityViewModels()
     private val apiVM: ApiServerVM by activityViewModels()
     private val aircraftControlVM: AircraftControlViewModel by activityViewModels()
 

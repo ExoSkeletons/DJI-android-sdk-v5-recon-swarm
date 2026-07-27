@@ -1,4 +1,4 @@
-package com.kcg.dr
+package com.kcg.dr.utils
 
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
@@ -44,6 +44,18 @@ object CoroutineUtils {
 
                 override fun onFailure(error: IDJIError) =
                     cont.resumeWithException(DJIErrorException(error))
+            }
+            block(resumeCallback)
+        }
+
+    suspend fun awaitCallback0(block: (CommonCallbacks.CompletionCallback) -> Unit) =
+        suspendCancellableCoroutine {
+            val resumeCallback = object : CommonCallbacks.CompletionCallback {
+                override fun onSuccess() =
+                    it.resume(Unit)
+
+                override fun onFailure(error: IDJIError) =
+                    it.resumeWithException(DJIErrorException(error))
             }
             block(resumeCallback)
         }

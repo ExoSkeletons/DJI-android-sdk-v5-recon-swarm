@@ -45,6 +45,9 @@ class VirtualStickControlsFragment : Fragment() {
             }
         })
 
+        // todo: add ui for enable/disable virtual stick mode, we forgot that lol
+        //  future idea- create custom vm that combines both RC input and virtual stick input (with modes? merge/override?)
+
         binding.rightStickView.setJoystickListener(object : OnScreenJoystickListener {
             override fun onTouch(joystick: OnScreenJoystick?, pX: Float, pY: Float) {
                 val px = if (abs(pX) >= deviation) pX else 0f

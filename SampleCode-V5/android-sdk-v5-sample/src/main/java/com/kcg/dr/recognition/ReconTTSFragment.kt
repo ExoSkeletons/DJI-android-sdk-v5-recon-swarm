@@ -22,10 +22,10 @@ import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.lifecycleScope
-import com.kcg.dr.JobRepeater
-import com.kcg.dr.SFXManager
-import com.kcg.dr.TCPClient
-import com.kcg.dr.TCPJSONClient
+import com.kcg.dr.utils.JobRepeater
+import com.kcg.dr.utils.SFXManager
+import com.kcg.dr.utils.TCPClient
+import com.kcg.dr.utils.TCPJSONClient
 import dji.sampleV5.aircraft.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

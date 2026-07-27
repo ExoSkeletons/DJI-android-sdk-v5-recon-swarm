@@ -11,9 +11,9 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.Priority
-import com.kcg.dr.LocaleUtils.getLocalizedResources
-import com.kcg.dr.LocationUtils.distanceTo
-import com.kcg.dr.as2D
+import com.kcg.dr.utils.LocaleUtils.getLocalizedResources
+import com.kcg.dr.utils.LocationUtils.distanceTo
+import com.kcg.dr.utils.as2D
 import com.kcg.dr.flight.AircraftControlViewModel
 import com.kcg.dr.location.DeviceLocationViewModel
 import com.kcg.dr.location.LiveLocationProvider
@@ -27,7 +27,7 @@ class WaypointsFragment : Fragment() {
     private var _binding: FragVocomWaypointsBinding? = null
     private val binding get() = _binding!!
 
-    private val waypointsVM: WaypointsViewModel by activityViewModels()
+    private val waypointsVM: WaypointsVM by activityViewModels()
     private val aircraftVM: AircraftControlViewModel by activityViewModels()
     private val deviceLocationVM: DeviceLocationViewModel by activityViewModels()
 

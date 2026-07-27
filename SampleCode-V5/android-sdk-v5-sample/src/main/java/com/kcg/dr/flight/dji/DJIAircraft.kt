@@ -1,11 +1,10 @@
 package com.kcg.dr.flight.dji
 
 import android.util.Log
-import com.kcg.dr.CoroutineUtils.awaitCallback
+import com.kcg.dr.utils.CoroutineUtils.awaitCallback
 import com.kcg.dr.flight.AircraftController.Companion.TAG
 import com.kcg.dr.flight.AircraftController.IAircraft
 import dji.sampleV5.aircraft.models.BasicAircraftControlVM
-import dji.sampleV5.aircraft.models.VirtualStickVM
 import dji.sampleV5.aircraft.util.ToastUtils
 import dji.sdk.keyvalue.key.FlightControllerKey
 import dji.sdk.keyvalue.value.common.Attitude
@@ -14,7 +13,6 @@ import dji.v5.common.callback.CommonCallbacks
 import dji.v5.common.error.IDJIError
 import dji.v5.et.action
 import dji.v5.et.create
-import dji.v5.et.get
 import dji.v5.et.listen
 import dji.v5.manager.KeyManager
 import dji.v5.manager.intelligent.IntelligentFlightInfo
@@ -51,7 +49,7 @@ class DJIAircraft(
     override suspend fun land() = coroutineScope {
         awaitCallback { acVM.startLanding(it) }
 
-        while (isActive && !isFlying.value && !areMotorsOn.value) {
+        while (isActive && (isFlying.value || areMotorsOn.value)) {
             delay(500.milliseconds)
         }
     }

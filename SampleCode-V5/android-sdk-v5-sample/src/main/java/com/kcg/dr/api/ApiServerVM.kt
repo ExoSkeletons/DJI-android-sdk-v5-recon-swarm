@@ -9,16 +9,20 @@ import android.os.IBinder
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.switchMap
-import com.kcg.dr.ServiceUtils
+import androidx.lifecycle.viewModelScope
+import com.kcg.dr.api.Tunneling.Cloudflared
 import com.kcg.dr.flight.AircraftController
+import com.kcg.dr.utils.ServiceUtils
+import kotlinx.coroutines.launch
 
 class ApiServerVM(application: Application) : AndroidViewModel(application) {
 
     val isServiceRunning = MutableLiveData(false)
     val isServiceBound = MutableLiveData(false)
+    val tunnelingUrl = MutableLiveData<String>(null)
 
-    private val server = MutableLiveData<ApiHttpServer?>()
-    private var controller : AircraftController? = null
+    private val server = MutableLiveData<ApiServer?>()
+    private var controller: AircraftController? = null
 
     val isServerRunning = server.switchMap {
         it?.isRunning ?: MutableLiveData(false)
@@ -69,9 +73,12 @@ class ApiServerVM(application: Application) : AndroidViewModel(application) {
                 putExtra(EXTRA_HOST, host)
                 putExtra(EXTRA_PORT, port)
             },
-            channelId,
             connection = connection
         )
+        viewModelScope.launch {
+            val urls = Cloudflared.startTunneling(context = context, port = port)
+            tunnelingUrl.value = urls.first()
+        }
     }
 
     fun stopService() {
@@ -81,6 +88,7 @@ class ApiServerVM(application: Application) : AndroidViewModel(application) {
             ApiServerService::class.java,
             connection = connection
         )
+        // stop tunneling
         isServiceBound.value = false
         isServiceRunning.value = false
     }

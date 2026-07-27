@@ -1,12 +1,11 @@
 package com.kcg.dr.flight.dji
 
-import com.kcg.dr.CoroutineUtils.await
-import com.kcg.dr.CoroutineUtils.await0
+import com.kcg.dr.utils.CoroutineUtils.await
+import com.kcg.dr.utils.CoroutineUtils.await0
 import com.kcg.dr.flight.AircraftController.IGimbal
 import dji.sdk.keyvalue.key.GimbalKey
 import dji.sdk.keyvalue.value.common.Attitude
 import dji.sdk.keyvalue.value.gimbal.GimbalAngleRotation
-import dji.sdk.keyvalue.value.gimbal.GimbalAngleRotationMode
 import dji.sdk.keyvalue.value.gimbal.GimbalMode
 import dji.sdk.keyvalue.value.gimbal.GimbalResetType
 import dji.v5.et.action
@@ -34,9 +33,6 @@ class DJIGimbal : IGimbal {
 
         await { onSuccess, onFailure ->
             GimbalKey.KeyGimbalReset.create().action(GimbalResetType.RECENTER, onSuccess, onFailure)
-        }
-        await { onSuccess, onFailure ->
-            GimbalKey.KeyRotateByAngle.create().action(GimbalAngleRotation(), onSuccess, onFailure)
         }
         await0 { onSuccess, onFailure ->
             GimbalKey.KeyGimbalMode.create().set(GimbalMode.YAW_FOLLOW, onSuccess, onFailure)

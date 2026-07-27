@@ -11,7 +11,7 @@ import org.json.JSONObject
 private val Context.locationDataStore by preferencesDataStore(name = "waypoint_locations")
 private val KEY_LOCATIONS = stringPreferencesKey("waypoint_locations_json")
 
-class WPLocationRepository(context: Context) {
+class WaypointRepo(context: Context) {
     private val dataStore = context.locationDataStore
 
     private val locations: MutableMap<String, LocationCoordinate3D?> = mutableMapOf()

@@ -6,14 +6,14 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
-import com.kcg.dr.LocaleUtils.getLocalizedResources
+import com.kcg.dr.utils.LocaleUtils.getLocalizedResources
 import dji.sampleV5.aircraft.R
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
 import kotlinx.coroutines.launch
 import java.util.Locale
 
-class WaypointsViewModel(application: Application) : AndroidViewModel(application) {
-    private var waypointRepo: WPLocationRepository = WPLocationRepository(getApplication())
+class WaypointsVM(application: Application) : AndroidViewModel(application) {
+    private var waypointRepo: WaypointRepo = WaypointRepo(getApplication())
 
     private val _locations = MutableLiveData<Map<String, LocationCoordinate3D?>>(emptyMap())
     val locations: LiveData<Map<String, LocationCoordinate3D?>> = _locations

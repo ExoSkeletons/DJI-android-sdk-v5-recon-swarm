@@ -20,14 +20,15 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="@color/light_gray2"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:visibility="invisible">
 
             <TextView
                 android:id="@+id/enableLDM_btn"
                 style="@style/main_fragment_text"
-                android:text="@string/btn_enable_ldm"
                 android:elevation="10dp"
                 android:foreground="?selectableItemBackground"
+                android:text="@string/btn_enable_ldm"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -36,9 +37,9 @@
             <TextView
                 android:id="@+id/disableLDM_btn"
                 style="@style/main_fragment_text"
-                android:text="@string/btn_disable_ldm"
                 android:elevation="10dp"
                 android:foreground="?selectableItemBackground"
+                android:text="@string/btn_disable_ldm"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/enableLDM_btn" />
@@ -46,9 +47,9 @@
             <TextView
                 android:id="@+id/registerApp_btn"
                 style="@style/main_fragment_text"
-                android:text="@string/btn_register_app"
                 android:elevation="10dp"
                 android:foreground="?selectableItemBackground"
+                android:text="@string/btn_register_app"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/disableLDM_btn" />

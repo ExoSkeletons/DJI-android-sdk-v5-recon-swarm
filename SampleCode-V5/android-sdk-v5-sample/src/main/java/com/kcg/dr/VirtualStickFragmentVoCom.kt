@@ -27,27 +27,32 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.asLiveData
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.Priority
-import com.kcg.dr.LocaleUtils.getLocalizedResources
-import com.kcg.dr.LocationUtils.bearingTo
-import com.kcg.dr.LocationUtils.distanceTo
-import com.kcg.dr.LocationUtils.translate
+import com.kcg.dr.utils.LocaleUtils.getLocalizedResources
+import com.kcg.dr.utils.LocationUtils.distanceTo
+import com.kcg.dr.utils.LocationUtils.bearingTo
+import com.kcg.dr.utils.LocationUtils.translate
 import com.kcg.dr.api.ApiServerVM
 import com.kcg.dr.api.KeyActivator
 import com.kcg.dr.flight.AircraftControlViewModel
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.flight.AircraftController.CircleFaceMode
 import com.kcg.dr.location.LiveLocationProvider
+import com.kcg.dr.utils.LocationUtils
+import com.kcg.dr.utils.SFXManager
+import com.kcg.dr.utils.ServiceUtils
+import com.kcg.dr.utils.as2D
+import com.kcg.dr.utils.asDjiLocation
+import com.kcg.dr.utils.atAlt
 import com.kcg.dr.voice.AudioControlService
 import com.kcg.dr.voice.CommandResolver
 import com.kcg.dr.voice.CommandResolver.Command
 import com.kcg.dr.waypoints.LocationAdapter
-import com.kcg.dr.waypoints.WPLocationRepository
+import com.kcg.dr.waypoints.WaypointRepo
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVirtualStickVocomPageBinding
 import dji.sampleV5.aircraft.models.BasicAircraftControlVM
@@ -104,7 +109,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     private val virtualStickVM: VirtualStickVM by activityViewModels()
     private val simulatorVM: SimulatorVM by activityViewModels()
     private val liveStreamVM: LiveStreamVM by activityViewModels()
-    private val notificationVM: NotificationVM by activityViewModels()
     private val controllerVM: AircraftControlViewModel by activityViewModels()
     private val apiServerVM: ApiServerVM by activityViewModels()
 
@@ -141,7 +145,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
     // Waypoints
     private lateinit var waypointAdapter: LocationAdapter
-    private lateinit var waypointRepo: WPLocationRepository
+    private lateinit var waypointRepo: WaypointRepo
 
     // Scenarios
     class DemoFlightConfig(
@@ -312,14 +316,11 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
         requireContext().apply {
             // API Server foreground service
-            apiServerVM.startService(
-                notificationVM.controllerChannelId
-            )
+            apiServerVM.startService(AircraftController.TAG)
             // Media Control foreground service
             ServiceUtils.startService(
                 this,
                 Intent(this, AudioControlService::class.java),
-                notificationVM.controllerChannelId
             )
             // Register Media Control receiver
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -395,19 +396,20 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
         initWaypointControls()
 
-        controller.ac.location.asLiveData().observe(viewLifecycleOwner) { aircraft ->
+        controllerVM.aircraftLocation.observe(viewLifecycleOwner) { aircraft ->
             aircraftLocation = aircraft
 
             val device = deviceLocation.value
 
-            val dist = aircraft.let { device?.let { aircraft?.distanceTo(device) } }
-            val dist2D = aircraft.let { device?.let { aircraft?.as2D?.distanceTo(device.as2D) } }
-            val angleTo = aircraft.let {
-                device?.let {
-                    controller.ac.heading.value.let {
-                        aircraft?.as2D?.bearingTo(device.as2D)?.minus(it)
-                    }
-                }
+            var dist: Double? = null
+            var dist2D: Double? = null
+            var angleTo: Double? = null
+
+            if (aircraft != null && device != null) {
+                dist = aircraft.distanceTo(device)
+                dist2D = aircraft.as2D.distanceTo(device.as2D)
+                angleTo = aircraft.as2D.bearingTo(device.as2D)
+                    .minus(controllerVM.heading.value ?: 0.0)
             }
 
             binding?.tvLocationAircraft?.text = aircraft?.let {
@@ -421,16 +423,16 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             binding?.tvDistance?.text = dist?.let { "${it}m" } ?: "-"
             binding?.tvDistance2D?.text = dist2D?.let { "${it}m" } ?: "-"
             binding?.tvAngleTo?.text = angleTo?.let { "${it.roundToInt()}°" } ?: "-"
-            binding?.tvAttitude?.text = controller.ac.attitude.value.toJson()?.toString() ?: "-"
+            binding?.tvAttitude?.text = controllerVM.attitude.value?.toJson()?.toString() ?: "-"
         }
-        controller.ac.height.asLiveData().observe(viewLifecycleOwner) {
+        controllerVM.aircraftHeight.observe(viewLifecycleOwner) {
             binding?.tvAircraftHeight?.text = it.toString()
         }
-        controller.ac.batteryPercent.asLiveData().observe(viewLifecycleOwner) {
+        controllerVM.batteryPercent.observe(viewLifecycleOwner) {
             binding?.tvBatteryPercent?.text = resources.getString(R.string.battery_percent, it)
         }
-        controller.camGim.attitude.asLiveData().observe(viewLifecycleOwner) {
-            binding?.tvGimbalAttitude?.text = "${it.toJson() ?: "-"}"
+        controllerVM.attitude.observe(viewLifecycleOwner) {
+            binding?.tvGimbalAttitude?.text = "${it?.toJson() ?: "-"}"
         }
 
         binding?.btnSetVirtualStickSpeedLevel?.setOnClickListener {
@@ -560,6 +562,10 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         virtualStickVM.virtualStickAdvancedParam.observe(viewLifecycleOwner) { updateVirtualStickInfo() }
         simulatorVM.simulatorStateSb.observe(viewLifecycleOwner) {
             binding?.simulatorStateInfoTv?.text = it
+        }
+
+        apiServerVM.tunnelingUrl.observe(viewLifecycleOwner) {
+            ToastUtils.showToast("tunneling url: $it")
         }
     }
 
@@ -772,7 +778,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
     private fun initWaypointControls() {
         // waypoint repo
-        waypointRepo = WPLocationRepository(requireContext())
+        waypointRepo = WaypointRepo(requireContext())
         // saved waypoint names
         val savedWaypointNames = requireContext().getLocalizedResources(locale)
             .getStringArray(R.array.commands_mission_targets)
@@ -798,7 +804,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                     lookAtWithSpin(loc.as2D, cfg.humanHeight)
                 }
             },
-            deviceLocation, controller.ac.location.asLiveData()
+            deviceLocation, controllerVM.aircraftLocation
         )
         binding?.rvWaypointLocations?.layoutManager = LinearLayoutManager(requireContext())
         binding?.rvWaypointLocations?.adapter = waypointAdapter
