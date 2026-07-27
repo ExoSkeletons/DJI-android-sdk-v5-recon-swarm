@@ -51,10 +51,7 @@ class VoComContainerFragment : DJIFragment() {
         super.onViewCreated(view, savedInstanceState)
 
         // Initialize the controller in the ViewModel
-        aircraftControlVM.initController(
-            virtualStickVM,
-            basicAircraftControlVM,
-        )
+        aircraftControlVM.init(basicAircraftControlVM, virtualStickVM)
 
         voiceVM.setCommands(
             listOf(

@@ -38,9 +38,9 @@ class ApiServerFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        controllerVM.initController(
-            virtualStickVM,
+        controllerVM.init(
             basicAircraftControlVM,
+            virtualStickVM,
         )
         viewModel.initController(controllerVM.controller)
 

@@ -31,9 +31,9 @@ class OscFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        controllerVM.initController(
-            virtualStickVM,
+        controllerVM.init(
             basicAircraftControlVM,
+            virtualStickVM,
         )
     }
 

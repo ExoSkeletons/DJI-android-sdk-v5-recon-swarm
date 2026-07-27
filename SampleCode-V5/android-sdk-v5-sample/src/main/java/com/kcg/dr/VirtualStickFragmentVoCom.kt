@@ -39,12 +39,9 @@ import com.kcg.dr.LocationUtils.distanceTo
 import com.kcg.dr.LocationUtils.translate
 import com.kcg.dr.api.ApiServerVM
 import com.kcg.dr.api.KeyActivator
+import com.kcg.dr.flight.AircraftControlViewModel
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.flight.AircraftController.CircleFaceMode
-import com.kcg.dr.flight.dji.DJIAircraft
-import com.kcg.dr.flight.dji.DJIGimbal
-import com.kcg.dr.flight.dji.DJIRCStick
-import com.kcg.dr.flight.dji.DJIVirtualStick
 import com.kcg.dr.location.LiveLocationProvider
 import com.kcg.dr.voice.AudioControlService
 import com.kcg.dr.voice.CommandResolver
@@ -108,9 +105,10 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     private val simulatorVM: SimulatorVM by activityViewModels()
     private val liveStreamVM: LiveStreamVM by activityViewModels()
     private val notificationVM: NotificationVM by activityViewModels()
+    private val controllerVM: AircraftControlViewModel by activityViewModels()
     private val apiServerVM: ApiServerVM by activityViewModels()
 
-    private lateinit var controller: AircraftController
+    private val controller: AircraftController get() = controllerVM.controller
     private val commandResolver: CommandResolver = CommandResolver()
     private val audioControlReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -947,15 +945,8 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     }
 
     private fun initController() {
-        controller = AircraftController(
-            lifecycleScope,
-
-            DJIVirtualStick(virtualStickVM),
-            DJIRCStick(),
-            DJIAircraft(basicAircraftControlVM),
-            DJIGimbal(),
-        )
-        apiServerVM.initController(controller)
+        controllerVM.init(basicAircraftControlVM, virtualStickVM)
+        apiServerVM.initController(controllerVM.controller)
 
         virtualStickVM.currentVirtualStickStateInfo.observe(viewLifecycleOwner) {
             binding?.tvControllerOwner?.text = "Control : " +
