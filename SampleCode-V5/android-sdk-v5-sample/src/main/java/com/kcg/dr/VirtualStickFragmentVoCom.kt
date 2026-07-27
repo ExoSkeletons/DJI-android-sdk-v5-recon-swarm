@@ -945,9 +945,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     }
 
     private fun initController() {
-        controllerVM.init(basicAircraftControlVM, virtualStickVM)
-        apiServerVM.initController(controllerVM.controller)
-
         virtualStickVM.currentVirtualStickStateInfo.observe(viewLifecycleOwner) {
             binding?.tvControllerOwner?.text = "Control : " +
                     when (it?.state?.isVirtualStickEnable) {
@@ -956,8 +953,9 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                     }
         }
         lifecycleScope.launch {
+            controllerVM.init(basicAircraftControlVM, virtualStickVM)
+            apiServerVM.initController(controllerVM.controller)
             try {
-                controller.init()
                 if (binding?.leftStickView != null && binding?.rightStickView != null)
                     attachOnScreenSticks(
                         binding?.leftStickView!!, binding?.rightStickView!!,

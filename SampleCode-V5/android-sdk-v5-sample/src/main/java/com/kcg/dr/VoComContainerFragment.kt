@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
 import com.kcg.dr.api.ApiServerVM
@@ -19,6 +20,7 @@ import dji.sampleV5.aircraft.models.BasicAircraftControlVM
 import dji.sampleV5.aircraft.models.RecordingVM
 import dji.sampleV5.aircraft.models.VirtualStickVM
 import dji.sampleV5.aircraft.pages.DJIFragment
+import kotlinx.coroutines.launch
 
 class VoComContainerFragment : DJIFragment() {
     private var _binding: FragVocomContainerBinding? = null
@@ -51,7 +53,9 @@ class VoComContainerFragment : DJIFragment() {
         super.onViewCreated(view, savedInstanceState)
 
         // Initialize the controller in the ViewModel
-        aircraftControlVM.init(basicAircraftControlVM, virtualStickVM)
+        lifecycleScope.launch {
+            aircraftControlVM.init(basicAircraftControlVM, virtualStickVM)
+        }
 
         voiceVM.setCommands(
             listOf(

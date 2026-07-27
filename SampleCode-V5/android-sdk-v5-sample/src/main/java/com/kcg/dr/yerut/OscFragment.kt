@@ -8,6 +8,7 @@ import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
 import com.kcg.dr.flight.AircraftControlViewModel
 import dji.sampleV5.aircraft.databinding.FragOscBinding
 import dji.sampleV5.aircraft.models.BasicAircraftControlVM
@@ -15,6 +16,7 @@ import dji.sampleV5.aircraft.models.CameraGimbalVM
 import dji.sampleV5.aircraft.models.IntelligentFlightVM
 import dji.sampleV5.aircraft.models.VirtualStickVM
 import dji.sampleV5.aircraft.models.WayPointV3VM
+import kotlinx.coroutines.launch
 
 class OscFragment : Fragment() {
     lateinit var binding: FragOscBinding
@@ -31,10 +33,12 @@ class OscFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        controllerVM.init(
-            basicAircraftControlVM,
-            virtualStickVM,
-        )
+        lifecycleScope.launch {
+            controllerVM.init(
+                basicAircraftControlVM,
+                virtualStickVM,
+            )
+        }
     }
 
     override fun onCreateView(

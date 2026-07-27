@@ -12,7 +12,6 @@ import com.kcg.dr.flight.dji.DJIRCStick
 import com.kcg.dr.flight.dji.DJIVirtualStick
 import dji.sampleV5.aircraft.models.BasicAircraftControlVM
 import dji.sampleV5.aircraft.models.VirtualStickVM
-import kotlinx.coroutines.launch
 
 class AircraftControlViewModel(application: Application) : AndroidViewModel(application) {
     private val c = MutableLiveData<AircraftController?>(null)
@@ -34,21 +33,19 @@ class AircraftControlViewModel(application: Application) : AndroidViewModel(appl
         c.postValue(controller)
     }
 
-    fun init(
+    suspend fun init(
         basicAircraftControlVM: BasicAircraftControlVM,
         virtualStickVM: VirtualStickVM,
     ) {
         if (c.value != null) return
-        viewModelScope.launch {
-            val controller = AircraftController(
-                viewModelScope,
-                DJIVirtualStick(virtualStickVM),
-                DJIRCStick(),
-                DJIAircraft(basicAircraftControlVM),
-                DJIGimbal(),
-            ).apply { init() }
-            setController(controller)
-        }
+        val controller = AircraftController(
+            viewModelScope,
+            DJIVirtualStick(virtualStickVM),
+            DJIRCStick(),
+            DJIAircraft(basicAircraftControlVM),
+            DJIGimbal(),
+        ).apply { init() }
+        setController(controller)
     }
 
     override fun onCleared() {

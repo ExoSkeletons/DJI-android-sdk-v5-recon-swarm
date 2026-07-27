@@ -6,12 +6,14 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.lifecycleScope
 import com.kcg.dr.NotificationVM
 import com.kcg.dr.flight.AircraftControlViewModel
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragApiServerBinding
 import dji.sampleV5.aircraft.models.BasicAircraftControlVM
 import dji.sampleV5.aircraft.models.VirtualStickVM
+import kotlinx.coroutines.launch
 
 class ApiServerFragment : Fragment() {
 
@@ -38,11 +40,13 @@ class ApiServerFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        controllerVM.init(
-            basicAircraftControlVM,
-            virtualStickVM,
-        )
-        viewModel.initController(controllerVM.controller)
+        lifecycleScope.launch {
+            controllerVM.init(
+                basicAircraftControlVM,
+                virtualStickVM,
+            )
+            viewModel.initController(controllerVM.controller)
+        }
 
         binding.switchServer.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) viewModel.startService(notificationVM.controllerChannelId)
