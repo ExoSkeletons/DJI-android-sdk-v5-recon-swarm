@@ -21,7 +21,7 @@ class AircraftControlViewModel(application: Application) : AndroidViewModel(appl
     val aircraftLocation = c.switchMap { it?.ac?.location?.asLiveData() ?: MutableLiveData(null) }
     val aircraftHeight = c.switchMap { it?.ac?.height?.asLiveData() ?: MutableLiveData(0.0) }
     val batteryPercent = c.switchMap {
-        it?.ac?.batteryPercent?.asLiveData() ?: MutableLiveData(0.0)
+        it?.ac?.batteryPercent?.asLiveData() ?: MutableLiveData(0)
     }
     val gimbalAttitude = c.switchMap {
         it?.camGim?.attitude?.asLiveData() ?: MutableLiveData(null)
