@@ -32,7 +32,7 @@ class AircraftControlViewModel(application: Application) : AndroidViewModel(appl
     //  to fire the actual api keys directly) as it should've been from the start loll
     fun setController(controller: AircraftController) {
         c.value?.destroy()
-        c.postValue(controller)
+        c.value = controller
     }
 
     // todo: controller vm should be init in main activity once,
