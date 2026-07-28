@@ -130,42 +130,48 @@ object Tunneling {
                 }
             }*/
 
-            withContext(Dispatchers.IO) {
-                // Manually request a tunnel by making a call to cloudflare's API
-                client.newCall(
-                    okhttp3.Request.Builder()
-                        .url(QUICK_TUNNEL_ENDPOINT)
-                        .post("".toRequestBody("application/json".toMediaType()))
-                        .build()
-                ).execute().use { response ->
-                    val body = json.parseToJsonElement(
-                        response.body?.string() ?: return@withContext emptyList<String>()
-                    ).jsonObject
-                    val result = json.decodeFromJsonElement<CloudflaredResult>(
-                        body["result"] ?: return@withContext emptyList<String>()
-                    )
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    // Manually request a tunnel by making a call to cloudflare's API
+                    client.newCall(
+                        okhttp3.Request.Builder()
+                            .url(QUICK_TUNNEL_ENDPOINT)
+                            .post("".toRequestBody("application/json".toMediaType()))
+                            .build()
+                    ).execute().use { response ->
+                        if (!response.isSuccessful) {
+                            Log.e("Tunneling", "Cloudflare API error: ${response.code}")
+                            return@withContext emptyList()
+                        }
+                        val body = json.parseToJsonElement(
+                            response.body?.string() ?: return@withContext emptyList()
+                        ).jsonObject
+                        val result = json.decodeFromJsonElement<CloudflaredResult>(
+                            body["result"] ?: return@withContext emptyList()
+                        )
 
-                    val cfgFile = setupCfg(context, result, port)
-                    val edgeIps = fetchEdgeIps()
+                        val cfgFile = setupCfg(context, result, port)
+                        val edgeIps = fetchEdgeIps()
 
-                    // Start cloudflared tunnel process, with our manually resolved edge ips
-                    val command = mutableListOf(
-                        cloudflared.absolutePath, "tunnel",
-                        "--config", cfgFile.absolutePath,
-                        "--edge-ip-version", "4",
-                        "--no-autoupdate"
-                    )
-                    for (ip in edgeIps.take(MAX_EDGE_IP_COUNT))
-                        command.addAll(listOf("--edge", ip))
-                    command.addAll(listOf("run", result.tunnelId))
-                    ProcessBuilder(command)
-                        .directory(context.cacheDir)
-                        .redirectErrorStream(true)
-                        .start()
+                        // Start cloudflared tunnel process, with our manually resolved edge ips
+                        val command = mutableListOf(
+                            cloudflared.absolutePath, "tunnel",
+                            "--config", cfgFile.absolutePath,
+                            "--edge-ip-version", "4",
+                            "--no-autoupdate"
+                        )
+                        for (ip in edgeIps.take(MAX_EDGE_IP_COUNT))
+                            command.addAll(listOf("--edge", ip))
+                        command.addAll(listOf("run", result.tunnelId))
+                        ProcessBuilder(command)
+                            .directory(context.cacheDir)
+                            .redirectErrorStream(true)
+                            .start()
 
-                    listOf(result.hostname)
+                        listOf(result.hostname)
+                    }
                 }
-            }
+            }.getOrNull() ?: emptyList()
         }
 
         private fun fetchEdgeIps(): MutableList<String> {

@@ -77,7 +77,7 @@ class ApiServerVM(application: Application) : AndroidViewModel(application) {
         )
         viewModelScope.launch {
             val urls = Cloudflared.startTunneling(context = context, port = port)
-            tunnelingUrl.value = urls.first()
+            tunnelingUrl.value = urls.firstOrNull()
         }
     }
 
