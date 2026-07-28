@@ -96,10 +96,8 @@ object CoroutineUtils {
         return try {
             block()
         } catch (e: DJIErrorException) {
-            if (e.error.isConnectionError()) {
-                Log.d(AircraftController.TAG, "Soft-ignored connection error: ${e.error}")
-                null
-            } else throw e
+            if (e.error.isConnectionError()) null
+            else throw e
         }
     }
 
