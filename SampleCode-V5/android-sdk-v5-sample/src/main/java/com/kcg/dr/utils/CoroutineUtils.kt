@@ -5,9 +5,11 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import dji.sdk.keyvalue.key.DJIKey
+import dji.sdk.keyvalue.key.FlightControllerKey
 import dji.v5.common.callback.CommonCallbacks
 import dji.v5.common.error.IDJIError
 import dji.v5.et.action
+import dji.v5.et.create
 import dji.v5.et.get
 import dji.v5.et.set
 import kotlinx.coroutines.CancellationException
@@ -90,10 +92,7 @@ object CoroutineUtils {
     }
 
     suspend fun <R> runOrNotConnected(block: (suspend () -> R)): R? {
-        val connected = await { onSuccess, onFailure ->
-            FlightControllerKey.KeyConnection.create().get(onSuccess, onFailure)
-        } ?: false
-        if (!connected) return null
+        FlightControllerKey.KeyConnection.create().get() ?: return null
         return try {
             block()
         } catch (e: DJIErrorException) {
