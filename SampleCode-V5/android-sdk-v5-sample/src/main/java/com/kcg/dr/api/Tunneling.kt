@@ -127,15 +127,18 @@ object Tunneling {
 
             withContext(Dispatchers.IO) {
                 // Manually request a tunnel by making a call to cloudflare's API
-                val client = OkHttpClient()
-                val request = okhttp3.Request.Builder()
-                    .url(QUICK_TUNNEL_ENDPOINT)
-                    .post("".toRequestBody("application/json".toMediaType()))
-                    .build()
-                val response = client.newCall(request).execute()
-                val responseJson = json.parseToJsonElement(response.body!!.string()).jsonObject
-                val resultJson = responseJson["result"] ?: return@withContext emptyList<String>()
-                val result = json.decodeFromJsonElement<CloudflaredResult>(resultJson)
+                client.newCall(
+                    okhttp3.Request.Builder()
+                        .url(QUICK_TUNNEL_ENDPOINT)
+                        .post("".toRequestBody("application/json".toMediaType()))
+                        .build()
+                ).execute().use { response ->
+                    val body = json.parseToJsonElement(
+                        response.body?.string() ?: return@withContext emptyList<String>()
+                    ).jsonObject
+                    val result = json.decodeFromJsonElement<CloudflaredResult>(
+                        body["result"] ?: return@withContext emptyList<String>()
+                    )
 
                 // Setup credentials file
                 val credFile = File(context.filesDir, CRED_FILE)
