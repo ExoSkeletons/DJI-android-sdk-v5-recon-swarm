@@ -93,7 +93,7 @@ object CoroutineUtils {
 
     suspend fun <R> runIfConnected(block: (suspend () -> R)): Result<R?> {
         return runCatching {
-            if (FlightControllerKey.KeyConnection.create().get() ?: false) null
+            if (FlightControllerKey.KeyConnection.create().get() != true) null
             else block()
         }.recover {
             if (it is DJIErrorException && it.error.isConnectionError())
