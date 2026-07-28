@@ -6,7 +6,7 @@ import dji.v5.lib.codec.util.DJIRuntimeException
 class DJIErrorException(val error: IDJIError, throwable: Throwable? = null) :
     DJIRuntimeException(
         "${error.errorType()}: " +
-                "${error.errorCode()},${error.innerCode()} ${error.description() ?: ""}" +
-                (error.hint()?.let { "\n$it" } ?: ""),
+                "${error.errorCode()},${error.innerCode()} " +
+                "${error.description() ?: ""} ${error.hint() ?: ""}",
         throwable
     )
