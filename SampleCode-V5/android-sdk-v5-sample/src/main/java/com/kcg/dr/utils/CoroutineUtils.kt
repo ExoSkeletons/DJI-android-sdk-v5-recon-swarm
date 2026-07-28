@@ -10,6 +10,7 @@ import dji.v5.common.error.IDJIError
 import dji.v5.et.action
 import dji.v5.et.get
 import dji.v5.et.set
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.coroutineScope
@@ -20,6 +21,8 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 object CoroutineUtils {
+    class SuspendCancellableTrace : CancellationException()
+
     suspend fun whileSuspendedBy(
         suspenders: List<suspend () -> Unit>,
         block: suspend () -> Unit
@@ -37,46 +40,44 @@ object CoroutineUtils {
         block: suspend () -> Unit
     ) = whileSuspendedBy(listOf(suspender), block)
 
-    suspend fun <T> awaitCallback(block: (CommonCallbacks.CompletionCallbackWithParam<T>) -> Unit): T? =
-        suspendCancellableCoroutine { cont ->
+    suspend fun <T> awaitCallback(block: (CommonCallbacks.CompletionCallbackWithParam<T>) -> Unit): T? {
+        val trace = SuspendCancellableTrace()
+        return suspendCancellableCoroutine { cont ->
             val resumeCallback = object : CommonCallbacks.CompletionCallbackWithParam<T> {
                 override fun onSuccess(value: T?) = cont.resume(value)
 
                 override fun onFailure(error: IDJIError) =
-                    cont.resumeWithException(DJIErrorException(error))
+                    cont.resumeWithException(DJIErrorException(error, trace))
             }
             block(resumeCallback)
         }
+    }
 
     suspend fun awaitCallback0(block: (CommonCallbacks.CompletionCallback) -> Unit) =
-        suspendCancellableCoroutine {
-            val resumeCallback = object : CommonCallbacks.CompletionCallback {
-                override fun onSuccess() =
-                    it.resume(Unit)
-
-                override fun onFailure(error: IDJIError) =
-                    it.resumeWithException(DJIErrorException(error))
-            }
-            block(resumeCallback)
+        awaitCallback { c ->
+            block(object : CommonCallbacks.CompletionCallback {
+                override fun onSuccess() = c.onSuccess(Unit)
+                override fun onFailure(error: IDJIError) = c.onFailure(error)
+            })
         }
 
-    suspend fun <T> awaitOrNull(block: (CommonCallbacks.CompletionCallbackWithParam<T>) -> Unit) =
-        suspendCancellableCoroutine { cont ->
-            val resumeCallback = object : CommonCallbacks.CompletionCallbackWithParam<T> {
-                override fun onSuccess(value: T?) = cont.resume(value)
-                override fun onFailure(error: IDJIError) = cont.resume(null)
-            }
-            block(resumeCallback)
+    suspend fun <T> awaitOrNull(block: (CommonCallbacks.CompletionCallbackWithParam<T>) -> Unit): T? =
+        awaitCallback { c ->
+            block(object : CommonCallbacks.CompletionCallbackWithParam<T> {
+                override fun onSuccess(value: T?) = c.onSuccess(value)
+                override fun onFailure(error: IDJIError) = c.onSuccess(null)
+            })
         }
 
     suspend fun await0(block: (() -> Unit, ((IDJIError) -> Unit)) -> Unit) =
         await { s, e -> block({ s(Unit) }, e) }
 
-    suspend fun <R> await(block: (((R?) -> Unit), ((IDJIError) -> Unit)) -> Unit) =
-        suspendCancellableCoroutine { cont ->
+    suspend fun <R> await(block: (((R) -> Unit), ((IDJIError) -> Unit)) -> Unit): R {
+        val trace = SuspendCancellableTrace()
+        return suspendCancellableCoroutine { cont ->
             block(
                 { cont.resume(it) },
-                { cont.resumeWithException(DJIErrorException(it)) }
+                { cont.resumeWithException(DJIErrorException(it, trace)) }
             )
         }
     }
