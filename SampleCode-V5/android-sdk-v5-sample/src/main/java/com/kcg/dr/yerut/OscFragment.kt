@@ -34,10 +34,7 @@ class OscFragment : Fragment() {
         super.onCreate(savedInstanceState)
 
         lifecycleScope.launch {
-            controllerVM.init(
-                basicAircraftControlVM,
-                virtualStickVM,
-            )
+            controllerVM.init(virtualStickVM)
         }
     }
 

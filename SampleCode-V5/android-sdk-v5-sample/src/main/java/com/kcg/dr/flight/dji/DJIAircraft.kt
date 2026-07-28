@@ -3,11 +3,11 @@ package com.kcg.dr.flight.dji
 import android.util.Log
 import com.kcg.dr.flight.AircraftController.Companion.TAG
 import com.kcg.dr.flight.AircraftController.IAircraft
-import com.kcg.dr.utils.CoroutineUtils.awaitCallback
-import dji.sampleV5.aircraft.models.BasicAircraftControlVM
+import com.kcg.dr.utils.CoroutineUtils.await
 import dji.sampleV5.aircraft.util.ToastUtils
 import dji.sdk.keyvalue.key.FlightControllerKey
 import dji.sdk.keyvalue.value.common.Attitude
+import dji.sdk.keyvalue.value.common.EmptyMsg
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
 import dji.v5.common.callback.CommonCallbacks
 import dji.v5.common.error.IDJIError
@@ -25,9 +25,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.isActive
 import kotlin.time.Duration.Companion.milliseconds
 
-class DJIAircraft(
-    private val acVM: BasicAircraftControlVM,
-) : IAircraft {
+class DJIAircraft : IAircraft {
     private val _isFlying = MutableStateFlow(false)
     private val _height = MutableStateFlow(0.0)
     private val _location: MutableStateFlow<LocationCoordinate3D?> = MutableStateFlow(null)
@@ -43,11 +41,15 @@ class DJIAircraft(
     override val heading = _heading
 
     override suspend fun takeoff() {
-        awaitCallback(acVM::startTakeOff).let { }
+        await { onSuccess: (EmptyMsg) -> Unit, onFailure ->
+            FlightControllerKey.KeyStartTakeoff.create().action(onSuccess, onFailure)
+        }
     }
 
     override suspend fun land() = coroutineScope {
-        awaitCallback(acVM::startLanding)
+        await { onSuccess: (EmptyMsg) -> Unit, onFailure ->
+            FlightControllerKey.KeyStartAutoLanding.create().action(onSuccess, onFailure)
+        }
 
         while (isActive && (isFlying.value || areMotorsOn.value)) {
             delay(500.milliseconds)

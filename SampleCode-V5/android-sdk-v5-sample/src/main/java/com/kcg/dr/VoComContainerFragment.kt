@@ -54,7 +54,7 @@ class VoComContainerFragment : DJIFragment() {
 
         // Initialize the controller in the ViewModel
         lifecycleScope.launch {
-            aircraftControlVM.init(basicAircraftControlVM, virtualStickVM)
+            aircraftControlVM.init(virtualStickVM)
         }
 
         voiceVM.setCommands(

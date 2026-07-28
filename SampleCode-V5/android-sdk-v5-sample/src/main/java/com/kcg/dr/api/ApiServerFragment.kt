@@ -40,10 +40,7 @@ class ApiServerFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         lifecycleScope.launch {
-            controllerVM.init(
-                basicAircraftControlVM,
-                virtualStickVM,
-            )
+            controllerVM.init(virtualStickVM)
             viewModel.initController(controllerVM.controller)
         }
 

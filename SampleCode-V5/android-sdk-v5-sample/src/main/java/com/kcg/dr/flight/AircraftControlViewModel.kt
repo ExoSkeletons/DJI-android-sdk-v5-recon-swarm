@@ -9,7 +9,6 @@ import com.kcg.dr.flight.dji.DJIAircraft
 import com.kcg.dr.flight.dji.DJIGimbal
 import com.kcg.dr.flight.dji.DJIRCStick
 import com.kcg.dr.flight.dji.DJIVirtualStick
-import dji.sampleV5.aircraft.models.BasicAircraftControlVM
 import dji.sampleV5.aircraft.models.VirtualStickVM
 
 class AircraftControlViewModel(application: Application) : AndroidViewModel(application) {
@@ -38,15 +37,12 @@ class AircraftControlViewModel(application: Application) : AndroidViewModel(appl
     // todo: controller vm should be init in main activity once,
     //  with no args (when we switch away from vsVM, bacVM)
     //  then frags pulling the controller vm should all pull it with an already init-ed controller
-    suspend fun init(
-        basicAircraftControlVM: BasicAircraftControlVM,
-        virtualStickVM: VirtualStickVM,
-    ) {
+    suspend fun init(virtualStickVM: VirtualStickVM) {
         if (c.value != null) return
         val controller = AircraftController(
             DJIVirtualStick(virtualStickVM),
             DJIRCStick(),
-            DJIAircraft(basicAircraftControlVM),
+            DJIAircraft(),
             DJIGimbal(),
         ).apply { init() }
         setController(controller)

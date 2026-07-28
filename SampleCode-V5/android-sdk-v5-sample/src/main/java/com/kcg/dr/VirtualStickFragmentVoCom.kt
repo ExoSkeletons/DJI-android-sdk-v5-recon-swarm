@@ -959,7 +959,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                     }
         }
         lifecycleScope.launch {
-            controllerVM.init(basicAircraftControlVM, virtualStickVM)
+            controllerVM.init(virtualStickVM)
             apiServerVM.initController(controllerVM.controller)
             try {
                 if (binding?.leftStickView != null && binding?.rightStickView != null)
