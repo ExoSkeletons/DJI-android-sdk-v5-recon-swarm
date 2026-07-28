@@ -145,56 +145,70 @@ object Tunneling {
                         body["result"] ?: return@withContext emptyList<String>()
                     )
 
-                // Setup credentials file
-                val credFile = File(context.filesDir, CRED_FILE)
-                credFile.writeText(
-                    JSONObject().apply {
-                        put("TunnelID", result.tunnelId)
-                        put("AccountTag", result.accountTag)
-                        put("TunnelSecret", result.secret)
-                    }.toString()
-                )
-                // Setup config file
-                val cfgFile = File(context.filesDir, CFG_FILE)
-                cfgFile.writeText(
-                    """
-                    tunnel_id: ${result.tunnelId}
-                    credentials-file: ${credFile.absolutePath}
-                    protocol: http2
-                    ingress:
-                        - hostname: ${result.hostname}
-                            service: http://localhost:$port
-                        - service: http_status:404
-                """.trimIndent()
-                )
+                    val cfgFile = setupCfg(context, result, port)
+                    val edgeIps = fetchEdgeIps()
 
-                // Since Cloudflare Go DNS fails, we use Java InetAddress to resolve DNS manually
-                // and collect the edge ips from cloudflare's region clusters
-                val edgeIps = mutableListOf<String>()
-                val edgeClusters = listOf("region1.v2.argotunnel.com", "region2.v2.argotunnel.com")
-                for (host in edgeClusters) {
-                    InetAddress.getAllByName(host)
-                        .filter { it is Inet4Address }
-                        .forEach { edgeIps.add("${it.hostAddress}:7844") }
+                    // Start cloudflared tunnel process, with our manually resolved edge ips
+                    val command = mutableListOf(
+                        cloudflared.absolutePath, "tunnel",
+                        "--config", cfgFile.absolutePath,
+                        "--edge-ip-version", "4",
+                        "--no-autoupdate"
+                    )
+                    for (ip in edgeIps.take(MAX_EDGE_IP_COUNT))
+                        command.addAll(listOf("--edge", ip))
+                    command.addAll(listOf("run", result.tunnelId))
+                    ProcessBuilder(command)
+                        .directory(context.cacheDir)
+                        .redirectErrorStream(true)
+                        .start()
+
+                    listOf(result.hostname)
                 }
-
-                // Start cloudflared tunnel process, with our manually resolved edge ips
-                val command = mutableListOf(
-                    cloudflared.absolutePath, "tunnel",
-                    "--config", cfgFile.absolutePath,
-                    "--edge-ip-version", "4",
-                    "--no-autoupdate"
-                )
-                for (ip in edgeIps.take(MAX_EDGE_IP_COUNT))
-                    command.addAll(listOf("--edge", ip))
-                command.addAll(listOf("run", result.tunnelId))
-                ProcessBuilder(command)
-                    .directory(context.cacheDir)
-                    .redirectErrorStream(true)
-                    .start()
-
-                listOf(result.hostname)
             }
+        }
+
+        private fun fetchEdgeIps(): MutableList<String> {
+            // Since Cloudflare Go DNS fails, we use Java InetAddress to resolve DNS manually
+            // and collect the edge ips from cloudflare's region clusters
+            val edgeIps = mutableListOf<String>()
+            val edgeClusters = listOf("region1.v2.argotunnel.com", "region2.v2.argotunnel.com")
+            for (host in edgeClusters) {
+                InetAddress.getAllByName(host)
+                    .filter { it is Inet4Address }
+                    .forEach { edgeIps.add("${it.hostAddress}:7844") }
+            }
+            return edgeIps
+        }
+
+        private fun setupCfg(
+            context: Context,
+            result: CloudflaredResult,
+            port: Int
+        ): File {
+            // Setup credentials file
+            val credFile = File(context.filesDir, CRED_FILE)
+            credFile.writeText(
+                JSONObject().apply {
+                    put("TunnelID", result.tunnelId)
+                    put("AccountTag", result.accountTag)
+                    put("TunnelSecret", result.secret)
+                }.toString()
+            )
+            // Setup config file
+            val cfgFile = File(context.filesDir, CFG_FILE)
+            cfgFile.writeText(
+                """
+                                        tunnel_id: ${result.tunnelId}
+                                        credentials-file: ${credFile.absolutePath}
+                                        protocol: http2
+                                        ingress:
+                                            - hostname: ${result.hostname}
+                                                service: http://localhost:$port
+                                            - service: http_status:404
+                                    """.trimIndent()
+            )
+            return cfgFile
         }
 
         override suspend fun stopTunneling() {
