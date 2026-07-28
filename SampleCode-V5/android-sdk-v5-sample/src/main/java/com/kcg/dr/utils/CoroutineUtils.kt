@@ -91,19 +91,23 @@ object CoroutineUtils {
             .matches(error.errorCode())
     }
 
-    suspend fun <R> runOrNotConnected(block: (suspend () -> R)): R? {
-        FlightControllerKey.KeyConnection.create().get() ?: return null
-        return try {
-            block()
-        } catch (e: DJIErrorException) {
-            if (e.error.isConnectionError()) null
-            else throw e
+    suspend fun <R> runIfConnected(block: (suspend () -> R)): Result<R?> {
+        return runCatching {
+            if (FlightControllerKey.KeyConnection.create().get() ?: false) null
+            else block()
+        }.recover {
+            if (it is DJIErrorException && it.error.isConnectionError())
+                return@recover null // Transform connection error into null result
+            throw it
         }
     }
 
-    suspend fun runOrNotConnected0(block: (suspend () -> Unit)) {
-        runOrNotConnected { block(); }
-    }
+    suspend fun runIfConnected0(block: (suspend () -> Unit)): Result<Unit> =
+        runIfConnected<Unit> { block(); }.map { }
+
+    suspend fun runIfConnected00(block: (suspend () -> Unit)) =
+        runIfConnected0 { block(); }.map { }.getOrDefault(Unit)
+
 
     fun <T, F : Flow<T>> F.observe(lifecycleOwner: LifecycleOwner, observer: (T) -> Unit) {
         lifecycleOwner.lifecycleScope.launch {

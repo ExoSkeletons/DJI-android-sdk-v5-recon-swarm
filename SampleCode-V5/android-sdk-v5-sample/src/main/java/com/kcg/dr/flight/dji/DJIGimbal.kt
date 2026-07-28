@@ -3,7 +3,7 @@ package com.kcg.dr.flight.dji
 import com.kcg.dr.flight.AircraftController.IGimbal
 import com.kcg.dr.utils.CoroutineUtils.await
 import com.kcg.dr.utils.CoroutineUtils.await0
-import com.kcg.dr.utils.CoroutineUtils.runOrNotConnected0
+import com.kcg.dr.utils.CoroutineUtils.runIfConnected00
 import dji.sdk.keyvalue.key.GimbalKey
 import dji.sdk.keyvalue.value.common.Attitude
 import dji.sdk.keyvalue.value.gimbal.GimbalAngleRotation
@@ -20,13 +20,13 @@ class DJIGimbal : IGimbal {
     private val _attitude = MutableStateFlow(Attitude())
     override val attitude = _attitude
 
-    override suspend fun setCameraGimbalMode(mode: GimbalMode) = runOrNotConnected0 {
+    override suspend fun setCameraGimbalMode(mode: GimbalMode) = runIfConnected00 {
         await0 { onSuccess, onFailure ->
             GimbalKey.KeyGimbalMode.create().set(mode, onSuccess, onFailure)
         }
     }
 
-    override suspend fun reset() = runOrNotConnected0 {
+    override suspend fun reset() = runIfConnected00 {
         GimbalKey.KeyGimbalAttitude.create().cancelListen(this)
         GimbalKey.KeyGimbalAttitude.create().listen(this) {
             it?.let { _attitude.value = it }

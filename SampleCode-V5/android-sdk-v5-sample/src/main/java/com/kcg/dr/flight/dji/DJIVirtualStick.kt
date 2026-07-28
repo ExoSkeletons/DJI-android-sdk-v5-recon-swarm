@@ -1,10 +1,11 @@
 package com.kcg.dr.flight.dji
 
 import android.util.Log
-import com.kcg.dr.utils.CoroutineUtils.awaitCallback0
 import com.kcg.dr.flight.AircraftController.Companion.TAG
 import com.kcg.dr.flight.AircraftController.FlightParam
 import com.kcg.dr.flight.AircraftController.IVirtualStick
+import com.kcg.dr.utils.CoroutineUtils.awaitCallback0
+import com.kcg.dr.utils.CoroutineUtils.runIfConnected00
 import dji.sampleV5.aircraft.models.VirtualStickVM
 import dji.sdk.keyvalue.value.flightcontroller.RollPitchControlMode
 import dji.sdk.keyvalue.value.flightcontroller.VerticalControlMode
@@ -60,7 +61,7 @@ class DJIVirtualStick(private val stickVM: VirtualStickVM) : IVirtualStick {
         }
     }
 
-    override suspend fun takeControl() {
+    override suspend fun takeControl() = runIfConnected00 {
         requireVirtualStick()
         requireVirtualStickAdvancedMode()
     }
