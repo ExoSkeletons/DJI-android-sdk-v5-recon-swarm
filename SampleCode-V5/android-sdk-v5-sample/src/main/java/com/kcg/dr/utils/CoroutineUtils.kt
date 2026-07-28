@@ -42,6 +42,7 @@ object CoroutineUtils {
         block: suspend () -> Unit
     ) = whileSuspendedBy(listOf(suspender), block)
 
+    @JvmName("awaitCallbackWithParam")
     suspend fun <T> awaitCallback(block: (CommonCallbacks.CompletionCallbackWithParam<T>) -> Unit): T? {
         val trace = SuspendCancellableTrace()
         return suspendCancellableCoroutine { cont ->
@@ -55,8 +56,8 @@ object CoroutineUtils {
         }
     }
 
-    suspend fun awaitCallback0(block: (CommonCallbacks.CompletionCallback) -> Unit) =
-        awaitCallback { c ->
+    suspend fun awaitCallback(block: (CommonCallbacks.CompletionCallback) -> Unit) =
+        awaitCallback<Unit> { c ->
             block(object : CommonCallbacks.CompletionCallback {
                 override fun onSuccess() = c.onSuccess(Unit)
                 override fun onFailure(error: IDJIError) = c.onFailure(error)
@@ -64,16 +65,17 @@ object CoroutineUtils {
         }
 
     suspend fun <T> awaitOrNull(block: (CommonCallbacks.CompletionCallbackWithParam<T>) -> Unit): T? =
-        awaitCallback { c ->
+        awaitCallback<T> { c ->
             block(object : CommonCallbacks.CompletionCallbackWithParam<T> {
                 override fun onSuccess(value: T?) = c.onSuccess(value)
                 override fun onFailure(error: IDJIError) = c.onSuccess(null)
             })
         }
 
-    suspend fun await0(block: (() -> Unit, ((IDJIError) -> Unit)) -> Unit) =
-        await { s, e -> block({ s(Unit) }, e) }
+    suspend fun await(block: (() -> Unit, ((IDJIError) -> Unit)) -> Unit) =
+        await<Unit> { s, e -> block({ s(Unit) }, e) }
 
+    @JvmName("awaitResult")
     suspend fun <R> await(block: (((R) -> Unit), ((IDJIError) -> Unit)) -> Unit): R {
         val trace = SuspendCancellableTrace()
         return suspendCancellableCoroutine { cont ->
@@ -91,6 +93,7 @@ object CoroutineUtils {
             .matches(error.errorCode())
     }
 
+    @JvmName("runIfConnectedForResult")
     suspend fun <R> runIfConnected(block: (suspend () -> R)): Result<R?> {
         return runCatching {
             if (FlightControllerKey.KeyConnection.create().get() != true) null
@@ -102,11 +105,11 @@ object CoroutineUtils {
         }
     }
 
-    suspend fun runIfConnected0(block: (suspend () -> Unit)): Result<Unit> =
+    suspend fun runIfConnected(block: (suspend () -> Unit)): Result<Unit> =
         runIfConnected<Unit> { block(); }.map { }
 
-    suspend fun runIfConnected00(block: (suspend () -> Unit)) =
-        runIfConnected0 { block(); }.map { }.getOrDefault(Unit)
+    suspend fun ifConnected(block: (suspend () -> Unit)) =
+        runIfConnected { block(); }.map { }.getOrDefault(Unit)
 
 
     fun <T, F : Flow<T>> F.observe(lifecycleOwner: LifecycleOwner, observer: (T) -> Unit) {

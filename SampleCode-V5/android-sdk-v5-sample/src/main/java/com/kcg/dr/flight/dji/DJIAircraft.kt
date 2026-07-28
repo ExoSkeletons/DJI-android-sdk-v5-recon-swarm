@@ -1,9 +1,9 @@
 package com.kcg.dr.flight.dji
 
 import android.util.Log
-import com.kcg.dr.utils.CoroutineUtils.awaitCallback
 import com.kcg.dr.flight.AircraftController.Companion.TAG
 import com.kcg.dr.flight.AircraftController.IAircraft
+import com.kcg.dr.utils.CoroutineUtils.awaitCallback
 import dji.sampleV5.aircraft.models.BasicAircraftControlVM
 import dji.sampleV5.aircraft.util.ToastUtils
 import dji.sdk.keyvalue.key.FlightControllerKey
@@ -43,11 +43,11 @@ class DJIAircraft(
     override val heading = _heading
 
     override suspend fun takeoff() {
-        awaitCallback { acVM.startTakeOff(it) }
+        awaitCallback(acVM::startTakeOff).let { }
     }
 
     override suspend fun land() = coroutineScope {
-        awaitCallback { acVM.startLanding(it) }
+        awaitCallback(acVM::startLanding)
 
         while (isActive && (isFlying.value || areMotorsOn.value)) {
             delay(500.milliseconds)

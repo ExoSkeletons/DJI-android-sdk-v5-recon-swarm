@@ -2,10 +2,10 @@ package com.kcg.dr.flight.dji
 
 import com.kcg.dr.flight.AircraftController.IGimbal
 import com.kcg.dr.utils.CoroutineUtils.await
-import com.kcg.dr.utils.CoroutineUtils.await0
-import com.kcg.dr.utils.CoroutineUtils.runIfConnected00
+import com.kcg.dr.utils.CoroutineUtils.ifConnected
 import dji.sdk.keyvalue.key.GimbalKey
 import dji.sdk.keyvalue.value.common.Attitude
+import dji.sdk.keyvalue.value.common.EmptyMsg
 import dji.sdk.keyvalue.value.gimbal.GimbalAngleRotation
 import dji.sdk.keyvalue.value.gimbal.GimbalMode
 import dji.sdk.keyvalue.value.gimbal.GimbalResetType
@@ -20,22 +20,22 @@ class DJIGimbal : IGimbal {
     private val _attitude = MutableStateFlow(Attitude())
     override val attitude = _attitude
 
-    override suspend fun setCameraGimbalMode(mode: GimbalMode) = runIfConnected00 {
-        await0 { onSuccess, onFailure ->
+    override suspend fun setCameraGimbalMode(mode: GimbalMode) = ifConnected {
+        await { onSuccess, onFailure ->
             GimbalKey.KeyGimbalMode.create().set(mode, onSuccess, onFailure)
         }
     }
 
-    override suspend fun reset() = runIfConnected00 {
+    override suspend fun reset() = ifConnected {
         GimbalKey.KeyGimbalAttitude.create().cancelListen(this)
         GimbalKey.KeyGimbalAttitude.create().listen(this) {
             it?.let { _attitude.value = it }
         }
 
-        await { onSuccess, onFailure ->
+        await { onSuccess: ((EmptyMsg?) -> Unit), onFailure ->
             GimbalKey.KeyGimbalReset.create().action(GimbalResetType.RECENTER, onSuccess, onFailure)
         }
-        await0 { onSuccess, onFailure ->
+        await { onSuccess, onFailure ->
             GimbalKey.KeyGimbalMode.create().set(GimbalMode.YAW_FOLLOW, onSuccess, onFailure)
         }
     }
@@ -45,7 +45,7 @@ class DJIGimbal : IGimbal {
         mode: GimbalMode?
     ) {
         mode?.let { setCameraGimbalMode(it) }
-        await { onSuccess, onFailure ->
+        await { onSuccess: ((EmptyMsg?) -> Unit), onFailure ->
             GimbalKey.KeyRotateByAngle.create().action(rotation, onSuccess, onFailure)
         }
     }

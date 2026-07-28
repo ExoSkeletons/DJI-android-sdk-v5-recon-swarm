@@ -4,8 +4,8 @@ import android.util.Log
 import com.kcg.dr.flight.AircraftController.Companion.TAG
 import com.kcg.dr.flight.AircraftController.FlightParam
 import com.kcg.dr.flight.AircraftController.IVirtualStick
-import com.kcg.dr.utils.CoroutineUtils.awaitCallback0
-import com.kcg.dr.utils.CoroutineUtils.runIfConnected00
+import com.kcg.dr.utils.CoroutineUtils.awaitCallback
+import com.kcg.dr.utils.CoroutineUtils.ifConnected
 import dji.sampleV5.aircraft.models.VirtualStickVM
 import dji.sdk.keyvalue.value.flightcontroller.RollPitchControlMode
 import dji.sdk.keyvalue.value.flightcontroller.VerticalControlMode
@@ -28,7 +28,7 @@ class DJIVirtualStick(private val stickVM: VirtualStickVM) : IVirtualStick {
             Log.d(TAG, "virtual stick already enabled")
             return
         }
-        awaitCallback0 {
+        awaitCallback {
             stickVM.enableVirtualStick(it)
         }
         Log.d(TAG, "virtual stick enabled")
@@ -61,7 +61,7 @@ class DJIVirtualStick(private val stickVM: VirtualStickVM) : IVirtualStick {
         }
     }
 
-    override suspend fun takeControl() = runIfConnected00 {
+    override suspend fun takeControl() = ifConnected {
         requireVirtualStick()
         requireVirtualStickAdvancedMode()
     }
@@ -73,7 +73,7 @@ class DJIVirtualStick(private val stickVM: VirtualStickVM) : IVirtualStick {
             Log.d(TAG, "virtual stick already disabled")
             return
         }
-        awaitCallback0 {
+        awaitCallback {
             stickVM.disableVirtualStick(it)
         }
         Log.d(TAG, "virtual stick disabled")
