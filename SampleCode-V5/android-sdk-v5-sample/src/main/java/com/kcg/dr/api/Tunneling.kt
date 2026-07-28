@@ -24,6 +24,8 @@ import org.json.JSONObject
 import java.io.File
 import java.net.Inet4Address
 import java.net.InetAddress
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.toJavaDuration
 
 object Tunneling {
     interface Tunneler {
@@ -94,6 +96,9 @@ object Tunneling {
             ignoreUnknownKeys = true
             isLenient = true
         }
+        val client = OkHttpClient().newBuilder()
+            .callTimeout(20.seconds.toJavaDuration())
+            .build()
 
         override suspend fun startTunneling(
             context: Context, port: Int
