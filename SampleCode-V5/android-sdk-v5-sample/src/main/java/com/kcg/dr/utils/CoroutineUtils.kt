@@ -79,6 +79,33 @@ object CoroutineUtils {
                 { cont.resumeWithException(DJIErrorException(it)) }
             )
         }
+    }
+
+    fun IDJIError.isConnectionError(): Boolean {
+        val error = this
+        return "REQUEST[ _]HANDLER[ _]NOT[ _]FOUND[ _]"
+            .toRegex(RegexOption.IGNORE_CASE)
+            .matches(error.errorCode())
+    }
+
+    suspend fun <R> runOrNotConnected(block: (suspend () -> R)): R? {
+        val connected = await { onSuccess, onFailure ->
+            FlightControllerKey.KeyConnection.create().get(onSuccess, onFailure)
+        } ?: false
+        if (!connected) return null
+        return try {
+            block()
+        } catch (e: DJIErrorException) {
+            if (e.error.isConnectionError()) {
+                Log.d(AircraftController.TAG, "Soft-ignored connection error: ${e.error}")
+                null
+            } else throw e
+        }
+    }
+
+    suspend fun runOrNotConnected0(block: (suspend () -> Unit)) {
+        runOrNotConnected { block(); }
+    }
 
     fun <T, F : Flow<T>> F.observe(lifecycleOwner: LifecycleOwner, observer: (T) -> Unit) {
         lifecycleOwner.lifecycleScope.launch {
