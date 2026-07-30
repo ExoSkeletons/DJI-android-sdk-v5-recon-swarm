@@ -114,7 +114,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     private val apiServerVM: ApiServerVM by activityViewModels()
 
     private val controller: AircraftController get() = controllerVM.controller
-    private val commandResolver = RegexCommandResolver(resources)
+    private lateinit var commandResolver: RegexCommandResolver
     private val audioControlReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == AudioControlService.ACTION_START_VOICE_RECOGNITION)
@@ -988,6 +988,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         val respFmtExId = R.string.commands_response_fmt_executing
         val respFmtGoId = R.string.commands_response_fmt_going
 
+        commandResolver = RegexCommandResolver(resources)
         commandResolver.setCommands(
             listOf(
                 Command(R.string.commands_stop) { controller.stop() },
