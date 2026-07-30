@@ -49,7 +49,7 @@ class VoiceControlFragment : Fragment() {
         }
 
         voiceVM.commandResult.observe(viewLifecycleOwner) {
-            binding.commandResult.text = it
+            binding.sttResult.text = it
         }
     }
 

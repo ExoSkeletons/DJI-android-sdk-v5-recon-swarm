@@ -516,7 +516,7 @@
             android:visibility="gone" />
 
         <TextView
-            android:id="@+id/commandResult"
+            android:id="@+id/stt_result"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"

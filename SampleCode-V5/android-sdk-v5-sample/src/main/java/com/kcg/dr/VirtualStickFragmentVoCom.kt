@@ -77,6 +77,7 @@ import dji.v5.manager.datacenter.MediaDataCenter
 import dji.v5.manager.datacenter.livestream.LiveVideoBitrateMode
 import dji.v5.manager.datacenter.livestream.StreamQuality
 import dji.v5.manager.interfaces.ICameraStreamManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -1354,32 +1355,33 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
     private fun onHearText(spokenText: String) {
         val lr = requireContext().getLocalizedResources(locale)
-        commandResolver.resources = lr
-        val resolve = commandResolver.resolve(spokenText)
 
-        when (resolve) {
-            null -> binding?.commandResult?.text =
-                lr.getString(R.string.error_speech_unrecognised)
+        commandResolver.resources = lr
+        val match = when (
+            val resolution = commandResolver.resolveToExecute(spokenText)
+        ) {
+            null -> lr.getString(R.string.error_speech_unrecognised)
 
             else -> {
-                val (com, match) = resolve
+                val (action, function) = resolution
                 try {
-                    com.func(match)
                     SFXManager.playSfx(SFXManager.SFX.ACTION_CONFIRM)
-                    com.response(lr)?.let {
-                        speakText(
-                            lr.getString(R.string.commands_response_fmt_accepted) + ". " +
-                                    it
-                        )
+                    speakText(
+                        lr.getString(R.string.commands_response_fmt_accepted) + ". " +
+                                commandResolver.responseTo(action)
+                    )
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        function()
                     }
-                    binding?.commandResult?.text =
-                        com.name(lr)
+                    commandResolver.nameOf(action)
                 } catch (e: Exception) {
                     SFXManager.playSfx(SFXManager.SFX.NOTIFY_TECHNICAL)
                     ToastUtils.showToast(e.message ?: e.toString())
+                    e.message
                 }
             }
         }
+        binding?.sttResult?.text = match
     }
 
     private fun enableSimulator() {

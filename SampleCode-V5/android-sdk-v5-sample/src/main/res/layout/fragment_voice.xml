@@ -129,7 +129,7 @@
 
             <!-- Speech Result -->
             <TextView
-                android:id="@+id/commandResult"
+                android:id="@+id/stt_result"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"

@@ -15,12 +15,12 @@ interface SpeechExecutor<T, A, R> : SpeechResolver<T?> {
 
     fun responseTo(t: T): String = ""
 
-    suspend fun execute(t: T, arg: A): R
+    suspend fun execute(t: T, arg: A? = null): R
 
-    suspend fun resolveAndExecute(speech: String, arg: A): R? =
+    suspend fun resolveAndExecute(speech: String, arg: A? = null): R? =
         resolve(speech)?.let { execute(it, arg) }
 
-    fun resolveToExecute(speech: String, arg: A): Pair<T, suspend () -> R>? =
+    fun resolveToExecute(speech: String, arg: A? = null): Pair<T, suspend () -> R>? =
         resolve(speech)?.let { it to { execute(it, arg) } }
 }
 
@@ -40,7 +40,7 @@ interface CandidateResolver<C, M> : SpeechResolver<Pair<C, M>?> {
 }
 
 interface CandidateExecutor<C, M, R> : SpeechExecutor<Pair<C, M>, Unit, R> {
-    override suspend fun execute(t: Pair<C, M>, arg: Unit): R =
+    override suspend fun execute(t: Pair<C, M>, arg: Unit?): R =
         execute(t.first, t.second)
 
     fun execute(candidate: C, match: M): R
@@ -121,7 +121,7 @@ class ActionResolver :
     override val serializer: KSerializer<Action> = Action.serializer()
     override fun nameOf(t: Action): String = t.javaClass.simpleName
 
-    override suspend fun execute(t: Action, arg: AircraftController) {
-        t.act(arg)
+    override suspend fun execute(t: Action, arg: AircraftController?) {
+        arg?.let { t.act(it) }
     }
 }

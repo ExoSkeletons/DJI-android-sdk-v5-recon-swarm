@@ -6,9 +6,13 @@ import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.viewModelScope
 import com.kcg.dr.utils.LocaleUtils.getLocalizedResources
 import com.kcg.dr.utils.SFXManager
 import dji.sampleV5.aircraft.R
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import okhttp3.Dispatcher
 import java.util.Locale
 
 private const val TAG = "VoiceViewModel"
@@ -61,24 +65,25 @@ class VoiceVM(application: Application) : AndroidViewModel(application) {
                     this.getLocalizedResources(locale)
                 } ?: this.resources
             }
+
             commandResolver.resources = lr
-            val resolve = commandResolver.resolve(s)
-            if (resolve == null) {
+            val resolution = commandResolver.resolveToExecute(s)
+            if (resolution == null) {
                 commandResult.postValue(lr.getString(R.string.error_speech_unrecognised))
                 return
             }
 
-            val (com, match) = resolve
+            val (action, function) = resolution
             try {
-                com.func(match)
                 SFXManager.playSfx(SFXManager.SFX.ACTION_CONFIRM)
-                com.response(lr)?.let {
-                    speak(
-                        lr.getString(R.string.commands_response_fmt_accepted)
-                                + ". " + it
-                    )
+                speak(
+                    lr.getString(R.string.commands_response_fmt_accepted)
+                            + ". " + commandResolver.responseTo(action)
+                )
+                commandResult.postValue(commandResolver.nameOf(action))
+                viewModelScope.launch(Dispatchers.IO) {
+                    function()
                 }
-                commandResult.postValue(com.name(lr))
             } catch (e: Exception) {
                 SFXManager.playSfx(SFXManager.SFX.NOTIFY_TECHNICAL)
                 commandResult.postValue(e.message ?: e.toString())
