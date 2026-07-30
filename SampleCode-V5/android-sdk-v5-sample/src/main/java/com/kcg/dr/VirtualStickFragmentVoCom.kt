@@ -34,10 +34,12 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.Priority
 import com.kcg.dr.api.ApiServerVM
 import com.kcg.dr.api.KeyActivator
+import com.kcg.dr.api.Responses.toJson
 import com.kcg.dr.flight.AircraftControlViewModel
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.flight.AircraftController.CircleFaceMode
 import com.kcg.dr.location.LiveLocationProvider
+import com.kcg.dr.utils.DJIErrorException
 import com.kcg.dr.utils.LocaleUtils.getLocalizedResources
 import com.kcg.dr.utils.LocationUtils
 import com.kcg.dr.utils.LocationUtils.bearingTo
@@ -121,8 +123,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                 startListening()
         }
     }
-
-    private val deviation: Double = 0.02
 
     // Live camera feed
     private lateinit var svCameraStream: SurfaceView
@@ -526,35 +526,10 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                 }
             })
         }
-        binding?.leftStickView?.setJoystickListener(object : OnScreenJoystickListener {
-            override fun onTouch(joystick: OnScreenJoystick?, pX: Float, pY: Float) {
-                var leftPx = 0F
-                var leftPy = 0F
-
-                if (abs(pX) >= deviation) leftPx = pX
-                if (abs(pY) >= deviation) leftPy = pY
-
-                virtualStickVM.setLeftPosition(
-                    (leftPx * Stick.MAX_STICK_POSITION_ABS).toInt(),
-                    (leftPy * Stick.MAX_STICK_POSITION_ABS).toInt()
-                )
-            }
-        })
-        binding?.rightStickView?.setJoystickListener(object : OnScreenJoystickListener {
-            override fun onTouch(joystick: OnScreenJoystick?, pX: Float, pY: Float) {
-                var rightPx = 0F
-                var rightPy = 0F
-
-                if (abs(pX) >= deviation) rightPx = pX
-                if (abs(pY) >= deviation) rightPy = pY
-
-                virtualStickVM.setRightPosition(
-                    (rightPx * Stick.MAX_STICK_POSITION_ABS).toInt(),
-                    (rightPy * Stick.MAX_STICK_POSITION_ABS).toInt()
-                )
-            }
-        })
-
+        attachOnScreenSticks(
+            virtualStickVM,
+            binding?.leftStickView, binding?.rightStickView
+        )
         virtualStickVM.listenRCStick()
         virtualStickVM.currentSpeedLevel.observe(viewLifecycleOwner) { updateVirtualStickInfo() }
         virtualStickVM.useRcStick.observe(viewLifecycleOwner) { updateVirtualStickInfo() }
@@ -904,14 +879,12 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     }
 
     fun attachOnScreenSticks(
-        leftStk: OnScreenJoystick,
-        rightStk: OnScreenJoystick,
-        callback: CommonCallbacks.CompletionCallback? = null,
+        stickVM: VirtualStickVM,
+        leftStk: OnScreenJoystick?,
+        rightStk: OnScreenJoystick?,
         deviation: Double = 0.02,
-        activate: Boolean = true,
     ) {
-        val stickVM = virtualStickVM
-        leftStk.setJoystickListener(object : OnScreenJoystickListener {
+        leftStk?.setJoystickListener(object : OnScreenJoystickListener {
             override fun onTouch(joystick: OnScreenJoystick?, pX: Float, pY: Float) {
                 var leftPx = 0F
                 var leftPy = 0F
@@ -925,7 +898,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                 )
             }
         })
-        rightStk.setJoystickListener(object : OnScreenJoystickListener {
+        rightStk?.setJoystickListener(object : OnScreenJoystickListener {
             override fun onTouch(joystick: OnScreenJoystick?, pX: Float, pY: Float) {
                 var rightPx = 0F
                 var rightPy = 0F
@@ -939,16 +912,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                 )
             }
         })
-        if (activate)
-            stickVM.enableVirtualStick(object : CommonCallbacks.CompletionCallback {
-                override fun onSuccess() {
-                    callback?.onSuccess()
-                }
-
-                override fun onFailure(error: IDJIError) {
-                    callback?.onFailure(error)
-                }
-            })
     }
 
     private fun initController() {
@@ -960,24 +923,17 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                     }
         }
         lifecycleScope.launch {
-            controllerVM.init(virtualStickVM)
-            apiServerVM.initController(controllerVM.controller)
             try {
-                if (binding?.leftStickView != null && binding?.rightStickView != null)
-                    attachOnScreenSticks(
-                        binding?.leftStickView!!, binding?.rightStickView!!,
-                        object : CommonCallbacks.CompletionCallback {
-                            override fun onSuccess() {}
-
-                            override fun onFailure(error: IDJIError) {
-                                ToastUtils.showToast("error attaching sticks: ${error.errorCode()}")
-                            }
-                        },
-                        deviation = deviation
-                    )
+                controllerVM.init(virtualStickVM)
+                apiServerVM.initController(controllerVM.controller)
             } catch (e: Exception) {
-                ToastUtils.showToast("error initializing controller: ${e.message}")
-                Log.e("Controller", "error initializing controller: ${e.message}")
+                Log.e("initController", "${e.message}", e)
+                ToastUtils.showToast(
+                    "c. init failed: ${
+                        if (e is DJIErrorException) e.error.toJson()
+                        else e.message
+                    }"
+                )
             }
         }
     }
