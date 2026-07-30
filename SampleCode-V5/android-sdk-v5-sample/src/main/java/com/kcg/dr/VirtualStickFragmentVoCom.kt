@@ -32,25 +32,25 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.Priority
-import com.kcg.dr.utils.LocaleUtils.getLocalizedResources
-import com.kcg.dr.utils.LocationUtils.distanceTo
-import com.kcg.dr.utils.LocationUtils.bearingTo
-import com.kcg.dr.utils.LocationUtils.translate
 import com.kcg.dr.api.ApiServerVM
 import com.kcg.dr.api.KeyActivator
 import com.kcg.dr.flight.AircraftControlViewModel
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.flight.AircraftController.CircleFaceMode
 import com.kcg.dr.location.LiveLocationProvider
+import com.kcg.dr.utils.LocaleUtils.getLocalizedResources
 import com.kcg.dr.utils.LocationUtils
+import com.kcg.dr.utils.LocationUtils.bearingTo
+import com.kcg.dr.utils.LocationUtils.distanceTo
+import com.kcg.dr.utils.LocationUtils.translate
 import com.kcg.dr.utils.SFXManager
 import com.kcg.dr.utils.ServiceUtils
 import com.kcg.dr.utils.as2D
 import com.kcg.dr.utils.asDjiLocation
 import com.kcg.dr.utils.atAlt
 import com.kcg.dr.voice.AudioControlService
-import com.kcg.dr.voice.CommandResolver
-import com.kcg.dr.voice.CommandResolver.Command
+import com.kcg.dr.voice.RCommandResolver.Command
+import com.kcg.dr.voice.RegexCommandResolver
 import com.kcg.dr.waypoints.LocationAdapter
 import com.kcg.dr.waypoints.WaypointRepo
 import dji.sampleV5.aircraft.R
@@ -113,7 +113,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     private val apiServerVM: ApiServerVM by activityViewModels()
 
     private val controller: AircraftController get() = controllerVM.controller
-    private val commandResolver: CommandResolver = CommandResolver()
+    private val commandResolver = RegexCommandResolver(resources)
     private val audioControlReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == AudioControlService.ACTION_START_VOICE_RECOGNITION)
@@ -987,8 +987,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         val respFmtExId = R.string.commands_response_fmt_executing
         val respFmtGoId = R.string.commands_response_fmt_going
 
-        commandResolver.commands.clear()
-        commandResolver.commands.addAll(
+        commandResolver.setCommands(
             listOf(
                 Command(R.string.commands_stop) { controller.stop() },
                 Command(R.string.commands_takeoff) {
@@ -1354,29 +1353,27 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     }
 
     private fun onHearText(spokenText: String) {
-        val resolve = commandResolver.resolve(
-            spokenText,
-            requireContext().getLocalizedResources(locale)
-        )
-        val res = requireContext().getLocalizedResources(locale)
+        val lr = requireContext().getLocalizedResources(locale)
+        commandResolver.resources = lr
+        val resolve = commandResolver.resolve(spokenText)
 
         when (resolve) {
             null -> binding?.commandResult?.text =
-                res.getString(R.string.error_speech_unrecognised)
+                lr.getString(R.string.error_speech_unrecognised)
 
             else -> {
                 val (com, match) = resolve
                 try {
                     com.func(match)
                     SFXManager.playSfx(SFXManager.SFX.ACTION_CONFIRM)
-                    com.response(res)?.let {
+                    com.response(lr)?.let {
                         speakText(
-                            res.getString(R.string.commands_response_fmt_accepted) + ". " +
+                            lr.getString(R.string.commands_response_fmt_accepted) + ". " +
                                     it
                         )
                     }
                     binding?.commandResult?.text =
-                        com.name(res)
+                        com.name(lr)
                 } catch (e: Exception) {
                     SFXManager.playSfx(SFXManager.SFX.NOTIFY_TECHNICAL)
                     ToastUtils.showToast(e.message ?: e.toString())
@@ -1424,7 +1421,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     }
 
     private suspend fun awaitDeviceLocation(
-        timeout: Duration = Duration.Companion.INFINITE,
+        timeout: Duration = Duration.INFINITE,
         updateInterval: Duration = 100.milliseconds
     ) {
         require(timeout >= updateInterval) { "timeout $timeout to short, must be greater than update interval $updateInterval" }

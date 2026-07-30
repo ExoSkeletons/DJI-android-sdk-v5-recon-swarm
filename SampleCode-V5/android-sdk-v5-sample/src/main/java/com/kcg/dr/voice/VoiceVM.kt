@@ -18,7 +18,7 @@ class VoiceVM(application: Application) : AndroidViewModel(application) {
     val speechResult = MutableLiveData<String>()
     val commandResult = MutableLiveData<String>()
 
-    private val commandResolver = CommandResolver()
+    private val commandResolver = RegexCommandResolver(application.resources)
     private var tts: TextToSpeech = TextToSpeech(getApplication()) { status ->
         if (status != TextToSpeech.SUCCESS) {
             silent.postValue(true)
@@ -47,7 +47,7 @@ class VoiceVM(application: Application) : AndroidViewModel(application) {
     }
 
     // user of vm calls this to set the commands
-    fun setCommands(commands: Collection<CommandResolver.Command> = emptyList()) {
+    fun setCommands(commands: Collection<RCommandResolver.Command<MatchResult>> = emptyList()) {
         commandResolver.commands.clear()
         commandResolver.commands.addAll(commands)
     }
@@ -56,14 +56,15 @@ class VoiceVM(application: Application) : AndroidViewModel(application) {
         spokenText?.let { s ->
             speechResult.postValue(s)
 
-            val resources = with(getApplication<Application>()) {
+            val lr = with(getApplication<Application>()) {
                 locale?.let {
                     this.getLocalizedResources(locale)
                 } ?: this.resources
             }
-            val resolve = commandResolver.resolve(s, resources)
+            commandResolver.resources = lr
+            val resolve = commandResolver.resolve(s)
             if (resolve == null) {
-                commandResult.postValue(resources.getString(R.string.error_speech_unrecognised))
+                commandResult.postValue(lr.getString(R.string.error_speech_unrecognised))
                 return
             }
 
@@ -71,13 +72,13 @@ class VoiceVM(application: Application) : AndroidViewModel(application) {
             try {
                 com.func(match)
                 SFXManager.playSfx(SFXManager.SFX.ACTION_CONFIRM)
-                com.response(resources)?.let {
+                com.response(lr)?.let {
                     speak(
-                        resources.getString(R.string.commands_response_fmt_accepted)
+                        lr.getString(R.string.commands_response_fmt_accepted)
                                 + ". " + it
                     )
                 }
-                commandResult.postValue(com.name(resources))
+                commandResult.postValue(com.name(lr))
             } catch (e: Exception) {
                 SFXManager.playSfx(SFXManager.SFX.NOTIFY_TECHNICAL)
                 commandResult.postValue(e.message ?: e.toString())
