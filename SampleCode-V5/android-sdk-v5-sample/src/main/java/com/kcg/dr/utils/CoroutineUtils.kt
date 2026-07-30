@@ -4,6 +4,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.kcg.dr.api.Responses.isConnectionError
 import dji.sdk.keyvalue.key.DJIKey
 import dji.sdk.keyvalue.key.FlightControllerKey
 import dji.v5.common.callback.CommonCallbacks
@@ -84,13 +85,6 @@ object CoroutineUtils {
                 { cont.resumeWithException(DJIErrorException(it, trace)) }
             )
         }
-    }
-
-    fun IDJIError.isConnectionError(): Boolean {
-        val error = this
-        return "REQUEST[ _]HANDLER[ _]NOT[ _]FOUND[ _]"
-            .toRegex(RegexOption.IGNORE_CASE)
-            .matches(error.errorCode())
     }
 
     @JvmName("runIfConnectedForResult")

@@ -14,35 +14,42 @@ object Responses {
         builderAction()
     }
 
-    fun status(status: ()-> String): JsonObject = ok { put("status", status()) }
+    fun status(status: () -> String): JsonObject = ok { put("status", status()) }
 
     fun nok(builderAction: JsonObjectBuilder.() -> Unit = {}): JsonObject = buildJsonObject {
         put("ok", false)
         builderAction()
     }
 
-    fun errorResponse(message: ()-> String): JsonObject = nok { put("error", message()) }
+    fun errorResponse(message: () -> String): JsonObject = nok { put("error", message()) }
+
+    fun IDJIError.isConnectionError(): Boolean {
+        val error = this
+        return "REQUEST[ _]HANDLER[ _]NOT[ _]FOUND[ _]"
+            .toRegex(RegexOption.IGNORE_CASE)
+            .matches(error.errorCode())
+    }
+
+    fun IDJIError.toJson() = buildJsonObject {
+        put("errorType", errorType().name)
+        if (errorCode() != null) put("errorCode", errorCode())
+        if (innerCode() != null) put("innerCode", innerCode())
+        if (description() != null) put("description", description())
+
+        if (isConnectionError())
+            put(
+                "hint",
+                "Remote Controller might not be connected to Device." +
+                        "Have you connected the Device to the RC's USB port?"
+            )
+    }
 
     fun djiErrorResponse(
         e: DJIErrorException,
         builderAction: JsonObjectBuilder.(IDJIError) -> Unit = {}
     ): JsonObject = nok {
         put("djiError", buildJsonObject {
-            with(e.error) {
-                put("errorType", errorType().toElement())
-                if (errorCode() != null) put("errorCode", errorCode())
-                if (innerCode() != null) put("innerCode", innerCode())
-                if (description() != null) put("description", description())
-                if (hint() != null) put("hint", hint())
-
-                if (errorCode().contains("handler( |_|-|.)*not( |_|-|.)*found".toRegex(RegexOption.IGNORE_CASE)))
-                    put(
-                        "hint",
-                        "Remote Controller might not be connected to Device. Have you connected the Device to the RC's USB port?"
-                    )
-
-                builderAction(this)
-            }
+            e.error.toJson() + buildJsonObject { builderAction(e.error) }
         })
     }
 
