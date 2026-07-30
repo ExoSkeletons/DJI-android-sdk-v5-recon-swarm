@@ -64,7 +64,8 @@ abstract class RCommandResolver<A, M>(var resources: Resources) :
         fun prompt(resources: Resources): String = resources.getString(promptRegexStringId)
 
         fun name(resources: Resources): String =
-            nameStringId?.let { resources.getString(it) } ?: prompt(resources)
+            nameStringId?.let { resources.getString(it) }
+                ?: prompt(resources).split("|").first()
 
         fun response(resources: Resources): String? =
             responseFmtStringId?.let { resources.getString(it, name(resources)) }
