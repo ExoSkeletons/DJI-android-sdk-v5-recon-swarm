@@ -63,10 +63,8 @@ abstract class RCommandResolver<A, M>(var resources: Resources) :
     ) {
         fun prompt(resources: Resources): String = resources.getString(promptRegexStringId)
 
-        fun prompts(resources: Resources): List<String> = prompt(resources).split("|")
-
         fun name(resources: Resources): String =
-            nameStringId?.let { resources.getString(it) } ?: prompts(resources).first()
+            nameStringId?.let { resources.getString(it) } ?: prompt(resources)
 
         fun response(resources: Resources): String? =
             responseFmtStringId?.let { resources.getString(it, name(resources)) }
@@ -85,13 +83,9 @@ class RegexCommandResolver(resources: Resources) :
     RCommandResolver<MatchResult, MatchResult>(resources),
     CandidateExecutor<RCommandResolver.Command<MatchResult>, MatchResult, Unit> {
     override fun matches(candidate: Command<MatchResult>, speech: String): MatchResult? {
-        candidate.prompts(resources).forEach { prompt ->
-            prompt
-                .toRegex(RegexOption.IGNORE_CASE)
-                .find(speech)
-                ?.let { return it }
-        }
-        return null
+        return candidate.prompt(resources)
+            .toRegex(RegexOption.IGNORE_CASE)
+            .find(speech)
     }
 
     override fun nameOf(t: Pair<Command<MatchResult>, MatchResult>): String =
