@@ -12,7 +12,6 @@ import com.kcg.dr.utils.SFXManager
 import dji.sampleV5.aircraft.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import okhttp3.Dispatcher
 import java.util.Locale
 
 private const val TAG = "VoiceViewModel"
@@ -36,6 +35,7 @@ class VoiceVM(application: Application) : AndroidViewModel(application) {
     fun speak(
         text: String,
         locale: Locale = Locale("iw", "IL"),
+        queueMode: Int = TextToSpeech.QUEUE_ADD,
         onLangUnavailable: ((TextToSpeech, Locale) -> Unit)? = null
     ) {
         if (text.isNotBlank() && silent.value != true) tts.apply {
@@ -46,7 +46,7 @@ class VoiceVM(application: Application) : AndroidViewModel(application) {
             language = locale
             setSpeechRate(1.3f)
             SFXManager.playSfx(SFXManager.SFX.NOTIFY_INFO)
-            speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
+            speak(text, queueMode, null, null)
         }
     }
 
@@ -76,14 +76,12 @@ class VoiceVM(application: Application) : AndroidViewModel(application) {
             val (action, function) = resolution
             try {
                 SFXManager.playSfx(SFXManager.SFX.ACTION_CONFIRM)
-                speak(
-                    lr.getString(R.string.commands_response_fmt_accepted)
-                            + ". " + commandResolver.responseTo(action)
-                )
+                speak(lr.getString(R.string.commands_response_fmt_accepted) + ". ")
                 commandResult.postValue(commandResolver.nameOf(action))
                 viewModelScope.launch(Dispatchers.IO) {
                     function()
                 }
+                speak(commandResolver.responseTo(action))
             } catch (e: Exception) {
                 SFXManager.playSfx(SFXManager.SFX.NOTIFY_TECHNICAL)
                 commandResult.postValue(e.message ?: e.toString())

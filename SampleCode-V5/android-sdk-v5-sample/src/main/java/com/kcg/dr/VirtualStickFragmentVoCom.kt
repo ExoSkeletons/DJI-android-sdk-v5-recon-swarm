@@ -589,7 +589,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         liveLocation.stopRequesting() // disable location requesting to conserve battery
     }
 
-    private fun speakText(text: String, locale: Locale? = this.locale) {
+    private fun speakText(text: String, locale: Locale? = this.locale, queueMode: Int = TextToSpeech.QUEUE_ADD) {
         if (text.isNotBlank() && !(silent.value ?: false)) {
             if (tts.isLanguageAvailable(locale) < TextToSpeech.LANG_AVAILABLE) {
                 promptInstallTTSLang()
@@ -598,7 +598,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             tts.language = locale
             tts.setSpeechRate(1.3f)
             SFXManager.playSfx(SFXManager.SFX.NOTIFY_INFO)
-            tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
+            tts.speak(text, queueMode, null, null)
         }
     }
 
@@ -645,7 +645,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
     private fun speakDemo() {
         demoTextIndex.value?.let {
-            speakText(demoTexts[it])
+            speakText(demoTexts[it], queueMode = TextToSpeech.QUEUE_FLUSH)
             demoTextIndex.postValue(it + 1)
         }
     }
