@@ -12,7 +12,7 @@ object ExecutableUtils {
         val libDir = File(this.applicationInfo.nativeLibraryDir)
         val libFile = File(libDir, "lib$fileName.so")
         if (!libFile.exists())
-            throw IOException("Executible lib file ${libFile.absolutePath} is missing from native library directory ${libDir.absolutePath}")
+            throw IOException("Executable lib file $fileName is missing from native library directory ${libDir.absolutePath}.\nDid you forget to put it in jniLibs?")
         return libFile
     }
 
