@@ -25,12 +25,12 @@ class VoiceControlFragment : Fragment() {
     private val speechRecognizerLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        if (result.resultCode == Activity.RESULT_OK && result.data != null) {
-            val spokenText = result.data!!
-                .getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
-                ?.get(0)
+        if (result.resultCode == Activity.RESULT_OK) {
+            val spokenText = result.data
+                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                ?.firstOrNull()
 
-            voiceVM.processSpeech(spokenText, locale)
+            spokenText?.let { voiceVM.processSpeech(it, locale) }
         }
     }
 

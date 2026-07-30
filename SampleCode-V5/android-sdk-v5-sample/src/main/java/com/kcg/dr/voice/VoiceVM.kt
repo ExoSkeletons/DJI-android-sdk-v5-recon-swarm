@@ -56,8 +56,8 @@ class VoiceVM(application: Application) : AndroidViewModel(application) {
         commandResolver.commands.addAll(commands)
     }
 
-    fun processSpeech(spokenText: String?, locale: Locale? = null) {
-        spokenText?.let { s ->
+    fun processSpeech(spokenText: String, locale: Locale? = null) {
+        spokenText.let { s ->
             speechResult.postValue(s)
 
             val lr = with(getApplication<Application>()) {
@@ -88,11 +88,6 @@ class VoiceVM(application: Application) : AndroidViewModel(application) {
                 SFXManager.playSfx(SFXManager.SFX.NOTIFY_TECHNICAL)
                 commandResult.postValue(e.message ?: e.toString())
             }
-        } ?: {
-            speechResult.postValue(
-                getApplication<Application>()
-                    .getString(R.string.error_speech_unrecognised)
-            )
         }
     }
 
