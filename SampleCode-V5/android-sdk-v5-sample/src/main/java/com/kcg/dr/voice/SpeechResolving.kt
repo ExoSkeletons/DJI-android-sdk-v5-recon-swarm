@@ -6,7 +6,8 @@ import com.arm.aichat.AiChat
 import com.arm.aichat.InferenceEngine
 import com.kcg.dr.api.Action
 import com.kcg.dr.flight.AircraftController
-import com.kcg.dr.utils.KClassUtils.hierarchicalSchemas
+import kotlinx.schema.generator.json.serialization.SerializationClassJsonSchemaGenerator
+import kotlinx.schema.json.encodeToString
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 
@@ -126,6 +127,15 @@ interface LlamaSerialisedResolver<T> : SerialisedResolver<T> {
 
     val systemPrompt: String
 
+    val schemas: String
+        get() {
+            val generator = SerializationClassJsonSchemaGenerator(json)
+            // Sealed schema generation includes all subclasses of the sealed class
+            val schema = generator.generateSchema(serializer.descriptor)
+            val schemaString = schema.encodeToString(Json { prettyPrint = true })
+            return schemaString
+        }
+
     suspend fun generateAndCollect(speech: String): String {
         engine.setSystemPrompt(systemPrompt)
         val resultFlow = engine.sendUserPrompt(speech)
@@ -200,6 +210,7 @@ class LlamaActionResolver(context: Context) :
         *Output ONLY the string of the JSON result, nothing else.*
         
         ## System Action Schemas:
+        $schemas
         
         ## Json Formatting:
         The JSON must be valid and parseable to a Java/Kotlin object.
