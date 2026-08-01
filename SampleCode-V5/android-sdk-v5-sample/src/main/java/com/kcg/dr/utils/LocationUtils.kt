@@ -8,6 +8,7 @@ import dji.sdk.keyvalue.value.common.LocationCoordinate3D
 import dji.sdk.keyvalue.value.common.Velocity3D
 import dji.sdk.keyvalue.value.common.XYZ
 import kotlinx.serialization.InternalSerializationApi
+import kotlinx.serialization.SerialName
 import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.sin
@@ -58,12 +59,14 @@ inline val Location.asDjiLocation
 
 
 object LocationUtils {
+    @SerialName("direction")
     enum class RelativeDirection(val sign: Int, val bearingOffsetDegrees: Float) {
         FORWARD(1, 0f), BACKWARD(-1, -180f),
         LEFT(1, -90f), RIGHT(-1, 90f),
         UP(1, 0f), DOWN(-1, 0f), ;
     }
 
+    @SerialName("cardinal")
     enum class Direction(val bearingDegrees: Float) {
         NORTH(0f), EAST(90f),
         SOUTH(180f), WEST(270f)

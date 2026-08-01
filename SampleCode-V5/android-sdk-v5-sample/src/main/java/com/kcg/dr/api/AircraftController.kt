@@ -28,6 +28,7 @@ import kotlin.time.Duration.Companion.seconds
 
 
 @Serializable
+@SerialName("action")
 sealed interface Action {
     suspend fun act(controller: AircraftController): Any?
 }
@@ -68,7 +69,7 @@ class FlightActions {
 
 class PatternActions {
     @Serializable
-    @SerialName("circle")
+    @SerialName("fly_circle")
     data class Circle(
         val radius: Double,
         val velocity: Double,
@@ -82,7 +83,7 @@ class PatternActions {
     }
 
     @Serializable
-    @SerialName("square")
+    @SerialName("fly_square")
     data class Square(
         val side: Double,
         val velocity: Double,

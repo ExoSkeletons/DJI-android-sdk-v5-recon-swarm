@@ -7,6 +7,7 @@ import dji.sdk.keyvalue.value.common.LocationCoordinate3D
 import dji.sdk.keyvalue.value.common.Velocity3D
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
@@ -63,6 +64,7 @@ fun Any?.or(other: JsonElement): JsonElement = when (val value = this) {
 
 class SerializerSurrogates() {
     @Serializable
+    @SerialName("LocationCoordinate2D")
     data class LocationCoordinate2DSer(
         val latitude: Double,
         val longitude: Double,
@@ -85,6 +87,7 @@ class SerializerSurrogates() {
     }
 
     @Serializable
+    @SerialName("LocationCoordinate3D")
     data class LocationCoordinate3DSer(
         val latitude: Double,
         val longitude: Double,
@@ -108,6 +111,7 @@ class SerializerSurrogates() {
     }
 
     @Serializable
+    @SerialName("Velocity3D")
     data class Velocity3DSer(
         val x: Double,
         val y: Double,
