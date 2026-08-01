@@ -589,7 +589,11 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         liveLocation.stopRequesting() // disable location requesting to conserve battery
     }
 
-    private fun speakText(text: String, locale: Locale? = this.locale, queueMode: Int = TextToSpeech.QUEUE_ADD) {
+    private fun speakText(
+        text: String,
+        locale: Locale? = this.locale,
+        queueMode: Int = TextToSpeech.QUEUE_ADD
+    ) {
         if (text.isNotBlank() && !(silent.value ?: false)) {
             if (tts.isLanguageAvailable(locale) < TextToSpeech.LANG_AVAILABLE) {
                 promptInstallTTSLang()
@@ -1313,32 +1317,34 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     private fun onHearText(spokenText: String) {
         val lr = requireContext().getLocalizedResources(locale)
 
-        commandResolver.resources = lr
-        val match = when (
-            val resolution = commandResolver.resolveToExecute(spokenText)
-        ) {
-            null -> lr.getString(R.string.error_speech_unrecognised)
+        lifecycleScope.launch {
+            commandResolver.resources = lr
+            val match = when (
+                val resolution = commandResolver.resolveToExecute(spokenText)
+            ) {
+                null -> lr.getString(R.string.error_speech_unrecognised)
 
-            else -> {
-                val (action, function) = resolution
-                try {
-                    SFXManager.playSfx(SFXManager.SFX.ACTION_CONFIRM)
-                    speakText(
-                        lr.getString(R.string.commands_response_fmt_accepted) + ". " +
-                                commandResolver.responseTo(action)
-                    )
-                    lifecycleScope.launch(Dispatchers.IO) {
-                        function()
+                else -> {
+                    val (action, function) = resolution
+                    try {
+                        SFXManager.playSfx(SFXManager.SFX.ACTION_CONFIRM)
+                        speakText(
+                            lr.getString(R.string.commands_response_fmt_accepted) + ". " +
+                                    commandResolver.responseTo(action)
+                        )
+                        lifecycleScope.launch(Dispatchers.IO) {
+                            function()
+                        }
+                        commandResolver.nameOf(action)
+                    } catch (e: Exception) {
+                        SFXManager.playSfx(SFXManager.SFX.NOTIFY_TECHNICAL)
+                        ToastUtils.showToast(e.message ?: e.toString())
+                        e.message
                     }
-                    commandResolver.nameOf(action)
-                } catch (e: Exception) {
-                    SFXManager.playSfx(SFXManager.SFX.NOTIFY_TECHNICAL)
-                    ToastUtils.showToast(e.message ?: e.toString())
-                    e.message
                 }
             }
+            binding?.sttResult?.text = match
         }
-        binding?.sttResult?.text = match
     }
 
     private fun enableSimulator() {

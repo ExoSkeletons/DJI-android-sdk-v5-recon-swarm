@@ -66,25 +66,27 @@ class VoiceVM(application: Application) : AndroidViewModel(application) {
                 } ?: this.resources
             }
 
-            commandResolver.resources = lr
-            val resolution = commandResolver.resolveToExecute(s)
-            if (resolution == null) {
-                commandResult.postValue(lr.getString(R.string.error_speech_unrecognised))
-                return
-            }
-
-            val (action, function) = resolution
-            try {
-                SFXManager.playSfx(SFXManager.SFX.ACTION_CONFIRM)
-                speak(lr.getString(R.string.commands_response_fmt_accepted) + ". ")
-                commandResult.postValue(commandResolver.nameOf(action))
-                viewModelScope.launch(Dispatchers.IO) {
-                    function()
+            viewModelScope.launch {
+                commandResolver.resources = lr
+                val resolution = commandResolver.resolveToExecute(s)
+                if (resolution == null) {
+                    commandResult.postValue(lr.getString(R.string.error_speech_unrecognised))
+                    return@launch
                 }
-                speak(commandResolver.responseTo(action))
-            } catch (e: Exception) {
-                SFXManager.playSfx(SFXManager.SFX.NOTIFY_TECHNICAL)
-                commandResult.postValue(e.message ?: e.toString())
+
+                val (action, function) = resolution
+                try {
+                    SFXManager.playSfx(SFXManager.SFX.ACTION_CONFIRM)
+                    speak(lr.getString(R.string.commands_response_fmt_accepted) + ". ")
+                    commandResult.postValue(commandResolver.nameOf(action))
+                    viewModelScope.launch(Dispatchers.IO) {
+                        function()
+                    }
+                    speak(commandResolver.responseTo(action))
+                } catch (e: Exception) {
+                    SFXManager.playSfx(SFXManager.SFX.NOTIFY_TECHNICAL)
+                    commandResult.postValue(e.message ?: e.toString())
+                }
             }
         }
     }

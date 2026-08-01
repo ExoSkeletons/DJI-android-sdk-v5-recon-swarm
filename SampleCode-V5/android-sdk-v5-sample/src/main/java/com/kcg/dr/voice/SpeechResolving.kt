@@ -1,13 +1,17 @@
 package com.kcg.dr.voice
 
+import android.content.Context
 import android.content.res.Resources
+import com.arm.aichat.AiChat
+import com.arm.aichat.InferenceEngine
 import com.kcg.dr.api.Action
 import com.kcg.dr.flight.AircraftController
+import com.kcg.dr.utils.KClassUtils.hierarchicalSchemas
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 
 interface SpeechResolver<T> {
-    fun resolve(speech: String): T
+    suspend fun resolve(speech: String): T
 }
 
 interface SpeechExecutor<T, A, R> : SpeechResolver<T?> {
@@ -20,7 +24,7 @@ interface SpeechExecutor<T, A, R> : SpeechResolver<T?> {
     suspend fun resolveAndExecute(speech: String, arg: A? = null): R? =
         resolve(speech)?.let { execute(it, arg) }
 
-    fun resolveToExecute(speech: String, arg: A? = null): Pair<T, suspend () -> R>? =
+    suspend fun resolveToExecute(speech: String, arg: A? = null): Pair<T, suspend () -> R>? =
         resolve(speech)?.let { it to { execute(it, arg) } }
 }
 
@@ -29,7 +33,7 @@ interface CandidateResolver<C, M> : SpeechResolver<Pair<C, M>?> {
 
     fun matches(candidate: C, speech: String): M?
 
-    override fun resolve(speech: String): Pair<C, M>? {
+    override suspend fun resolve(speech: String): Pair<C, M>? {
         candidates.forEach { c ->
             val match = matches(c, speech)
             if (match != null)
@@ -103,10 +107,44 @@ interface SerialisedResolver<T> : SpeechResolver<T?> {
     val serializer: KSerializer<T>
     val json: Json get() = Json { ignoreUnknownKeys = true }
 
-    override fun resolve(speech: String): T? = try {
+    override suspend fun resolve(speech: String): T? = try {
         json.decodeFromString(serializer, speech)
     } catch (_: Exception) {
         null
+    }
+}
+
+interface LlamaSerialisedResolver<T> : SerialisedResolver<T> {
+    val engine: InferenceEngine
+
+    fun preProcess(speech: String): String = speech
+    fun postProcess(result: String): String {
+        val jsonRegex = """\{(?:[^{}]|(?))*\}""".toRegex()
+        val match = jsonRegex.find(result)
+        return match?.value ?: result.trim()
+    }
+
+    val systemPrompt: String
+
+    suspend fun generateAndCollect(speech: String): String {
+        engine.setSystemPrompt(systemPrompt)
+        val resultFlow = engine.sendUserPrompt(speech)
+        var result = ""
+        resultFlow.collect {
+            result += it
+        }
+        return postProcess(result)
+    }
+
+    override suspend fun resolve(speech: String): T? {
+        val preProcessedSpeech = preProcess(speech)
+        val result = generateAndCollect(preProcessedSpeech)
+        val processedResult = postProcess(result)
+        return try {
+            json.decodeFromString(serializer, processedResult)
+        } catch (_: Exception) {
+            null
+        }
     }
 }
 
@@ -119,4 +157,55 @@ class ActionResolver :
     override suspend fun execute(t: Action, arg: AircraftController?) {
         arg?.let { t.act(it) }
     }
+}
+
+class LlamaActionResolver(context: Context) :
+    LlamaSerialisedResolver<Action>,
+    SpeechExecutor<Action, AircraftController, Unit> {
+    override fun nameOf(t: Action): String = t.javaClass.simpleName
+
+    override suspend fun execute(t: Action, arg: AircraftController?) {
+        arg?.let { t.act(it) }
+    }
+
+    override val serializer: KSerializer<Action> = Action.serializer()
+    override val engine: InferenceEngine = AiChat.getInferenceEngine(context)
+    override val systemPrompt: String =
+        """
+        # Motive:
+        You are a speech-to-intent engine, translating user's speech from natural language into a list of actions,
+        where each action is represented as a JSON object DTO.
+        
+        The user's speech is provided as the user prompt.
+        
+        ## Objective:
+        You, as a speech-to-intent engine, are tasked with translating the user's speech into a list of actions.
+        You are provided below the list of possible actions that the system can perform, and their JSON schemas.
+        The user's speech intent could include a single system action from the list,
+        or it could describe an action that requires a sequence of multiple system actions,
+        in which case you should output the sequence as a JSON list of actions.
+        If you can adequately translate the user's speech into a single action,
+        output it's JSON representation as a single item inside a JSON list.
+        
+        ## Action Schema requirements:
+        You are provided below JSON Schemas of all the possible actions that the system can perform.
+        When translating the user's speech into a list of actions, you must transform the user's speech
+        to JSON Objects that match the System Action schemas and ONLY the schemas. Do not invent new actions.
+        Use the exact field names provided in the schemas. Do not invent new fields.
+        Use context clues and information in the user's speech to help you understand the intent.
+        Use information from the user's speech and your own reasoning to fill in the values of each field.
+        However, if a DTO field is marked as optional, and you cannot confidently infer an obvious value
+        for it from the user's speech, then leave it out and do not include it in the JSON.
+                
+        *Output ONLY the string of the JSON result, nothing else.*
+        
+        ## System Action Schemas:
+        
+        ## Json Formatting:
+        The JSON must be valid and parseable to a Java/Kotlin object.
+        Include a "type" field in the JSON object representing the serial name of the class.
+        Use the exact field names provided in the schemas.
+        
+        ### User's Speech:
+    """.trimIndent()
 }
