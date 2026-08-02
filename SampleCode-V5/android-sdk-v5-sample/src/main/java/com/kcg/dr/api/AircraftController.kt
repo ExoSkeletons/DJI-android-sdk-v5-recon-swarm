@@ -42,6 +42,26 @@ class TemporalActions {
     }
 }
 
+class BasicActions{
+    @Serializable
+    @SerialName("takeoff")
+    object Takeoff : Action {
+        override suspend fun act(controller: AircraftController) = controller.takeoff()
+    }
+
+    @Serializable
+    @SerialName("land")
+    object Land : Action {
+        override suspend fun act(controller: AircraftController) = controller.land()
+    }
+
+    @Serializable
+    @SerialName("stop")
+    object Stop : Action {
+        override suspend fun act(controller: AircraftController) = controller.stop()
+    }
+}
+
 class FlightActions {
     @Serializable
     @SerialName("fly_by")
@@ -54,6 +74,17 @@ class FlightActions {
         override suspend fun act(controller: AircraftController) =
             controller.flyBy(Triple(x, y, z), velocity)
     }
+
+    @Serializable
+    @SerialName("spin_by")
+    data class SpinBy(
+        val degrees: Double,
+        val angularVelocity: Double = 70.0,
+    ) : Action {
+        override suspend fun act(controller: AircraftController) =
+            controller.spinBy(degrees, angularVelocity)
+    }
+
     @Serializable
     @SerialName("fly_gps")
     data class FlyTo(
