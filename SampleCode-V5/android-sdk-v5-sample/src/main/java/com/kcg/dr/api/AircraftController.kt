@@ -34,7 +34,7 @@ sealed interface Action {
     suspend fun act(controller: AircraftController): Any?
 }
 
-class TemporalActions {
+sealed class TemporalActions {
     @Serializable
     @SerialName("delay")
     data class Delay(val seconds: Double) : Action {
@@ -43,7 +43,7 @@ class TemporalActions {
     }
 }
 
-class BasicActions{
+sealed class BasicActions {
     @Serializable
     @SerialName("takeoff")
     object Takeoff : Action {
@@ -63,7 +63,7 @@ class BasicActions{
     }
 }
 
-class FlightActions {
+sealed class FlightActions {
     @Serializable
     @SerialName("fly_by")
     @SerialDescription("Move aircraft relative to the current position, by some dx,dy,dz (m).")
@@ -118,7 +118,7 @@ class FlightActions {
     }
 }
 
-class PatternActions {
+sealed class PatternActions {
     @Serializable
     @SerialName("fly_circle")
     data class Circle(
@@ -145,7 +145,7 @@ class PatternActions {
     }
 }
 
-class CameraActions {
+sealed class CameraActions {
     @Serializable
     @SerialName("gimbal_pitch")
     @SerialDescription("Pitch aircraft camera Gimbal to a specific up/down pitch angle")
