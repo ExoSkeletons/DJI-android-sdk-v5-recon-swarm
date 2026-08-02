@@ -1240,7 +1240,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val modelFile = requireContext().getAssetOrExtract(
-                    "models/" + ""
+                    "models/" + "qwen2.5-coder-1.5b-instruct-q4_0.gguf"
                 )
                 actionResolver.engine.loadModel(modelFile.absolutePath)
             } catch (e: Exception) {
