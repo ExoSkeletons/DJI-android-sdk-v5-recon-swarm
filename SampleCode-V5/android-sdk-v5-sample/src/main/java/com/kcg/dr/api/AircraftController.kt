@@ -86,10 +86,9 @@ sealed class FlightActions {
     @SerialDescription("Spin aircraft relative to the current heading (by some degrees).")
     data class SpinBy(
         val degrees: Double,
-        val angularVelocity: Double = 70.0,
     ) : Action {
         override suspend fun act(controller: AircraftController) =
-            controller.spinBy(degrees, angularVelocity)
+            controller.spinBy(degrees)
     }
 
     @Serializable
