@@ -152,10 +152,22 @@ interface SerialisedResolver<T> : SpeechResolver<T?> {
 interface LlamaSerialisedResolver<T> : SerialisedResolver<T> {
     val engine: InferenceEngine
 
-    fun preProcess(speech: String): String = speech.trim().trimIndent()
+    suspend fun init(modelName: String) = coroutineScope {
+        withContext(Dispatchers.IO) {
+            try {
+                Log.i("LlamaActionResolver", "schema: $schemas")
+                val modelFile = context.getAssetOrExtract(
+                    "models/$modelName"
+                )
+                engine.loadModel(modelFile.absolutePath)
+                engine.setSystemPrompt(systemPrompt)
+            } catch (e: Exception) {
+                Log.e("LlamaActionResolver", "error: ${e.message}", e)
+            }
+        }
     }
 
-    val systemPrompt: String
+    protected fun preProcess(speech: String): String = speech.trim().trimIndent()
     protected fun postProcess(result: String): String = SerialisedResolver.findJson(result) ?: result
 
     val schemas: String
@@ -220,33 +232,39 @@ class LlamaActionSequenceResolver(context: Context) :
         The user's speech is provided as the user prompt.
         
         ## Objective:
-        You, as a speech-to-intent engine, are tasked with translating the user's speech into a list of actions.
-        You are provided below the list of possible actions that the system can perform, and their JSON schemas.
+        - You, as a speech-to-intent engine, are tasked with translating the user's speech into a list of actions.
+        - You are provided below the list of possible actions that the system can perform, and their JSON schemas.
         The user's speech intent could include a single system action from the list,
         or it could describe an action that requires a sequence of multiple system actions,
         in which case you should output the sequence as a JSON list of actions.
-        If you can adequately translate the user's speech into a single action,
+        - If you can adequately translate the user's speech into a single action,
         output it's JSON representation as a single item inside a JSON list.
         
-        ## Action Schema requirements:
-        You are provided below JSON Schemas of all the possible actions that the system can perform.
-        When translating the user's speech into a list of actions, you must transform the user's speech
-        to JSON Objects that match the System Action schemas and ONLY the schemas. Do not invent new actions.
-        Use the exact field names provided in the schemas. Do not invent new fields.
-        Use context clues and information in the user's speech to help you understand the intent.
-        Use information from the user's speech and your own reasoning to fill in the values of each field.
-        However, if a DTO field is marked as optional, and you cannot confidently infer an obvious value
-        for it from the user's speech, then leave it out and do not include it in the JSON.
-                
-        *Output ONLY the string of the JSON result, nothing else.*
+        ## Action Schema constraints:
+        - You are provided below JSON Schemas of all the possible actions that the system can perform.
+        - When translating the user's speech into a list of actions, you must transform the user's speech
+        to JSON Objects that match the System Action schemas and ONLY the schemas.
+        DO NOT invent new actions or fields. Use ONLY the System Actions given in the schemas you're
+        provided. Use the exact field names provided in the schemas.
         
-        ## System Action Schemas:
+        ## User Intent Inference:
+        - Use context clues and information in the user's speech to help you understand the intent.
+        - Use the JSON Schema descriptions to help you understand what each field represents,
+        what values it can take and what values the user intended to be set.
+        - Use information from the user's speech and your own reasoning to fill in the values of each field.
+        - The JSON parser is equipped to handle default values for fields that are not explicitly set.
+        Therefore, If a DTO field or property is not specified in the Schema as required, and the User
+        speech does NOT explicitly or implicitly provide a value for that field, there is NO NEED
+        to specify some default value for it and you should NOT include the field in the JSON output.
+                
+        # System Action Schemas:
         $schemas
         
         ## Json Formatting:
-        The JSON must be valid and parseable to a Java/Kotlin object.
-        Include a "type" field in the JSON object representing the serial name of the class.
-        Use the exact field names provided in the schemas.
+        - The JSON must be valid and parseable to a Java/Kotlin object.
+        - Include a "type" field in the JSON object representing the serial name of the class.
+        
+        *Output ONLY the string of the JSON result, nothing else.*
         
         ### User's Speech:
     """.trimIndent()
