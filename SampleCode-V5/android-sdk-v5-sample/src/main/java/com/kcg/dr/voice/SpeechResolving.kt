@@ -9,6 +9,7 @@ import com.kcg.dr.flight.AircraftController
 import kotlinx.schema.generator.json.serialization.SerializationClassJsonSchemaGenerator
 import kotlinx.schema.json.encodeToString
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 
 interface SpeechResolver<T> {
@@ -169,16 +170,16 @@ class ActionResolver :
     }
 }
 
-class LlamaActionResolver(context: Context) :
-    LlamaSerialisedResolver<Action>,
-    SpeechExecutor<Action, AircraftController, Unit> {
-    override fun nameOf(t: Action): String = t.javaClass.simpleName
+class LlamaActionSequenceResolver(context: Context) :
+    LlamaSerialisedResolver<List<Action>>,
+    SpeechExecutor<List<Action>, AircraftController, Unit> {
+    override fun nameOf(t: List<Action>): String = t.joinToString { it.javaClass.simpleName }
 
-    override suspend fun execute(t: Action, arg: AircraftController?) {
-        arg?.let { t.act(it) }
+    override suspend fun execute(t: List<Action>, arg: AircraftController?) {
+        arg?.let { for (action in t) action.act(it) }
     }
 
-    override val serializer: KSerializer<Action> = Action.serializer()
+    override val serializer: KSerializer<List<Action>> = ListSerializer(Action.serializer())
     override val engine: InferenceEngine = AiChat.getInferenceEngine(context)
     override val systemPrompt: String =
         """
