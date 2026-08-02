@@ -19,6 +19,7 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import kotlinx.coroutines.delay
+import kotlinx.schema.generator.json.SerialDescription
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.SerialName
@@ -65,18 +66,24 @@ class BasicActions{
 class FlightActions {
     @Serializable
     @SerialName("fly_by")
+    @SerialDescription("Move aircraft relative to the current position, by some dx,dy,dz (m).")
     data class FlyBy(
-        val x: Double = 0.0,
-        val y: Double = 0.0,
-        val z: Double = 0.0,
-        val velocity: Double = 1.0,
+        @property:SerialDescription("x+ : forward")
+        val dx: Double = 0.0,
+        @property:SerialDescription("y+ : right")
+        val dy: Double = 0.0,
+        @property:SerialDescription("z+ : up")
+        val dz: Double = 0.0,
+        @property:SerialDescription("(m/s)")
+        val velocity: Double = 4.0,
     ) : Action {
         override suspend fun act(controller: AircraftController) =
-            controller.flyBy(Triple(x, y, z), velocity)
+            controller.flyBy(Triple(dx, dy, dz), velocity)
     }
 
     @Serializable
     @SerialName("spin_by")
+    @SerialDescription("Spin aircraft relative to the current heading (by some degrees).")
     data class SpinBy(
         val degrees: Double,
         val angularVelocity: Double = 70.0,
@@ -87,8 +94,10 @@ class FlightActions {
 
     @Serializable
     @SerialName("fly_gps")
+    @SerialDescription("Fly the aircraft to a specific GPS based (lat/lng/alt) location")
     data class FlyTo(
         @Serializable(with = LocationCoordinate3DSerializer::class)
+        @property:SerialDescription("Target GPS location (lat/lng/alt)")
         val target: LocationCoordinate3D,
         @SerialName("velocity")
         val maxVelocity: Double
@@ -139,6 +148,7 @@ class PatternActions {
 class CameraActions {
     @Serializable
     @SerialName("gimbal_pitch")
+    @SerialDescription("Pitch aircraft camera Gimbal to a specific up/down pitch angle")
     data class GimbalPitch(val angle: Double) : Action {
         override suspend fun act(controller: AircraftController) =
             controller.pitchCamera(angle)
@@ -146,6 +156,7 @@ class CameraActions {
 
     @Serializable
     @SerialName("wave")
+    @SerialDescription("Demo function to Wave the camera in a cute way")
     data class Wave(val count: Int = 2) : Action {
         override suspend fun act(controller: AircraftController) =
             controller.wave(count)
