@@ -114,19 +114,49 @@ interface SerialisedResolver<T> : SpeechResolver<T?> {
     } catch (_: Exception) {
         null
     }
+
+    companion object {
+        fun findJson(text: String): String? {
+            val start = text.indexOfFirst { it == '{' || it == '[' }
+            if (start == -1) return null
+
+            val brackStack = ArrayDeque<Char>()
+            var inString = false
+            var escaped = false
+
+            for (i in start until text.length) {
+                when (val c = text[i]) {
+                    '"' -> if (!escaped) inString = !inString
+                    '\\' -> escaped = inString && !escaped
+                    else -> {
+                        escaped = false
+                        if (!inString) when (c) {
+                            '{' -> brackStack += '}'
+                            '[' -> brackStack += ']'
+                            '}', ']' -> {
+                                if (brackStack.removeLastOrNull() != c)
+                                    return null
+                                if (brackStack.isEmpty())
+                                    return text.substring(start, i + 1)
+                            }
+                        }
+                    }
+                }
+            }
+
+            return null
+        }
+    }
 }
 
 interface LlamaSerialisedResolver<T> : SerialisedResolver<T> {
     val engine: InferenceEngine
 
     fun preProcess(speech: String): String = speech.trim().trimIndent()
-    fun postProcess(result: String): String {
-        val jsonRegex = """\{(?:[^{}]|(?))*\}""".toRegex()
-        val match = jsonRegex.find(result)
-        return match?.value ?: result.trim()
     }
 
     val systemPrompt: String
+    protected fun postProcess(result: String): String = SerialisedResolver.findJson(result) ?: result
 
     val schemas: String
         get() {
@@ -144,7 +174,7 @@ interface LlamaSerialisedResolver<T> : SerialisedResolver<T> {
         resultFlow.collect {
             result += it
         }
-        return postProcess(result)
+        return result
     }
 
     override suspend fun resolve(speech: String): T? {
