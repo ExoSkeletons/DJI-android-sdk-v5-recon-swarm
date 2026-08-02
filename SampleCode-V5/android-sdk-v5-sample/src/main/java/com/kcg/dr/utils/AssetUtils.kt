@@ -5,7 +5,7 @@ import android.util.Log
 import java.io.File
 
 object AssetUtils {
-    fun Context.getAssetOrExtract(fileName: String, forceCopy: Boolean): File {
+    fun Context.getAssetOrExtract(fileName: String, forceCopy: Boolean = false): File {
         Log.d("Asset", "getFileOrCopyFromAssets: $fileName")
         val output = File(this.filesDir, fileName)
         if (!forceCopy && output.exists()) return output

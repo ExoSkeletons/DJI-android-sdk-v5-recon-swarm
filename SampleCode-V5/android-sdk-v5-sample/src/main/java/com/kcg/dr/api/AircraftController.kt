@@ -44,7 +44,18 @@ class TemporalActions {
 
 class FlightActions {
     @Serializable
-    @SerialName("fly_to")
+    @SerialName("fly_by")
+    data class FlyBy(
+        val x: Double = 0.0,
+        val y: Double = 0.0,
+        val z: Double = 0.0,
+        val velocity: Double = 1.0,
+    ) : Action {
+        override suspend fun act(controller: AircraftController) =
+            controller.flyBy(XYZ(x, y, z), velocity)
+    }
+    @Serializable
+    @SerialName("fly_gps")
     data class FlyTo(
         @Serializable(with = LocationCoordinate3DSerializer::class)
         val target: LocationCoordinate3D,
