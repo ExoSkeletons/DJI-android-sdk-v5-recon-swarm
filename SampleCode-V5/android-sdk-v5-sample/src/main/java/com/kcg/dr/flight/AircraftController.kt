@@ -11,10 +11,14 @@ import com.kcg.dr.utils.LocationUtils.bearingTo
 import com.kcg.dr.utils.LocationUtils.distanceTo
 import com.kcg.dr.utils.LocationUtils.translate
 import com.kcg.dr.utils.as2D
+import com.kcg.dr.utils.asXYZ
 import com.kcg.dr.utils.atAlt
+import com.kcg.dr.utils.div
 import com.kcg.dr.utils.dt
+import com.kcg.dr.utils.mag
+import com.kcg.dr.utils.minus
 import com.kcg.dr.utils.normalizeAngle
-import com.kcg.dr.utils.sub
+import com.kcg.dr.utils.times
 import com.kcg.dr.utils.toDegrees
 import com.kcg.dr.utils.wrap180
 import dji.sampleV5.aircraft.models.VirtualStickVM.RCStickValue
@@ -710,20 +714,19 @@ open class AircraftController(
     }
 
     suspend fun flyBy(
-        distance: XYZ,
+        distance: Triple<Double, Double, Double>,
         velocity: Double = 0.5,
     ) = coroutineScope {
         require(velocity >= 0) { "velocity must be positive" }
         if (velocity == 0.0) return@coroutineScope
-        val mag = sqrt(distance.x * distance.x + distance.y * distance.y + distance.z * distance.z)
+        val mag = distance.mag
         if (mag <= 1e-3) return@coroutineScope
 
         val travelTime = abs(mag / velocity)
-        val v = distance.dt(travelTime)
+        val v = distance.asXYZ().dt(travelTime)
         val flightParam = FlightParam().apply {
-            pitch = v.y
             roll = v.x
-            yaw = 0.0
+            pitch = v.y
             verticalThrottle = v.z
         }
         Log.i(TAG, "flying by $distance. $travelTime seconds")
@@ -948,34 +951,31 @@ open class AircraftController(
     suspend fun oscillate(
         amplitudesMeters: XYZ, periodSeconds: XYZ = XYZ(5.0, 5.0, 5.0),
     ) = coroutineScope {
-        var p = XYZ()
+        var xyz0 = XYZ()
         var t = 0.0
         val dt = TRANSMISSION_INTERVAL.milliseconds.toDouble(DurationUnit.SECONDS)
         while (isActive) {
-            val np = XYZ().apply {
-                x =
-                    amplitudesMeters.x * if (periodSeconds.x > 0) sin((2 * PI * t) / periodSeconds.x) else 0.0
-                y =
-                    amplitudesMeters.y * if (periodSeconds.y > 0) sin((2 * PI * t) / periodSeconds.y) else 0.0
-                z =
-                    amplitudesMeters.z * if (periodSeconds.z > 0) sin((2 * PI * t) / periodSeconds.z) else 0.0
-            }
+            val oscillation = sin(2 * PI * t)
+            val rate = amplitudesMeters / periodSeconds
+            val xyz =
+                (rate * oscillation)
+                    .apply {
+                        x = if (x.isFinite()) x else 0.0
+                        y = if (y.isFinite()) y else 0.0
+                        z = if (z.isFinite()) z else 0.0
+                    }
 
-            val dp = np.sub(p)
-
-            val v = dp.dt(dt)
+            val d = xyz - xyz0
+            val v = d.dt(dt)
 
             sendFlightParam(FlightParam().apply {
-                // As per our testing IRL, for aircrafts in body coordinate system
-                // and in velocity mode dji axes map to the
-                // axes of movement direction, not axes to tilt on
                 roll = v.x
                 pitch = v.y
                 verticalThrottle = v.z
             })
 
             t += dt
-            p = np
+            xyz0 = xyz
             delay(dt.seconds)
         }
     }

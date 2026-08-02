@@ -237,7 +237,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
     private val noAddInfo = "אין ממצאים נוספים"
 
-    @Suppress("SpellCheckingInspection")
     private val demoTexts = listOf(
         // תחילת תרחיש -----
         // פקודה: אחריי
@@ -378,7 +377,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             override fun onLocationResult(locationResult: LocationResult) {
                 for (location in locationResult.locations) {
                     // update device location
-                    deviceLocation.postValue(location.asDjiLocation.apply {
+                    deviceLocation.postValue(location.asDjiLocation().apply {
                         // DJI Aircraft measures alt from ground level, not sea level.
                         altitude = cfg.humanHeight
                     })

@@ -52,7 +52,7 @@ class FlightActions {
         val velocity: Double = 1.0,
     ) : Action {
         override suspend fun act(controller: AircraftController) =
-            controller.flyBy(XYZ(x, y, z), velocity)
+            controller.flyBy(Triple(x, y, z), velocity)
     }
     @Serializable
     @SerialName("fly_gps")
