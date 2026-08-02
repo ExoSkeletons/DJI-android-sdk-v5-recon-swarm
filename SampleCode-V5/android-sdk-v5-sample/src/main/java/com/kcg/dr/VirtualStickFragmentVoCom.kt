@@ -39,6 +39,7 @@ import com.kcg.dr.flight.AircraftControlViewModel
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.flight.AircraftController.CircleFaceMode
 import com.kcg.dr.location.LiveLocationProvider
+import com.kcg.dr.utils.AssetUtils.getAssetOrExtract
 import com.kcg.dr.utils.DJIErrorException
 import com.kcg.dr.utils.LocaleUtils.getLocalizedResources
 import com.kcg.dr.utils.LocationUtils
@@ -51,6 +52,7 @@ import com.kcg.dr.utils.as2D
 import com.kcg.dr.utils.asDjiLocation
 import com.kcg.dr.utils.atAlt
 import com.kcg.dr.voice.AudioControlService
+import com.kcg.dr.voice.LlamaActionSequenceResolver
 import com.kcg.dr.voice.RCommandResolver.Command
 import com.kcg.dr.voice.RegexCommandResolver
 import com.kcg.dr.waypoints.LocationAdapter
@@ -117,6 +119,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
     private val controller: AircraftController get() = controllerVM.controller
     private lateinit var commandResolver: RegexCommandResolver
+    private lateinit var actionResolver: LlamaActionSequenceResolver
     private val audioControlReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == AudioControlService.ACTION_START_VOICE_RECOGNITION)
@@ -1232,6 +1235,18 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                 ) { silent.postValue(silent.value != true) },
             )
         )
+
+        actionResolver = LlamaActionSequenceResolver(requireContext())
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val modelFile = requireContext().getAssetOrExtract(
+                    "models/" + ""
+                )
+                actionResolver.engine.loadModel(modelFile.absolutePath)
+            } catch (e: Exception) {
+                Log.e("LlamaActionResolver", "error: ${e.message}", e)
+            }
+        }
     }
 
     private fun matchWaypointLocationFromRegexCapture(
