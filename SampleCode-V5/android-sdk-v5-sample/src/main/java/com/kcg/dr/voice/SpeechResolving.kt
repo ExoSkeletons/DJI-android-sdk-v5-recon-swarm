@@ -118,7 +118,7 @@ interface SerialisedResolver<T> : SpeechResolver<T?> {
 interface LlamaSerialisedResolver<T> : SerialisedResolver<T> {
     val engine: InferenceEngine
 
-    fun preProcess(speech: String): String = speech
+    fun preProcess(speech: String): String = speech.trim().trimIndent()
     fun postProcess(result: String): String {
         val jsonRegex = """\{(?:[^{}]|(?))*\}""".toRegex()
         val match = jsonRegex.find(result)
