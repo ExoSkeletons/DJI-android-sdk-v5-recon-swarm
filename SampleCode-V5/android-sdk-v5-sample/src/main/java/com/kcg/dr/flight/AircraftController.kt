@@ -248,7 +248,7 @@ open class AircraftController(
 
         var coordinateSystem: FlightCoordinateSystem = FlightCoordinateSystem.BODY,
     ) {
-        fun merge(other: FlightParam): FlightParam {
+        operator fun plus(other: FlightParam): FlightParam {
             return FlightParam().apply {
                 pitch = other.pitch ?: this@FlightParam.pitch
                 roll = other.roll ?: this@FlightParam.roll
@@ -470,7 +470,7 @@ open class AircraftController(
                 delay(TRANSMISSION_INTERVAL)
                 if (buffer.isNotEmpty()) {
                     if (buffer.size > 2) Log.i(TAG, "reducing ${buffer.size} flight params")
-                    val combinedParam = buffer.reduce { param1, param2 -> param1.merge(param2) }
+                    val combinedParam = buffer.reduce { param1, param2 -> param1 + param2 }
                     vSticks.sendStickParam(combinedParam)
                     buffer.clear()
                 }
