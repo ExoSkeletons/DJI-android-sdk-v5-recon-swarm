@@ -104,17 +104,6 @@ sealed class FlightActions {
         override suspend fun act(controller: AircraftController) =
             controller.flyToSticks(target, maxVelocity = maxVelocity)
     }
-
-    @Serializable
-    @SerialName("look_at")
-    data class LookAt(
-        @Serializable(with = LocationCoordinate2DSerializer::class)
-        val target: LocationCoordinate2D,
-        val height: Double? = null
-    ) : Action {
-        override suspend fun act(controller: AircraftController) =
-            controller.lookAtWithSpin(target, this@LookAt.height)
-    }
 }
 
 sealed class PatternActions {
@@ -151,6 +140,18 @@ sealed class CameraActions {
     data class GimbalPitch(val angle: Double) : Action {
         override suspend fun act(controller: AircraftController) =
             controller.pitchCamera(angle)
+    }
+
+    @Serializable
+    @SerialName("look_at")
+    @SerialDescription("Rotate aircraft camera Gimbal to point/look at a specific GPS based (lat/lng) location")
+    data class LookAt(
+        @Serializable(with = LocationCoordinate2DSerializer::class)
+        val target: LocationCoordinate2D,
+        val height: Double? = null
+    ) : Action {
+        override suspend fun act(controller: AircraftController) =
+            controller.lookAtWithSpin(target, height)
     }
 
     @Serializable
@@ -195,11 +196,11 @@ fun Route.controllerRoute(c: () -> AircraftController?) {
         })
     }
     post("/lookAt") {
-        val request = call.receive<FlightActions.LookAt>()
+        val request = call.receive<CameraActions.LookAt>()
         controller.fly { lookAtWithSpin(request.target, request.height) }
         call.respond(ok {
             put(
-                FlightActions.LookAt::class.serializer().descriptor.serialName,
+                CameraActions.LookAt::class.serializer().descriptor.serialName,
                 request.target.toJson().toJsonElement()
             )
         })
