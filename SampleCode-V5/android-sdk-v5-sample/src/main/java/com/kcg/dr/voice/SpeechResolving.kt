@@ -2,10 +2,15 @@ package com.kcg.dr.voice
 
 import android.content.Context
 import android.content.res.Resources
+import android.util.Log
 import com.arm.aichat.AiChat
 import com.arm.aichat.InferenceEngine
 import com.kcg.dr.api.Action
 import com.kcg.dr.flight.AircraftController
+import com.kcg.dr.utils.AssetUtils.getAssetOrExtract
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
 import kotlinx.schema.generator.json.serialization.SerializationClassJsonSchemaGenerator
 import kotlinx.schema.json.encodeToString
 import kotlinx.serialization.KSerializer
@@ -149,8 +154,9 @@ interface SerialisedResolver<T> : SpeechResolver<T?> {
     }
 }
 
-interface LlamaSerialisedResolver<T> : SerialisedResolver<T> {
-    val engine: InferenceEngine
+abstract class LlamaSerialisedResolver<T>(val context: Context) : SerialisedResolver<T> {
+    private val engine: InferenceEngine = AiChat.getInferenceEngine(context)
+    protected abstract val systemPrompt: String
 
     suspend fun init(modelName: String) = coroutineScope {
         withContext(Dispatchers.IO) {
@@ -170,7 +176,7 @@ interface LlamaSerialisedResolver<T> : SerialisedResolver<T> {
     protected fun preProcess(speech: String): String = speech.trim().trimIndent()
     protected fun postProcess(result: String): String = SerialisedResolver.findJson(result) ?: result
 
-    val schemas: String
+    protected val schemas: String
         get() {
             val generator = SerializationClassJsonSchemaGenerator(json)
             // Sealed schema generation includes all subclasses of the sealed class
@@ -179,7 +185,7 @@ interface LlamaSerialisedResolver<T> : SerialisedResolver<T> {
             return schemaString
         }
 
-    suspend fun generateAndCollect(speech: String): String {
+    private suspend fun generateAndCollect(speech: String): String {
         engine.setSystemPrompt(systemPrompt)
         val resultFlow = engine.sendUserPrompt(speech)
         var result = ""
@@ -191,13 +197,24 @@ interface LlamaSerialisedResolver<T> : SerialisedResolver<T> {
 
     override suspend fun resolve(speech: String): T? {
         val preProcessedSpeech = preProcess(speech)
+        val t0 = System.currentTimeMillis()
         val result = generateAndCollect(preProcessedSpeech)
+        Log.d(
+            "LlamaSerialisedResolver",
+            "generation took: ${(System.currentTimeMillis() - t0) / 100}s"
+        )
         val processedResult = postProcess(result)
+        Log.d("LlamaSerialisedResolver", "parsed response:\n$processedResult")
         return try {
             json.decodeFromString(serializer, processedResult)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e("LlamaSerialisedResolver", "error parsing response: $e", e)
             null
         }
+    }
+
+    fun destroy() {
+        engine.destroy()
     }
 }
 
@@ -213,7 +230,7 @@ class ActionResolver :
 }
 
 class LlamaActionSequenceResolver(context: Context) :
-    LlamaSerialisedResolver<List<Action>>,
+    LlamaSerialisedResolver<List<Action>>(context),
     SpeechExecutor<List<Action>, AircraftController, Unit> {
     override fun nameOf(t: List<Action>): String = t.joinToString { it.javaClass.simpleName }
 
@@ -222,7 +239,6 @@ class LlamaActionSequenceResolver(context: Context) :
     }
 
     override val serializer: KSerializer<List<Action>> = ListSerializer(Action.serializer())
-    override val engine: InferenceEngine = AiChat.getInferenceEngine(context)
     override val systemPrompt: String =
         """
         # Motive:

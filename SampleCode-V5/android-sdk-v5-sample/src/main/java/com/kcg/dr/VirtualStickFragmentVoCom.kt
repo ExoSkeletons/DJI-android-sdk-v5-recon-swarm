@@ -39,7 +39,6 @@ import com.kcg.dr.flight.AircraftControlViewModel
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.flight.AircraftController.CircleFaceMode
 import com.kcg.dr.location.LiveLocationProvider
-import com.kcg.dr.utils.AssetUtils.getAssetOrExtract
 import com.kcg.dr.utils.DJIErrorException
 import com.kcg.dr.utils.LocaleUtils.getLocalizedResources
 import com.kcg.dr.utils.LocationUtils
@@ -570,6 +569,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     override fun onDestroy() {
         super.onDestroy()
         apiServerVM.stopService()
+        actionResolver.destroy()
         ServiceUtils.stopService(
             requireContext(),
             AudioControlService::class.java
@@ -1237,12 +1237,16 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         )
 
         actionResolver = LlamaActionSequenceResolver(requireContext())
-        lifecycleScope.launch(Dispatchers.IO) {
+        lifecycleScope.launch {
+            actionResolver.init("qwen2.5-coder-1.5b-instruct-q4_0.gguf")
             try {
-                val modelFile = requireContext().getAssetOrExtract(
-                    "models/" + "qwen2.5-coder-1.5b-instruct-q4_0.gguf"
+                val actions = actionResolver.resolve(
+                    """
+                    hey drone. take off and fly up 10 meters, spin around slowly, wait a few seconds
+                    then come down halfway, wait another second then come down and land. over and out
+                """.trimIndent()
                 )
-                actionResolver.engine.loadModel(modelFile.absolutePath)
+                Log.i("LlamaActionResolver", "actions: $actions")
             } catch (e: Exception) {
                 Log.e("LlamaActionResolver", "error: ${e.message}", e)
             }
