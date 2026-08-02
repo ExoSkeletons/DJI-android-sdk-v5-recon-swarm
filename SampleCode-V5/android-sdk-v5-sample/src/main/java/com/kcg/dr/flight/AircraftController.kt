@@ -708,6 +708,28 @@ open class AircraftController(
         callback.onSuccess()
     }
 
+    suspend fun flyBy(
+        distance: XYZ,
+        velocity: Double = 0.5,
+    ) = coroutineScope {
+        require(velocity >= 0) { "velocity must be positive" }
+        if (velocity == 0.0) return@coroutineScope
+        val mag = sqrt(distance.x * distance.x + distance.y * distance.y + distance.z * distance.z)
+        if (mag <= 1e-3) return@coroutineScope
+
+        val travelTime = abs(mag / velocity)
+        val v = distance.dt(travelTime)
+        val flightParam = FlightParam().apply {
+            pitch = v.y
+            roll = v.x
+            yaw = 0.0
+            verticalThrottle = v.z
+        }
+        Log.i(TAG, "flying by $distance. $travelTime seconds")
+        sendStickParamForDuration(travelTime.seconds, flightParam)
+    }
+
+
     suspend fun ascendBy(distance: Double, velocity: Double = 0.5) =
         flyBySticks(LocationUtils.RelativeDirection.UP, distance, velocity)
 
