@@ -41,6 +41,15 @@ sealed class TemporalActions {
         override suspend fun act(controller: AircraftController) =
             delay(seconds.seconds)
     }
+
+    @Serializable
+    @SerialName("repeat")
+    data class Repeat(val times: Int, val action: Action) : Action {
+        override suspend fun act(controller: AircraftController) {
+            for (i in 1..times)
+                action.act(controller)
+        }
+    }
 }
 
 sealed class BasicActions {
@@ -54,12 +63,6 @@ sealed class BasicActions {
     @SerialName("land")
     object Land : Action {
         override suspend fun act(controller: AircraftController) = controller.land()
-    }
-
-    @Serializable
-    @SerialName("stop")
-    object Stop : Action {
-        override suspend fun act(controller: AircraftController) = controller.stop()
     }
 }
 
@@ -114,7 +117,7 @@ sealed class PatternActions {
         val velocity: Double,
         val count: Double = 1.0,
         val clockwise: Boolean = true,
-        @SerialName("facing")
+        @property:SerialName("facing")
         val faceMode: CircleFaceMode = CircleFaceMode.CENTER,
     ) : Action {
         override suspend fun act(controller: AircraftController) =
@@ -130,6 +133,19 @@ sealed class PatternActions {
     ) : Action {
         override suspend fun act(controller: AircraftController) =
             controller.flySquare(side, velocity, clockwise)
+    }
+
+    @Serializable
+    @SerialName("scan_ground")
+    data class ScanGround(
+        val radius: Double,
+        val velocity: Double = 4.0,
+        @property:SerialName("facing")
+        val faceMode: CircleFaceMode = CircleFaceMode.OUTER,
+        val clockwise: Boolean = true,
+    ) : Action {
+        override suspend fun act(controller: AircraftController) =
+            controller.scanGround(radius, velocity, faceMode, clockwise)
     }
 }
 
