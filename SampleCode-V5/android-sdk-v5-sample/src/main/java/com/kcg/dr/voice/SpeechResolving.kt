@@ -8,7 +8,7 @@ import com.arm.aichat.InferenceEngine
 import com.kcg.dr.api.Action
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.utils.AssetUtils.getAssetOrExtract
-import com.kcg.dr.voice.SerialisedResolver.Companion.appendPropertyMarkdown
+import com.kcg.dr.voice.SerialisedResolver.Companion.appendPropertyShortJson
 import com.kcg.dr.voice.SerialisedResolver.Companion.dereference
 import io.ktor.http.parsing.ParseException
 import kotlinx.coroutines.Dispatchers
@@ -121,10 +121,6 @@ class RegexCommandResolver(resources: Resources) :
 interface SerialisedResolver<T> : SpeechResolver<T?> {
     val serializer: KSerializer<T>
     val json: Json get() = Json { ignoreUnknownKeys = true }
-    val schema: JsonSchema
-        get() =
-            // Sealed schema generation includes all subclasses of the sealed class
-            SerializationClassJsonSchemaGenerator(json).generateSchema(serializer.descriptor)
 
     override suspend fun resolve(speech: String): T? = try {
         json.decodeFromString(serializer, speech)
@@ -190,6 +186,52 @@ interface SerialisedResolver<T> : SpeechResolver<T?> {
             }
         }
 
+        fun StringBuilder.appendPropertyShortJson(
+            definition: PropertyDefinition,
+            defs: Map<String, PropertyDefinition>,
+            name: String? = null,
+            required: Boolean = true,
+            depth: Int = 0,
+        ) {
+            val indent = "\t".repeat(depth)
+            val p = dereference(definition, defs)
+
+            append(indent)
+
+            if (definition is StringPropertyDefinition && name == "type") {
+                appendLine("type: ${definition.constValue},")
+                return
+            }
+
+            val (types, desc) = when (p) {
+                is ObjectPropertyDefinition -> null to p.description
+                is ValuePropertyDefinition<*> -> (p.type ?: emptyList()) to p.description
+                is JsonSchema -> null to p.description
+                else -> throw ParseException("Invalid property type: ${definition::class}")
+            }
+
+            desc?.let { appendLine("$indent// description: \"$it\",") }
+            append("$indent\"${name}\"")
+            types?.takeIf { it.isNotEmpty() }?.let {
+                append(": ${it.joinToString("|")}")
+            }
+            if (!required) append(" (optional)")
+
+            (p as? ObjectPropertyDefinition)?.properties?.takeIf { it.isNotEmpty() }?.let {
+                appendLine(": {")
+                it.forEach { (childName, childProperty) ->
+                    appendPropertyShortJson(
+                        childProperty, defs,
+                        childName,
+                        p.required?.contains(childName) == true,
+                        depth + 1
+                    )
+                }
+                append("$indent}")
+            }
+            appendLine(",")
+        }
+
         fun findJson(text: String): String? {
             val start = text.indexOfFirst { it == '{' || it == '[' }
             if (start == -1) return null
@@ -226,6 +268,7 @@ interface SerialisedResolver<T> : SpeechResolver<T?> {
 abstract class LlamaSerialisedResolver<T>(val context: Context) : SerialisedResolver<T> {
     private val engine: InferenceEngine = AiChat.getInferenceEngine(context)
     protected abstract val systemPrompt: String
+    protected abstract val schema: String
 
     suspend fun init(modelName: String) = coroutineScope {
         withContext(Dispatchers.IO) {
@@ -234,7 +277,8 @@ abstract class LlamaSerialisedResolver<T>(val context: Context) : SerialisedReso
                     "models/$modelName"
                 )
                 engine.loadModel(modelFile.absolutePath)
-                Log.i("LlamaActionResolver", "model loaded")
+                Log.d("LlamaActionResolver", "model loaded")
+                Log.i("LlamaActionResolver", "schema:\n$schema")
                 Log.d("LlamaActionResolver", "setting system prompt...")
                 val t1 = System.currentTimeMillis()
                 engine.setSystemPrompt(systemPrompt)
@@ -267,7 +311,7 @@ abstract class LlamaSerialisedResolver<T>(val context: Context) : SerialisedReso
         val result = generateAndCollect(preProcessedSpeech)
         Log.d(
             "LlamaSerialisedResolver",
-            "generation took: ${(System.currentTimeMillis() - t0) / 100}s"
+            "generation took: ${(System.currentTimeMillis() - t0) / 1000}s"
         )
         val processedResult = postProcess(result)
         Log.d("LlamaSerialisedResolver", "parsed response:\n$processedResult")
@@ -302,12 +346,13 @@ class LlamaActionSequenceResolver(context: Context) :
         arg?.let { for (action in t) action.act(it) }
     }
 
-    fun markdownActionSchema() = buildString {
+    public override val schema: String = buildString {
+        val generator = SerializationClassJsonSchemaGenerator(json)
+        val schema = generator.generateSchema(Action.serializer().descriptor)
         val defs = schema.defs ?: emptyMap()
         schema.oneOf?.forEach { definition ->
             val aDef = dereference(definition, defs)
-            appendLine("Action:")
-            appendPropertyMarkdown(
+            appendPropertyShortJson(
                 aDef, defs,
                 ((aDef as? ObjectPropertyDefinition)
                     ?.properties?.get("type")
@@ -320,49 +365,31 @@ class LlamaActionSequenceResolver(context: Context) :
 
     override val serializer: KSerializer<List<Action>> = ListSerializer(Action.serializer())
     override val systemPrompt: String =
-        """
-        # Motive:
-        You are a speech-to-intent engine, translating user's speech from natural language into a list of actions,
-        where each action is represented as a JSON object DTO.
-        
-        The user's speech is provided as the user prompt.
-        
-        ## Objective:
-        - You, as a speech-to-intent engine, are tasked with translating the user's speech into a list of actions.
-        - You are provided below the list of possible actions that the system can perform, and their JSON schemas.
-        The user's speech intent could include a single system action from the list,
-        or it could describe an action that requires a sequence of multiple system actions,
-        in which case you should output the sequence as a JSON list of actions.
-        - If you can adequately translate the user's speech into a single action,
-        output it's JSON representation as a single item inside a JSON list.
-        
-        ## Action Schema constraints:
-        - You are provided below Simple Schemas of all the possible actions that the system can perform.
-        Each action is represented as a JSON object DTO, where it's fields act as arguments to the action.
-        - When translating the user's speech into a list of actions, you must transform the user's speech
-        to JSON Objects that match the System Action schemas and ONLY the schemas.
-        - DO NOT invent new actions or fields. The Systems Action List is the ultimate and sole source
-        of truth for which actions are possible. Use ONLY the System Actions that listed in the schemas,
-        DO NOT invent new actions even if they are of a similar idea or intent to an existing action.
-        - Use the EXACT field names provided in the schemas. Make sure the "type" field matches exactly as well.
-        
-        ## User Intent Inference:
-        - Use context clues and information in the user's speech to help you understand the intent.
-        - Use the JSON Schema descriptions to help you understand what each field represents,
-        what values it can take and what values the user intended to be set.
-        - Use information from the user's speech and your own reasoning to fill in the values of each field.
-        - The JSON parser is equipped to handle default values for fields that are not explicitly set.
-        Therefore, If a DTO field or property is not specified in the Schema as required, and the User
-        speech does NOT explicitly or implicitly provide a value for that field, there is NO NEED
-        to specify some default value for it and you should NOT include the field in the JSON output.
-                
-        # System Action Schemas:
-        ${markdownActionSchema()}
-        
-        ## Json Formatting:
-        - The JSON must be valid and parseable to a Java/Kotlin object.
-        - Include a "type" field in the JSON object representing the serial name of the class.
-        
-        *Output ONLY the string of the JSON result, nothing else.*      
-        """.trimIndent()
+       """
+           # Role
+
+           You are a speech-to-intent engine.
+
+           Convert the user's natural language request into a JSON array of system actions.
+
+           Each action must exactly match one of the JSON Schemas below.
+
+           # Rules
+
+           - The JSON Schemas below are the ONLY valid actions.
+           - Never invent actions or fields.
+           - Use the EXACT "type" value and field names from the schemas.
+           - Infer the user's intent and populate schema fields accordingly.
+           - If a field is optional and the user did not explicitly or implicitly specify a value, omit the field.
+           - A single action must still be returned as a JSON array containing one object.
+           - Output valid JSON only.
+
+           # Available Actions
+
+           $schema
+
+           # Output
+
+           Return ONLY the JSON array.
+       """.trimIndent()
 }
