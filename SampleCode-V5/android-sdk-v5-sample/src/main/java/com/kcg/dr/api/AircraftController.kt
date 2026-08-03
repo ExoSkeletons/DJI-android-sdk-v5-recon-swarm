@@ -66,13 +66,13 @@ sealed class BasicActions {
 sealed class FlightActions {
     @Serializable
     @SerialName("fly_by")
-    @SerialDescription("Move aircraft relative to the current position, by some dx,dy,dz (m).")
+    @SerialDescription("Moves aircraft relative to it's current position (m).")
     data class FlyBy(
-        @property:SerialDescription("x+ : forward")
+        @property:SerialDescription("x+ is forward")
         val dx: Double = 0.0,
-        @property:SerialDescription("y+ : right")
+        @property:SerialDescription("y+ is right")
         val dy: Double = 0.0,
-        @property:SerialDescription("z+ : up")
+        @property:SerialDescription("z+ is up")
         val dz: Double = 0.0,
         @property:SerialDescription("(m/s)")
         val velocity: Double = 4.0,
@@ -83,7 +83,7 @@ sealed class FlightActions {
 
     @Serializable
     @SerialName("spin_by")
-    @SerialDescription("Spin aircraft relative to the current heading (by some degrees).")
+    @SerialDescription("Spins aircraft relative to it's current heading.")
     data class SpinBy(
         val degrees: Double,
     ) : Action {
@@ -93,10 +93,10 @@ sealed class FlightActions {
 
     @Serializable
     @SerialName("fly_gps")
-    @SerialDescription("Fly the aircraft to a specific GPS based (lat/lng/alt) location")
+    @SerialDescription("Flies the aircraft to a specific GPS based (lat/lng/alt) location")
     data class FlyTo(
         @Serializable(with = LocationCoordinate3DSerializer::class)
-        @property:SerialDescription("Target GPS location (lat/lng/alt)")
+        @property:SerialDescription("Destination GPS location (lat/lng/alt)")
         val target: LocationCoordinate3D,
         @SerialName("velocity")
         val maxVelocity: Double
@@ -136,7 +136,7 @@ sealed class PatternActions {
 sealed class CameraActions {
     @Serializable
     @SerialName("gimbal_pitch")
-    @SerialDescription("Pitch aircraft camera Gimbal to a specific up/down pitch angle")
+    @SerialDescription("Pitches aircraft camera Gimbal up/down")
     data class GimbalPitch(val angle: Double) : Action {
         override suspend fun act(controller: AircraftController) =
             controller.pitchCamera(angle)
@@ -144,7 +144,7 @@ sealed class CameraActions {
 
     @Serializable
     @SerialName("look_at")
-    @SerialDescription("Rotate aircraft camera Gimbal to point/look at a specific GPS based (lat/lng) location")
+    @SerialDescription("Rotates aircraft camera Gimbal to point/look at a specific GPS location")
     data class LookAt(
         @Serializable(with = LocationCoordinate2DSerializer::class)
         val target: LocationCoordinate2D,
