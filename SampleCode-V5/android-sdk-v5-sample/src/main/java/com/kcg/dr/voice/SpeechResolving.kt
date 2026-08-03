@@ -8,11 +8,19 @@ import com.arm.aichat.InferenceEngine
 import com.kcg.dr.api.Action
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.utils.AssetUtils.getAssetOrExtract
+import com.kcg.dr.voice.SerialisedResolver.Companion.appendPropertyMarkdown
+import com.kcg.dr.voice.SerialisedResolver.Companion.dereference
+import io.ktor.http.parsing.ParseException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import kotlinx.schema.generator.json.serialization.SerializationClassJsonSchemaGenerator
-import kotlinx.schema.json.encodeToString
+import kotlinx.schema.json.JsonSchema
+import kotlinx.schema.json.ObjectPropertyDefinition
+import kotlinx.schema.json.PropertyDefinition
+import kotlinx.schema.json.ReferencePropertyDefinition
+import kotlinx.schema.json.StringPropertyDefinition
+import kotlinx.schema.json.ValuePropertyDefinition
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
@@ -113,6 +121,10 @@ class RegexCommandResolver(resources: Resources) :
 interface SerialisedResolver<T> : SpeechResolver<T?> {
     val serializer: KSerializer<T>
     val json: Json get() = Json { ignoreUnknownKeys = true }
+    val schema: JsonSchema
+        get() =
+            // Sealed schema generation includes all subclasses of the sealed class
+            SerializationClassJsonSchemaGenerator(json).generateSchema(serializer.descriptor)
 
     override suspend fun resolve(speech: String): T? = try {
         json.decodeFromString(serializer, speech)
@@ -121,6 +133,63 @@ interface SerialisedResolver<T> : SpeechResolver<T?> {
     }
 
     companion object {
+        fun dereference(
+            definition: PropertyDefinition,
+            defs: Map<String, PropertyDefinition>
+        ): PropertyDefinition =
+            (definition as? ReferencePropertyDefinition)?.let {
+                definition.ref?.let {
+                    defs[it.substringAfterLast("/")]
+                } ?: throw ParseException("Missing ref field in Reference Property: $definition")
+            } ?: definition
+
+        fun StringBuilder.appendPropertyMarkdown(
+            definition: PropertyDefinition,
+            defs: Map<String, PropertyDefinition>,
+            name: String? = null,
+            required: Boolean = true,
+            depth: Int = 0,
+        ) {
+            val indent = "\t".repeat(depth)
+            val p = dereference(definition, defs)
+
+            append(indent)
+            if (depth > 0) append("- ")
+
+            if (definition is StringPropertyDefinition && name == "type") {
+                appendLine("type: ${definition.constValue}")
+                return
+            }
+
+            append("${name}:")
+            val (types, desc) = when (p) {
+                /*is ObjectPropertyDefinition ->
+                    ((p.properties?.get("type") as? StringPropertyDefinition)
+                        ?.constValue?.toString()?.let {
+                            listOf(it)
+                        } ?: emptyList()) + p.type to p.description*/
+                is ValuePropertyDefinition<*> -> (p.type ?: emptyList()) to p.description
+                is JsonSchema -> p.type to p.description
+                else -> throw ParseException("Invalid property type: ${definition::class}")
+            }
+            append(" ${types.joinToString("|")}")
+            if (!required) append(" (optional)")
+            appendLine()
+            desc?.let { appendLine("$indent* Description\n$indent\t$it") }
+
+            (p as? ObjectPropertyDefinition)?.properties?.takeIf { it.isNotEmpty() }?.let {
+                appendLine("${indent}* Fields")
+                it.forEach { (childName, childProperty) ->
+                    appendPropertyMarkdown(
+                        childProperty, defs,
+                        childName,
+                        p.required?.contains(childName) == true,
+                        depth + 1
+                    )
+                }
+            }
+        }
+
         fun findJson(text: String): String? {
             val start = text.indexOfFirst { it == '{' || it == '[' }
             if (start == -1) return null
@@ -161,12 +230,18 @@ abstract class LlamaSerialisedResolver<T>(val context: Context) : SerialisedReso
     suspend fun init(modelName: String) = coroutineScope {
         withContext(Dispatchers.IO) {
             try {
-                Log.i("LlamaActionResolver", "schema: $schemas")
                 val modelFile = context.getAssetOrExtract(
                     "models/$modelName"
                 )
                 engine.loadModel(modelFile.absolutePath)
+                Log.i("LlamaActionResolver", "model loaded")
+                Log.d("LlamaActionResolver", "setting system prompt...")
+                val t1 = System.currentTimeMillis()
                 engine.setSystemPrompt(systemPrompt)
+                Log.d(
+                    "LlamaActionResolver",
+                    "system prompt set (took ${(System.currentTimeMillis() - t1) / 1000}s)"
+                )
             } catch (e: Exception) {
                 Log.e("LlamaActionResolver", "error: ${e.message}", e)
             }
@@ -174,19 +249,10 @@ abstract class LlamaSerialisedResolver<T>(val context: Context) : SerialisedReso
     }
 
     protected fun preProcess(speech: String): String = speech.trim().trimIndent()
-    protected fun postProcess(result: String): String = SerialisedResolver.findJson(result) ?: result
-
-    protected val schemas: String
-        get() {
-            val generator = SerializationClassJsonSchemaGenerator(json)
-            // Sealed schema generation includes all subclasses of the sealed class
-            val schema = generator.generateSchema(serializer.descriptor)
-            val schemaString = schema.encodeToString(Json { prettyPrint = true })
-            return schemaString
-        }
+    protected fun postProcess(result: String): String =
+        SerialisedResolver.findJson(result) ?: result
 
     private suspend fun generateAndCollect(speech: String): String {
-        engine.setSystemPrompt(systemPrompt)
         val resultFlow = engine.sendUserPrompt(speech)
         var result = ""
         resultFlow.collect {
@@ -213,9 +279,7 @@ abstract class LlamaSerialisedResolver<T>(val context: Context) : SerialisedReso
         }
     }
 
-    fun destroy() {
-        engine.destroy()
-    }
+    fun destroy() = engine.destroy()
 }
 
 class ActionResolver :
@@ -238,6 +302,22 @@ class LlamaActionSequenceResolver(context: Context) :
         arg?.let { for (action in t) action.act(it) }
     }
 
+    fun markdownActionSchema() = buildString {
+        val defs = schema.defs ?: emptyMap()
+        schema.oneOf?.forEach { definition ->
+            val aDef = dereference(definition, defs)
+            appendLine("Action:")
+            appendPropertyMarkdown(
+                aDef, defs,
+                ((aDef as? ObjectPropertyDefinition)
+                    ?.properties?.get("type")
+                        as? StringPropertyDefinition)
+                    ?.constValue.toString().removeSurrounding("\"")
+            )
+            appendLine()
+        }
+    }
+
     override val serializer: KSerializer<List<Action>> = ListSerializer(Action.serializer())
     override val systemPrompt: String =
         """
@@ -257,11 +337,14 @@ class LlamaActionSequenceResolver(context: Context) :
         output it's JSON representation as a single item inside a JSON list.
         
         ## Action Schema constraints:
-        - You are provided below JSON Schemas of all the possible actions that the system can perform.
+        - You are provided below Simple Schemas of all the possible actions that the system can perform.
+        Each action is represented as a JSON object DTO, where it's fields act as arguments to the action.
         - When translating the user's speech into a list of actions, you must transform the user's speech
         to JSON Objects that match the System Action schemas and ONLY the schemas.
-        DO NOT invent new actions or fields. Use ONLY the System Actions given in the schemas you're
-        provided. Use the exact field names provided in the schemas.
+        - DO NOT invent new actions or fields. The Systems Action List is the ultimate and sole source
+        of truth for which actions are possible. Use ONLY the System Actions that listed in the schemas,
+        DO NOT invent new actions even if they are of a similar idea or intent to an existing action.
+        - Use the EXACT field names provided in the schemas. Make sure the "type" field matches exactly as well.
         
         ## User Intent Inference:
         - Use context clues and information in the user's speech to help you understand the intent.
@@ -274,14 +357,12 @@ class LlamaActionSequenceResolver(context: Context) :
         to specify some default value for it and you should NOT include the field in the JSON output.
                 
         # System Action Schemas:
-        $schemas
+        ${markdownActionSchema()}
         
         ## Json Formatting:
         - The JSON must be valid and parseable to a Java/Kotlin object.
         - Include a "type" field in the JSON object representing the serial name of the class.
         
-        *Output ONLY the string of the JSON result, nothing else.*
-        
-        ### User's Speech:
-    """.trimIndent()
+        *Output ONLY the string of the JSON result, nothing else.*      
+        """.trimIndent()
 }
