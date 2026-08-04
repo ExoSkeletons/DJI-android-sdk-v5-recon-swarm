@@ -52,6 +52,7 @@ import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.PI
 import kotlin.math.abs
@@ -825,6 +826,7 @@ open class AircraftController(
         callback.onSuccess()
     }
 
+    @Serializable
     @SerialName("face_mode")
     enum class CircleFaceMode {
         CENTER,
