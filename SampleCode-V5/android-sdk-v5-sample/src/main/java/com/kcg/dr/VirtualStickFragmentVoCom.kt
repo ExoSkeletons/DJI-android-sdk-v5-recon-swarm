@@ -80,6 +80,7 @@ import dji.v5.manager.datacenter.MediaDataCenter
 import dji.v5.manager.datacenter.livestream.LiveVideoBitrateMode
 import dji.v5.manager.datacenter.livestream.StreamQuality
 import dji.v5.manager.interfaces.ICameraStreamManager
+import dji.v5.ux.remotecontroller.TAG
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -1236,17 +1237,18 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             )
         )
 
-        actionResolver = LlamaActionSequenceResolver(requireContext())
         lifecycleScope.launch {
-            actionResolver.init("qwen2.5-coder-1.5b-instruct-q4_0.gguf")
             try {
-                val actions = actionResolver.resolve(
-                    """
-                    hey drone. take off and fly up 10 meters, spin around slowly, wait a few seconds
-                    then come down halfway, wait another second then come down and land. over and out
-                """.trimIndent()
-                )
-                Log.i("LlamaActionResolver", "actions: $actions")
+                actionResolver = LlamaActionSequenceResolver(requireContext())
+                actionResolver.init("qwen2.5-coder-1.5b-instruct-q4_0.gguf")
+                /*    val actions = actionResolver.resolve(
+                        """
+                        hey drone. take off and fly up 10 meters, spin around slowly, wait a few seconds
+                        then come down halfway, wait another second then come down and land. over and out
+                    """.trimIndent()
+                    )
+                    Log.i("LlamaActionResolver", "actions: $actions")
+               */
             } catch (e: Exception) {
                 Log.e("LlamaActionResolver", "error: ${e.message}", e)
             }
