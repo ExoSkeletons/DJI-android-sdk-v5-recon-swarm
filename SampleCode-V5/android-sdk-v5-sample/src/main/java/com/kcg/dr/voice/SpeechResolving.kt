@@ -228,7 +228,7 @@ interface SerialisedResolver<T> : SpeechResolver<T?> {
             desc?.let { appendLine("$indent// Description: $it") }
             append("$indent\"${name}\"")
             types?.let { append(": ${it.joinToString("|")}") }
-            enum?.let { append(" enum ${it.joinToString(",")}") }
+            enum?.let { append(" enum [${it.joinToString("|")}]") }
             if (!required) append(" (optional)")
 
             (p as? ObjectPropertyDefinition)?.properties?.takeIf { it.isNotEmpty() }?.let {
