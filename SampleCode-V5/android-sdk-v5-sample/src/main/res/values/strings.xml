@@ -523,8 +523,8 @@ More refer to the release notes." </string>
     <string name="commands_response_fmt_going">going %s</string>
 
     <string name="commands_stop">stop|halt|quit|end</string>
-    <string name="commands_takeoff">takeoff|fly|sky|liftoff|wakeup|sunshine|morning</string>
-    <string name="commands_land">land|ground|down|fall|perch|floor|shutdown|shut down|night|off|turn off|sleep|sunset|plan|planned</string>
+    <string name="commands_takeoff">takeoff|take off|fly|sky|liftoff|wakeup|sunshine|morning</string>
+    <string name="commands_land">land|landing|ground|down|fall|perch|floor|shutdown|shut down|night|off|turn off|sleep|sunset|plan|planned</string>
 
     <string name="commands_return_home">home|safe|house|run|ron|escape|evac|evacuate</string>
     <string name="commands_follow_target">follow|follow target|follow him|target</string>
