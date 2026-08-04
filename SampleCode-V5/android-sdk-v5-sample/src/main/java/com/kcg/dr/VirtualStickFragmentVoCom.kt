@@ -1335,35 +1335,39 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     }
 
     private fun onHearText(spokenText: String) {
-        val lr = requireContext().getLocalizedResources(locale)
+        val tv = binding?.txtSpeechResult
+        val lr = requireContext().getLocalizedResources(locale) // todo: resolver gets locale
+        commandResolver.resources = lr
+        val resolver = commandResolver
 
-        lifecycleScope.launch {
-            commandResolver.resources = lr
-            val match = when (
-                val resolution = commandResolver.resolveToExecute(spokenText)
-            ) {
-                null -> lr.getString(R.string.error_speech_unrecognised)
+        lifecycleScope.launch(Dispatchers.IO) {
+            tv?.text = "processing..." // todo: hide/show spinner
 
-                else -> {
-                    val (action, function) = resolution
-                    try {
-                        SFXManager.playSfx(SFXManager.SFX.ACTION_CONFIRM)
-                        speakText(
-                            lr.getString(R.string.commands_response_fmt_accepted) + ". " +
-                                    commandResolver.responseTo(action)
-                        )
-                        lifecycleScope.launch(Dispatchers.IO) {
-                            function()
-                        }
-                        commandResolver.nameOf(action)
-                    } catch (e: Exception) {
-                        SFXManager.playSfx(SFXManager.SFX.NOTIFY_TECHNICAL)
-                        ToastUtils.showToast(e.message ?: e.toString())
-                        e.message
-                    }
+            val match = resolver.resolveToExecute(spokenText)
+
+            if (match == null) {
+                tv?.text = lr.getString(R.string.error_speech_unrecognised)
+                SFXManager.playSfx(SFXManager.SFX.NOTIFY_TECHNICAL)
+                return@launch
+            }
+
+            val (action, function) = match
+            SFXManager.playSfx(SFXManager.SFX.ACTION_CONFIRM)
+            speakText(
+                lr.getString(R.string.commands_response_fmt_accepted) + ". " +
+                        resolver.responseTo(action)
+            )
+            tv?.text = resolver.nameOf(action)
+
+            launch {
+                runCatching {
+                    function()
+                }.onFailure { e ->
+                    ToastUtils.showToast(e.message ?: e.toString())
+                    Log.e(TAG, "error: ${e.message}", e)
+                    tv?.text = e.message
                 }
             }
-            binding?.sttResult?.text = match
         }
     }
 
