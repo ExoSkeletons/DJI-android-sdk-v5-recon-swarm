@@ -364,32 +364,33 @@ class LlamaActionSequenceResolver(context: Context) :
     }
 
     override val serializer: KSerializer<List<Action>> = ListSerializer(Action.serializer())
-    override val systemPrompt: String =
-       """
-           # Role
-
-           You are a speech-to-intent engine.
-
-           Convert the user's natural language request into a JSON array of system actions.
-
-           Each action must exactly match one of the JSON Schemas below.
-
-           # Rules
-
-           - The JSON Schemas below are the ONLY valid actions.
-           - Never invent actions or fields.
-           - Use the EXACT "type" value and field names from the schemas.
-           - Infer the user's intent and populate schema fields accordingly.
-           - If a field is optional and the user did not explicitly or implicitly specify a value, omit the field.
-           - A single action must still be returned as a JSON array containing one object.
-           - Output valid JSON only.
-
-           # Available Actions
-
-           $schema
-
-           # Output
-
-           Return ONLY the JSON array.
-       """.trimIndent()
+    override val systemPrompt: String = "" +
+            """
+               # Role
+    
+               You are a speech-to-intent engine.
+    
+               Convert the user's natural language request into a JSON array of system actions.
+    
+               Each action must exactly match one of the JSON Schemas below.
+    
+               # Rules
+    
+               - The JSON Schemas below are the ONLY valid actions.
+               - Never invent actions or fields.
+               - Use the EXACT "type" value and field names from the schemas.
+               - Infer the user's intent and populate schema fields accordingly.
+               - If a field is optional and the user did not explicitly or implicitly specify a value, omit the field.
+               - A single action must still be returned as a JSON array containing one object.
+               - Output valid JSON only.
+            """.trimIndent() +
+            "\n" +
+            "# Available Actions\n" +
+            schema + "\n" +
+            "\n" +
+            """
+               # Output
+    
+               Return ONLY the JSON array.
+            """.trimIndent()
 }
