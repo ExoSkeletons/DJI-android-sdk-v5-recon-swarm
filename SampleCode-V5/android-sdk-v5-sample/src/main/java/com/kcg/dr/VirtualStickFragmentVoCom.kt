@@ -947,7 +947,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     }
 
     private fun initVoiceCommandResolver() {
-        val respFmtNoneId = R.string.commands_response_fmt_none
         val respFmtSimpleId = R.string.commands_response_fmt_simple
         val respFmtExId = R.string.commands_response_fmt_executing
         val respFmtGoId = R.string.commands_response_fmt_going
@@ -956,7 +955,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         commandResolver.setCommands(
             listOf(
                 Command(R.string.commands_stop) { controller.stop() },
-                Command(R.string.commands_takeoff) {
+                Command(R.string.commands_takeoff, respFmtSimpleId) {
                     controller.fly {
                         try {
                             val response = KeyActivator.handleKeyRequest(
@@ -975,7 +974,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                         //takeoff()
                     }
                 },
-                Command(R.string.commands_land) { controller.fly { land() } },
+                Command(R.string.commands_land, respFmtExId) { controller.fly { land() } },
 
                 Command(
                     R.string.commands_return_home,
