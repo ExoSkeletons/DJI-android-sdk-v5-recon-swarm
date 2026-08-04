@@ -449,13 +449,11 @@ open class AircraftController(
         Log.i(TAG, "takeoff on success")
     }
 
-    fun land() {
+    suspend fun land() {
         Log.d(TAG, "land")
-        scope.launch {
-            stop(false)
-            Log.d(TAG, "starting landing")
-            ac.land()
-        }
+        stop(false)
+        Log.d(TAG, "starting landing")
+        ac.land()
     }
 
     private var flightParamTransmissionJob: Job? = null

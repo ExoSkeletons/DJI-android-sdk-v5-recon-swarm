@@ -1335,18 +1335,20 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     }
 
     private fun onHearText(spokenText: String) {
-        val tv = binding?.txtSpeechResult
+        val rtv = binding?.sttResult
+        val stv = binding?.txtSpeechResult
         val lr = requireContext().getLocalizedResources(locale) // todo: resolver gets locale
         commandResolver.resources = lr
         val resolver = commandResolver
 
         lifecycleScope.launch(Dispatchers.IO) {
-            tv?.text = "processing..." // todo: hide/show spinner
+            stv?.text = spokenText
+            rtv?.text = "processing..." // todo: hide/show spinner
 
             val match = resolver.resolveToExecute(spokenText)
 
             if (match == null) {
-                tv?.text = lr.getString(R.string.error_speech_unrecognised)
+                rtv?.text = lr.getString(R.string.error_speech_unrecognised)
                 SFXManager.playSfx(SFXManager.SFX.NOTIFY_TECHNICAL)
                 return@launch
             }
@@ -1357,7 +1359,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                 lr.getString(R.string.commands_response_fmt_accepted) + ". " +
                         resolver.responseTo(action)
             )
-            tv?.text = resolver.nameOf(action)
+            rtv?.text = resolver.nameOf(action)
 
             launch {
                 runCatching {
@@ -1365,7 +1367,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                 }.onFailure { e ->
                     ToastUtils.showToast(e.message ?: e.toString())
                     Log.e(TAG, "error: ${e.message}", e)
-                    tv?.text = e.message
+                    rtv?.text = e.message
                 }
             }
         }
