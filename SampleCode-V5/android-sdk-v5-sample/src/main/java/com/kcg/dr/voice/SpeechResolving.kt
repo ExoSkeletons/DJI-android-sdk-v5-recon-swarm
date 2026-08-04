@@ -398,7 +398,7 @@ class LlamaActionSequenceResolver(context: Context) :
                - A single action must still be returned as a JSON array containing one object.
                - Output valid JSON only.
             """.trimIndent() +
-            "\n" +
+            "\n" + "\n" +
             "# Available Actions\n" +
             schema + "\n" +
             "\n" +
