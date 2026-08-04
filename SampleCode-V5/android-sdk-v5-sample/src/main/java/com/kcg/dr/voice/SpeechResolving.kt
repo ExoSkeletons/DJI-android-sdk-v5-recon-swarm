@@ -15,7 +15,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import kotlinx.schema.generator.json.serialization.SerializationClassJsonSchemaGenerator
+import kotlinx.schema.json.ArrayPropertyDefinition
+import kotlinx.schema.json.BooleanPropertyDefinition
 import kotlinx.schema.json.JsonSchema
+import kotlinx.schema.json.NumericPropertyDefinition
 import kotlinx.schema.json.ObjectPropertyDefinition
 import kotlinx.schema.json.PropertyDefinition
 import kotlinx.schema.json.ReferencePropertyDefinition
@@ -136,6 +139,7 @@ interface SerialisedResolver<T> : SpeechResolver<T?> {
             (definition as? ReferencePropertyDefinition)?.let {
                 definition.ref?.let {
                     defs[it.substringAfterLast("/")]
+                        ?: throw ParseException("Missing definition for Reference Property: $definition")
                 } ?: throw ParseException("Missing ref field in Reference Property: $definition")
             } ?: definition
 
@@ -196,25 +200,35 @@ interface SerialisedResolver<T> : SpeechResolver<T?> {
             val indent = "\t".repeat(depth)
             val p = dereference(definition, defs)
 
-            append(indent)
-
             if (definition is StringPropertyDefinition && name == "type") {
-                appendLine("type: ${definition.constValue},")
+                appendLine("${indent}\"type\": ${definition.constValue},")
                 return
             }
 
-            val (types, desc) = when (p) {
-                is ObjectPropertyDefinition -> null to p.description
-                is ValuePropertyDefinition<*> -> (p.type ?: emptyList()) to p.description
-                is JsonSchema -> null to p.description
-                else -> throw ParseException("Invalid property type: ${definition::class}")
+            val types = when (p) {
+                is ValuePropertyDefinition<*> -> p.type
+                else -> null
+            }
+            val desc = when (p) {
+                is ObjectPropertyDefinition -> p.description
+                is ValuePropertyDefinition<*> -> p.description
+                is JsonSchema -> p.description
+                else -> null
+            }
+            val enum = when (p) {
+                is ObjectPropertyDefinition -> p.enum
+                is NumericPropertyDefinition -> p.enum
+                is StringPropertyDefinition -> p.enum?.map { "\"$it\"" }
+                is BooleanPropertyDefinition -> p.enum
+                is ArrayPropertyDefinition -> p.enum
+                is JsonSchema -> p.enum
+                else -> null
             }
 
-            desc?.let { appendLine("$indent// description: \"$it\",") }
+            desc?.let { appendLine("$indent// Description: $it") }
             append("$indent\"${name}\"")
-            types?.takeIf { it.isNotEmpty() }?.let {
-                append(": ${it.joinToString("|")}")
-            }
+            types?.let { append(": ${it.joinToString("|")}") }
+            enum?.let { append(" enum ${it.joinToString(",")}") }
             if (!required) append(" (optional)")
 
             (p as? ObjectPropertyDefinition)?.properties?.takeIf { it.isNotEmpty() }?.let {
