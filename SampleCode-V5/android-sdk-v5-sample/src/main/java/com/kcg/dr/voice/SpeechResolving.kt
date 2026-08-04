@@ -357,7 +357,10 @@ class LlamaActionSequenceResolver(context: Context) :
     override fun nameOf(t: List<Action>): String = t.joinToString { it.javaClass.simpleName }
 
     override suspend fun execute(t: List<Action>, arg: AircraftController?) {
-        arg?.let { for (action in t) action.act(it) }
+        arg?.safely {
+            for (action in t)
+                action.act(this)
+        }
     }
 
     public override val schema: String = buildString {

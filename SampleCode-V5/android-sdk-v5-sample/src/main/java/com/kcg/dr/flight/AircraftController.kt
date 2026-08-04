@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.Observer
+import com.kcg.dr.api.Responses.toJson
 import com.kcg.dr.utils.CoroutineUtils
 import com.kcg.dr.utils.DJIErrorException
 import com.kcg.dr.utils.LocationUtils
@@ -323,7 +324,7 @@ open class AircraftController(
     private val scope = CoroutineScope(Dispatchers.IO)
     private var flightJob: Job? = null
 
-    suspend fun safely(onRCOverride: () -> Unit = {}, block: suspend () -> Unit) = coroutineScope {
+    suspend fun safely(onRCOverride: () -> Unit = {}, block: suspend AircraftController.() -> Unit) = coroutineScope {
         runCatching {
             block()
         }.onFailure { e ->
@@ -334,35 +335,25 @@ open class AircraftController(
                     brake(true)
                     ac.stop(true)
                     onRCOverride()
-                    throw e
                 }
 
                 is CancellationException -> {
                     Log.w(TAG, "cancellation in flight")
                     brake()
-                    throw e
                 }
 
                 is DJIErrorException -> {
                     val error = e.error
-                    Log.w(
-                        TAG,
-                        "${error.errorType()} error in flight: ${error.errorCode()}, ${error.description()}"
-                    )
+                    Log.w(TAG, "${error.errorType()} error in flight: ${error.toJson()}", e)
                     brake(true)
-                    // throw e
                 }
 
                 else -> {
-                    Log.w(
-                        TAG,
-                        "exception in flight: ${e.toString()}: ${e.message.toString()}"
-                    )
-                    e.printStackTrace()
+                    Log.w(TAG, "exception in flight: ${e.toString()}: ${e.message.toString()}", e)
                     brake(true)
-                    // throw e
                 }
             }
+            throw e
         }.onSuccess {
             Log.d(TAG, "safely onSuccess")
             if (isActive) brake()
@@ -393,7 +384,11 @@ open class AircraftController(
             }
             try {
                 Log.d(TAG, "flight mission started (in flight job)")
-                safely(onRCOverride) { block() }
+                runCatching {
+                    safely(onRCOverride) { block() }
+                }.onFailure { e ->
+                    if (e is CancellationException) throw e
+                }
                 Log.d(TAG, "flight mission success")
             } finally {
                 if (flightJob === job)
