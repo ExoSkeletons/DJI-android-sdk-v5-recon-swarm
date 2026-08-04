@@ -127,6 +127,7 @@ sealed class PatternActions {
     @Serializable
     @SerialName("fly_square")
     data class Square(
+        @property:SerialDescription("Side length (m)")
         val side: Double,
         val velocity: Double,
         val clockwise: Boolean = true,
