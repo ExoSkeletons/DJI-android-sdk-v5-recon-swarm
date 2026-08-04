@@ -86,6 +86,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 import java.util.Locale
@@ -1341,11 +1342,13 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         commandResolver.resources = lr
         val resolver = commandResolver
 
-        lifecycleScope.launch(Dispatchers.IO) {
+        lifecycleScope.launch {
             stv?.text = spokenText
             rtv?.text = "processing..." // todo: hide/show spinner
 
-            val match = resolver.resolveToExecute(spokenText)
+            val match = withContext(Dispatchers.IO) {
+                resolver.resolveToExecute(spokenText)
+            }
 
             if (match == null) {
                 rtv?.text = lr.getString(R.string.error_speech_unrecognised)
@@ -1363,7 +1366,9 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
             launch {
                 runCatching {
-                    function()
+                    withContext(Dispatchers.IO) {
+                        function()
+                    }
                 }.onFailure { e ->
                     ToastUtils.showToast(e.message ?: e.toString())
                     Log.e(TAG, "error: ${e.message}", e)
