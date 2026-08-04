@@ -1364,7 +1364,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             )
             rtv?.text = resolver.nameOf(action)
 
-            launch {
+            launch(Dispatchers.IO) {
                 runCatching {
                     withContext(Dispatchers.IO) {
                         function()
