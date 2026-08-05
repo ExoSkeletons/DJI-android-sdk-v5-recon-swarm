@@ -398,10 +398,11 @@ class LlamaActionSequenceResolver(context: Context) :
                # Rules
     
                - The JSON Schemas below are the ONLY valid actions.
-               - Never invent actions or fields.
+               - Never invent actions or fields. Never rephrase their names.
+               - Use ONLY the available system actions and fields below.
                - Use the EXACT "type" value and field names from the schemas.
                - Infer the user's intent and populate schema fields accordingly.
-               - Use schema field comments as semantic descriptions.
+               - Use schema comments to infer a field's semantics.
                - If a field is optional and the user did not explicitly or implicitly specify a value, omit the field.
                - A single action must still be returned as a JSON array containing one object.
                - Output valid JSON only.
