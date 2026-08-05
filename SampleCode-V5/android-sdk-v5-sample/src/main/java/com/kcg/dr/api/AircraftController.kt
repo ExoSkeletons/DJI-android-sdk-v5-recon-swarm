@@ -32,14 +32,16 @@ import kotlin.time.Duration.Companion.seconds
 @SerialName("action")
 sealed interface Action {
     suspend fun act(controller: AircraftController): Any?
+
+    val description: String get() = this::class.serializer().descriptor.serialName
 }
 
 sealed class TemporalActions {
     @Serializable
     @SerialName("delay")
     data class Delay(val seconds: Double) : Action {
-        override suspend fun act(controller: AircraftController) =
-            delay(seconds.seconds)
+        override suspend fun act(controller: AircraftController) = delay(seconds.seconds)
+        override val description = "Wait $seconds seconds"
     }
 
     @Serializable
@@ -49,6 +51,8 @@ sealed class TemporalActions {
             for (i in 1..times)
                 action.act(controller)
         }
+
+        override val description = "Repeat (${action.description}) $times times"
     }
 }
 
@@ -82,6 +86,17 @@ sealed class FlightActions {
     ) : Action {
         override suspend fun act(controller: AircraftController) =
             controller.flyBy(Triple(dx, dy, dz), velocity)
+
+        override val description = "Fly ${
+            buildString {
+                dx.takeIf { it != 0.0 }
+                    ?.let { append(" ${it}m" + (if (it > 0) "forward" else "backward")) }
+                dy.takeIf { it != 0.0 }
+                    ?.let { append(" ${it}m" + (if (it > 0) "right" else "left")) }
+                dz.takeIf { it != 0.0 }
+                    ?.let { append(" ${it}m" + (if (it > 0) "up" else "down")) }
+            }
+        } at $velocity m/s"
     }
 
     @Serializable
@@ -90,8 +105,8 @@ sealed class FlightActions {
     data class SpinBy(
         val degrees: Double,
     ) : Action {
-        override suspend fun act(controller: AircraftController) =
-            controller.spinBy(degrees)
+        override suspend fun act(controller: AircraftController) = controller.spinBy(degrees)
+        override val description = "Spin ${degrees}°"
     }
 
     @Serializable
@@ -106,6 +121,8 @@ sealed class FlightActions {
     ) : Action {
         override suspend fun act(controller: AircraftController) =
             controller.flyToSticks(target, maxVelocity = maxVelocity)
+
+        override val description = "Fly to ${target.toJson()}"
     }
 }
 
@@ -138,6 +155,7 @@ sealed class PatternActions {
 
     @Serializable
     @SerialName("scan_ground")
+    @SerialDescription("Fly a circle while looking at ground")
     data class ScanGround(
         val radius: Double,
         val velocity: Double = 4.0,
@@ -157,6 +175,7 @@ sealed class CameraActions {
     data class GimbalPitch(val angle: Double) : Action {
         override suspend fun act(controller: AircraftController) =
             controller.pitchCamera(angle)
+        override val description = "Pitch Gimbal to ${angle}°"
     }
 
     @Serializable
@@ -169,6 +188,7 @@ sealed class CameraActions {
     ) : Action {
         override suspend fun act(controller: AircraftController) =
             controller.lookAtWithSpin(target, height)
+        override val description = "Look at ${target.toJson()}"
     }
 
     @Serializable

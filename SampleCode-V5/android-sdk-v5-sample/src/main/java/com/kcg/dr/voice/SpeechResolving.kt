@@ -354,7 +354,6 @@ class ActionResolver :
 class LlamaActionSequenceResolver(context: Context) :
     LlamaSerialisedResolver<List<Action>>(context),
     SpeechExecutor<List<Action>, AircraftController, Unit> {
-    override fun nameOf(t: List<Action>): String = t.joinToString { it.javaClass.simpleName }
 
     override suspend fun execute(t: List<Action>, arg: AircraftController?) {
         arg?.safely {
@@ -381,6 +380,7 @@ class LlamaActionSequenceResolver(context: Context) :
     }
 
     override val serializer: KSerializer<List<Action>> = ListSerializer(Action.serializer())
+    override fun nameOf(t: List<Action>): String = t.joinToString(", ") { it.description }
     override val systemPrompt: String = "" +
             """
                # Role
