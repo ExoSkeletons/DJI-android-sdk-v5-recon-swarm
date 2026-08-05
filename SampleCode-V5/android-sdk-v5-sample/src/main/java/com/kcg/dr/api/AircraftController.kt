@@ -41,7 +41,7 @@ sealed class TemporalActions {
     @SerialName("delay")
     data class Delay(val seconds: Double) : Action {
         override suspend fun act(controller: AircraftController) = delay(seconds.seconds)
-        override val description = "Wait $seconds seconds"
+        override val description get() = "Wait $seconds seconds"
     }
 
     @Serializable
@@ -52,7 +52,7 @@ sealed class TemporalActions {
                 action.act(controller)
         }
 
-        override val description = "Repeat (${action.description}) $times times"
+        override val description get() = "Repeat (${action.description}) $times times"
     }
 }
 
@@ -122,7 +122,7 @@ sealed class FlightActions {
         override suspend fun act(controller: AircraftController) =
             controller.flyToSticks(target, maxVelocity = maxVelocity)
 
-        override val description = "Fly to ${target.toJson()}"
+        override val description get() = "Fly to ${target.toJson()}"
     }
 }
 
@@ -175,6 +175,7 @@ sealed class CameraActions {
     data class GimbalPitch(val angle: Double) : Action {
         override suspend fun act(controller: AircraftController) =
             controller.pitchCamera(angle)
+
         override val description = "Pitch Gimbal to ${angle}°"
     }
 
@@ -188,7 +189,8 @@ sealed class CameraActions {
     ) : Action {
         override suspend fun act(controller: AircraftController) =
             controller.lookAtWithSpin(target, height)
-        override val description = "Look at ${target.toJson()}"
+
+        override val description get() = "Look at ${target.toJson()}"
     }
 
     @Serializable
