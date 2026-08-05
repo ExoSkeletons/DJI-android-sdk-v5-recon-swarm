@@ -11,9 +11,6 @@ import com.kcg.dr.utils.AssetUtils.getAssetOrExtract
 import com.kcg.dr.voice.SerialisedResolver.Companion.appendPropertyShortJson
 import com.kcg.dr.voice.SerialisedResolver.Companion.dereference
 import io.ktor.http.parsing.ParseException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.withContext
 import kotlinx.schema.generator.json.serialization.SerializationClassJsonSchemaGenerator
 import kotlinx.schema.json.ArrayPropertyDefinition
 import kotlinx.schema.json.BooleanPropertyDefinition
@@ -24,6 +21,7 @@ import kotlinx.schema.json.PropertyDefinition
 import kotlinx.schema.json.ReferencePropertyDefinition
 import kotlinx.schema.json.StringPropertyDefinition
 import kotlinx.schema.json.ValuePropertyDefinition
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
@@ -123,11 +121,12 @@ class RegexCommandResolver(resources: Resources) :
 
 interface SerialisedResolver<T> : SpeechResolver<T?> {
     val serializer: KSerializer<T>
-    val json: Json get() = Json { ignoreUnknownKeys = true }
+    val decoder: Json get() = Json { ignoreUnknownKeys = true }
 
     override suspend fun resolve(speech: String): T? = try {
-        json.decodeFromString(serializer, speech)
-    } catch (_: Exception) {
+        decoder.decodeFromString(serializer, speech)
+    } catch (e: Exception) {
+        Log.e("SerialisedResolver", "error decoding json: ${e.message}", e)
         null
     }
 
@@ -283,26 +282,34 @@ abstract class LlamaSerialisedResolver<T>(val context: Context) : SerialisedReso
     private val engine: InferenceEngine = AiChat.getInferenceEngine(context)
     protected abstract val systemPrompt: String
     protected abstract val schema: String
+    override val decoder: Json
+        get() = Json {
+            ignoreUnknownKeys = true
+            coerceInputValues = true
+            @OptIn(ExperimentalSerializationApi::class)
+            allowTrailingComma = true
+            @OptIn(ExperimentalSerializationApi::class)
+            allowComments = true
+            @OptIn(ExperimentalSerializationApi::class)
+            decodeEnumsCaseInsensitive = true
+        }
 
-    suspend fun init(modelName: String) = coroutineScope {
-        withContext(Dispatchers.IO) {
-            try {
-                val modelFile = context.getAssetOrExtract(
-                    "models/$modelName"
-                )
-                engine.loadModel(modelFile.absolutePath)
-                Log.d("LlamaActionResolver", "model loaded")
-                Log.i("LlamaActionResolver", "schema:\n$schema")
-                Log.d("LlamaActionResolver", "setting system prompt...")
-                val t1 = System.currentTimeMillis()
-                engine.setSystemPrompt(systemPrompt)
-                Log.d(
-                    "LlamaActionResolver",
-                    "system prompt set (took ${(System.currentTimeMillis() - t1) / 1000}s)"
-                )
-            } catch (e: Exception) {
-                Log.e("LlamaActionResolver", "error: ${e.message}", e)
-            }
+    suspend fun init(modelName: String) {
+        try {
+            val modelFile = context.getAssetOrExtract(
+                "models/$modelName"
+            )
+            engine.loadModel(modelFile.absolutePath)
+            Log.d("LlamaActionResolver", "model loaded")
+            Log.d("LlamaActionResolver", "setting system prompt...")
+            val t1 = System.currentTimeMillis()
+            engine.setSystemPrompt(systemPrompt)
+            Log.d(
+                "LlamaActionResolver",
+                "system prompt set (took ${(System.currentTimeMillis() - t1) / 1000}s)"
+            )
+        } catch (e: Exception) {
+            Log.e("LlamaActionResolver", "error: ${e.message}", e)
         }
     }
 
@@ -312,6 +319,7 @@ abstract class LlamaSerialisedResolver<T>(val context: Context) : SerialisedReso
 
     private suspend fun generateAndCollect(speech: String): String {
         val resultFlow = engine.sendUserPrompt(speech)
+        Log.i("LlamaActionResolver", "collecting result")
         var result = ""
         resultFlow.collect {
             result += it
@@ -322,6 +330,7 @@ abstract class LlamaSerialisedResolver<T>(val context: Context) : SerialisedReso
     override suspend fun resolve(speech: String): T? {
         val preProcessedSpeech = preProcess(speech)
         val t0 = System.currentTimeMillis()
+        Log.d("LlamaSerialisedResolver", "generating")
         val result = generateAndCollect(preProcessedSpeech)
         Log.d(
             "LlamaSerialisedResolver",
@@ -363,7 +372,7 @@ class LlamaActionSequenceResolver(context: Context) :
     }
 
     public override val schema: String = buildString {
-        val generator = SerializationClassJsonSchemaGenerator(json)
+        val generator = SerializationClassJsonSchemaGenerator(Json.Default)
         val schema = generator.generateSchema(Action.serializer().descriptor)
         val defs = schema.defs ?: emptyMap()
         schema.oneOf?.forEach { definition ->
