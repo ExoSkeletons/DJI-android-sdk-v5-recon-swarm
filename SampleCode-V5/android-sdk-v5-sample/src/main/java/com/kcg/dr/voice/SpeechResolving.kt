@@ -224,7 +224,7 @@ interface SerialisedResolver<T> : SpeechResolver<T?> {
                 else -> null
             }
 
-            desc?.let { appendLine("$indent// Description: $it") }
+            desc?.let { appendLine("$indent// $it") }
             append("$indent\"${name}\"")
             types?.let { append(": ${it.joinToString("|")}") }
             enum?.let { append(" enum [${it.joinToString("|")}]") }
@@ -406,6 +406,7 @@ class LlamaActionSequenceResolver(context: Context) :
                - Never invent actions or fields.
                - Use the EXACT "type" value and field names from the schemas.
                - Infer the user's intent and populate schema fields accordingly.
+               - Use schema field comments as semantic descriptions.
                - If a field is optional and the user did not explicitly or implicitly specify a value, omit the field.
                - A single action must still be returned as a JSON array containing one object.
                - Output valid JSON only.
