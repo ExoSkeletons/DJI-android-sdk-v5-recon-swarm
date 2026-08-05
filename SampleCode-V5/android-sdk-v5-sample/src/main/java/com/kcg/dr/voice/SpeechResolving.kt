@@ -338,12 +338,7 @@ abstract class LlamaSerialisedResolver<T>(val context: Context) : SerialisedReso
         )
         val processedResult = postProcess(result)
         Log.d("LlamaSerialisedResolver", "parsed response:\n$processedResult")
-        return try {
-            json.decodeFromString(serializer, processedResult)
-        } catch (e: Exception) {
-            Log.e("LlamaSerialisedResolver", "error parsing response: $e", e)
-            null
-        }
+        return super.resolve(processedResult)
     }
 
     fun destroy() = engine.destroy()
@@ -363,14 +358,7 @@ class ActionResolver :
 class LlamaActionSequenceResolver(context: Context) :
     LlamaSerialisedResolver<List<Action>>(context),
     SpeechExecutor<List<Action>, AircraftController, Unit> {
-
-    override suspend fun execute(t: List<Action>, arg: AircraftController?) {
-        arg?.safely {
-            for (action in t)
-                action.act(this)
-        }
-    }
-
+    override val serializer: KSerializer<List<Action>> = ListSerializer(Action.serializer())
     public override val schema: String = buildString {
         val generator = SerializationClassJsonSchemaGenerator(Json.Default)
         val schema = generator.generateSchema(Action.serializer().descriptor)
@@ -388,8 +376,15 @@ class LlamaActionSequenceResolver(context: Context) :
         }
     }
 
-    override val serializer: KSerializer<List<Action>> = ListSerializer(Action.serializer())
     override fun nameOf(t: List<Action>): String = t.joinToString(", ") { it.description }
+
+    override suspend fun execute(t: List<Action>, arg: AircraftController?) {
+        arg?.safely {
+            for (action in t)
+                action.act(this)
+        }
+    }
+
     override val systemPrompt: String = "" +
             """
                # Role
