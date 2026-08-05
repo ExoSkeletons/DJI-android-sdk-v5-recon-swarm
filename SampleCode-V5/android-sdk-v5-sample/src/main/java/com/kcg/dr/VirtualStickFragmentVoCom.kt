@@ -1237,7 +1237,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             )
         )
 
-        lifecycleScope.launch {
+        lifecycleScope.launch(Dispatchers.Default) {
             try {
                 actionResolver = LlamaActionSequenceResolver(requireContext())
                 actionResolver.init("qwen2.5-coder-1.5b-instruct-q4_0.gguf")
@@ -1339,13 +1339,13 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         val stv = binding?.txtSpeechResult
         val lr = requireContext().getLocalizedResources(locale) // todo: resolver gets locale
         commandResolver.resources = lr
-        val resolver = commandResolver
+        val resolver = actionResolver
 
         lifecycleScope.launch {
             stv?.text = spokenText
             rtv?.text = "processing..." // todo: hide/show spinner
 
-            val match = withContext(Dispatchers.IO) {
+            val match = withContext(Dispatchers.Default) {
                 resolver.resolveToExecute(spokenText)
             }
 
@@ -1365,7 +1365,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
             launch {
                 runCatching {
-                    withContext(Dispatchers.IO) {
+                    withContext(Dispatchers.Default) {
                         function()
                     }
                 }.onFailure { e ->
