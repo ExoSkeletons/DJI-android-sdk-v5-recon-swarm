@@ -51,8 +51,8 @@ import com.kcg.dr.utils.as2D
 import com.kcg.dr.utils.asDjiLocation
 import com.kcg.dr.utils.atAlt
 import com.kcg.dr.voice.AudioControlService
+import com.kcg.dr.voice.CommandResolver.Command
 import com.kcg.dr.voice.LlamaActionSequenceResolver
-import com.kcg.dr.voice.RCommandResolver.Command
 import com.kcg.dr.voice.RegexCommandResolver
 import com.kcg.dr.waypoints.LocationAdapter
 import com.kcg.dr.waypoints.WaypointRepo
@@ -949,7 +949,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         val respFmtExId = R.string.commands_response_fmt_executing
         val respFmtGoId = R.string.commands_response_fmt_going
 
-        commandResolver = RegexCommandResolver(resources)
+        commandResolver = RegexCommandResolver(requireContext())
         commandResolver.setCommands(
             listOf(
                 Command(R.string.commands_stop) { controller.stop() },
@@ -1237,7 +1237,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
         lifecycleScope.launch(Dispatchers.Default) {
             try {
-                actionResolver = LlamaActionSequenceResolver(requireContext())
+                actionResolver = LlamaActionSequenceResolver(controller, requireContext())
                 actionResolver.init("qwen2.5-coder-1.5b-instruct-q4_0.gguf")
                 /*    val actions = actionResolver.resolve(
                         """
@@ -1335,8 +1335,8 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     private fun onHearText(spokenText: String) {
         val rtv = binding?.sttResult
         val stv = binding?.txtSpeechResult
-        val lr = requireContext().getLocalizedResources(locale) // todo: resolver gets locale
-        commandResolver.resources = lr
+        val lr = requireContext().getLocalizedResources(locale)
+        commandResolver.locale = locale
         val resolver = actionResolver
 
         lifecycleScope.launch {
@@ -1353,13 +1353,10 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                 return@launch
             }
 
-            val (action, function) = match
+            val (_, function, desc) = match
             SFXManager.playSfx(SFXManager.SFX.ACTION_CONFIRM)
-            speakText(
-                lr.getString(R.string.commands_response_fmt_accepted) + ". " +
-                        resolver.responseTo(action)
-            )
-            rtv?.text = resolver.nameOf(action)
+            speakText(lr.getString(R.string.commands_response_fmt_accepted) + ". " + desc.response)
+            rtv?.text = desc.name
 
             launch {
                 runCatching {

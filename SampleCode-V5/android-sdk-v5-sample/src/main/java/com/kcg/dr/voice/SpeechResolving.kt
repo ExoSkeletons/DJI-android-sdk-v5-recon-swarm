@@ -8,8 +8,10 @@ import com.arm.aichat.InferenceEngine
 import com.kcg.dr.api.Action
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.utils.AssetUtils.getAssetOrExtract
+import com.kcg.dr.utils.LocaleUtils.getLocalizedResources
 import com.kcg.dr.voice.SerialisedResolver.Companion.appendPropertyShortJson
 import com.kcg.dr.voice.SerialisedResolver.Companion.dereference
+import com.kcg.dr.voice.SpeechResolver.Description
 import io.ktor.http.parsing.ParseException
 import kotlinx.schema.generator.json.serialization.SerializationClassJsonSchemaGenerator
 import kotlinx.schema.json.ArrayPropertyDefinition
@@ -25,26 +27,39 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
+import java.util.Locale
 
 interface SpeechResolver<T> {
-    suspend fun resolve(speech: String): T
+    suspend fun resolve(speech: String): T?
+
+    data class Description(
+        val name: String,
+        val response: String = ""
+    )
+
+    fun describe(t: T): Description
 }
 
-interface SpeechExecutor<T, A, R> : SpeechResolver<T?> {
-    fun nameOf(t: T): String
-
-    fun responseTo(t: T): String = ""
-
-    suspend fun execute(t: T, arg: A? = null): R
-
-    suspend fun resolveAndExecute(speech: String, arg: A? = null): R? =
-        resolve(speech)?.let { execute(it, arg) }
-
-    suspend fun resolveToExecute(speech: String, arg: A? = null): Pair<T, suspend () -> R>? =
-        resolve(speech)?.let { it to { execute(it, arg) } }
+interface Localised {
+    var locale: Locale?
 }
 
-interface CandidateResolver<C, M> : SpeechResolver<Pair<C, M>?> {
+interface SpeechExecutor<T, R> : SpeechResolver<T> {
+    fun execution(t: T): suspend () -> R
+
+    suspend fun resolveToExecute(speech: String): Triple<T, suspend () -> R, Description>? =
+        resolve(speech)?.let {
+            Triple(
+                it,
+                execution(it),
+                describe(it),
+            )
+        }
+
+    suspend fun resolveAndExecute(speech: String): R? = resolve(speech)?.let { execution(it)() }
+}
+
+interface CandidateResolver<C, M> : SpeechResolver<Pair<C, M>> {
     val candidates: Collection<C>
 
     fun matches(candidate: C, speech: String): M?
@@ -59,11 +74,11 @@ interface CandidateResolver<C, M> : SpeechResolver<Pair<C, M>?> {
     }
 }
 
-interface CandidateExecutor<C, M, R> : SpeechExecutor<Pair<C, M>, Unit, R> {
-    override suspend fun execute(t: Pair<C, M>, arg: Unit?): R =
-        execute(t.first, t.second)
+interface CandidateExecutor<C, M, R> : SpeechExecutor<Pair<C, M>, R> {
+    override fun execution(t: Pair<C, M>): suspend () -> R =
+        execution(t.first, t.second)
 
-    fun execute(candidate: C, match: M): R
+    fun execution(candidate: C, match: M): suspend () -> R
 }
 
 interface RegexResolver<T> : CandidateResolver<T, MatchResult> {
@@ -73,8 +88,8 @@ interface RegexResolver<T> : CandidateResolver<T, MatchResult> {
     }
 }
 
-abstract class RCommandResolver<A, M>(var resources: Resources) :
-    CandidateResolver<RCommandResolver.Command<A>, M> {
+abstract class CommandResolver<A, M>(val context: Context) :
+    CandidateResolver<CommandResolver.Command<A>, M>, Localised {
     data class Command<A>(
         val promptRegexStringId: Int,
         val responseFmtStringId: Int? = null,
@@ -94,32 +109,41 @@ abstract class RCommandResolver<A, M>(var resources: Resources) :
     val commands: MutableList<Command<A>> = mutableListOf()
     override val candidates get() = commands
 
+    override var locale: Locale? = null
+
+    val resources: Resources
+        get() = locale?.let { context.getLocalizedResources(it) } ?: context.resources
+
     fun setCommands(commands: Collection<Command<A>> = emptyList()) {
         candidates.clear()
         candidates.addAll(commands)
     }
 }
 
-class RegexCommandResolver(resources: Resources) :
-    RCommandResolver<MatchResult, MatchResult>(resources),
-    CandidateExecutor<RCommandResolver.Command<MatchResult>, MatchResult, Unit> {
+class RegexCommandResolver(context: Context) :
+    CommandResolver<MatchResult, MatchResult>(context),
+    CandidateExecutor<CommandResolver.Command<MatchResult>, MatchResult, Unit> {
     override fun matches(candidate: Command<MatchResult>, speech: String): MatchResult? {
         return candidate.prompt(resources)
             .toRegex(RegexOption.IGNORE_CASE)
             .find(speech)
     }
 
-    override fun nameOf(t: Pair<Command<MatchResult>, MatchResult>): String =
-        t.first.name(resources)
+    override fun describe(t: Pair<Command<MatchResult>, MatchResult>): Description {
+        return Description(
+            t.first.name(resources),
+            t.first.response(resources) ?: ""
+        )
+    }
 
-    override fun responseTo(t: Pair<Command<MatchResult>, MatchResult>): String =
-        t.first.response(resources) ?: ""
-
-    override fun execute(candidate: Command<MatchResult>, match: MatchResult) =
-        candidate.func(match)
+    override fun execution(
+        candidate: Command<MatchResult>,
+        match: MatchResult
+    ): suspend () -> Unit =
+        { candidate.func(match) }
 }
 
-interface SerialisedResolver<T> : SpeechResolver<T?> {
+interface SerialisedResolver<T> : SpeechResolver<T> {
     val serializer: KSerializer<T>
     val decoder: Json get() = Json { ignoreUnknownKeys = true }
 
@@ -278,9 +302,10 @@ interface SerialisedResolver<T> : SpeechResolver<T?> {
     }
 }
 
-abstract class LlamaSerialisedResolver<T>(val context: Context) : SerialisedResolver<T> {
+abstract class LlamaSerialisedResolver<T>(val context: Context) : SerialisedResolver<T>, Localised {
     private val engine: InferenceEngine = AiChat.getInferenceEngine(context)
     protected abstract val systemPrompt: String
+    override var locale: Locale? = Locale.getDefault() // todo: put locale in prompt something?
     protected abstract val schema: String
     override val decoder: Json
         get() = Json {
@@ -296,9 +321,7 @@ abstract class LlamaSerialisedResolver<T>(val context: Context) : SerialisedReso
 
     suspend fun init(modelName: String) {
         try {
-            val modelFile = context.getAssetOrExtract(
-                "models/$modelName"
-            )
+            val modelFile = context.getAssetOrExtract("models/$modelName")
             engine.loadModel(modelFile.absolutePath)
             Log.d("LlamaActionResolver", "model loaded")
             Log.d("LlamaActionResolver", "setting system prompt...")
@@ -344,20 +367,18 @@ abstract class LlamaSerialisedResolver<T>(val context: Context) : SerialisedReso
     fun destroy() = engine.destroy()
 }
 
-class ActionResolver :
+class ActionResolver(private val controller: AircraftController) :
     SerialisedResolver<Action>,
-    SpeechExecutor<Action, AircraftController, Unit> {
+    SpeechExecutor<Action, Unit> {
     override val serializer: KSerializer<Action> = Action.serializer()
-    override fun nameOf(t: Action): String = t.javaClass.simpleName
+    override fun describe(t: Action): Description = Description(t.description)
 
-    override suspend fun execute(t: Action, arg: AircraftController?) {
-        arg?.let { t.act(it) }
-    }
+    override fun execution(t: Action): suspend () -> Unit = { controller.let { t.act(it) } }
 }
 
-class LlamaActionSequenceResolver(context: Context) :
+class LlamaActionSequenceResolver(private val controller: AircraftController, context: Context) :
     LlamaSerialisedResolver<List<Action>>(context),
-    SpeechExecutor<List<Action>, AircraftController, Unit> {
+    SpeechExecutor<List<Action>, Unit> {
     override val serializer: KSerializer<List<Action>> = ListSerializer(Action.serializer())
     public override val schema: String = buildString {
         val generator = SerializationClassJsonSchemaGenerator(Json.Default)
@@ -376,10 +397,11 @@ class LlamaActionSequenceResolver(context: Context) :
         }
     }
 
-    override fun nameOf(t: List<Action>): String = t.joinToString(", ") { it.description }
+    override fun describe(t: List<Action>): Description =
+        Description(t.joinToString(", ") { it.description })
 
-    override suspend fun execute(t: List<Action>, arg: AircraftController?) {
-        arg?.safely {
+    override fun execution(t: List<Action>): suspend () -> Unit = {
+        controller.safely {
             for (action in t)
                 action.act(this)
         }

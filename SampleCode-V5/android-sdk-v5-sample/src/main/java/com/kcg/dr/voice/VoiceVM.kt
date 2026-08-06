@@ -21,11 +21,14 @@ class VoiceVM(application: Application) : AndroidViewModel(application) {
     private val _resolutionResponse = MutableLiveData<String>()
     val resolutionResponse = _resolutionResponse
 
-    private val commandResolver = RegexCommandResolver(application.resources)
-    private val actionResolver = LlamaActionSequenceResolver(application)
-
+    private val commandResolver = RegexCommandResolver(application)
+    // private val actionResolver = LlamaActionSequenceResolver(application)
+    private val resolvers = listOf(
+        commandResolver,
+        // actionResolver
+    )
     // user of vm calls this to set the commands
-    fun setCommands(commands: Collection<RCommandResolver.Command<MatchResult>> = emptyList()) {
+    fun setCommands(commands: Collection<CommandResolver.Command<MatchResult>> = emptyList()) {
         commandResolver.commands.clear()
         commandResolver.commands.addAll(commands)
     }
@@ -41,28 +44,31 @@ class VoiceVM(application: Application) : AndroidViewModel(application) {
             }
 
             viewModelScope.launch {
-                commandResolver.resources = lr
-                val resolution = commandResolver.resolveToExecute(s)
-                if (resolution == null) {
-                    _resolutionName.postValue(lr.getString(R.string.error_speech_unrecognised))
-                    return@launch
-                }
+                commandResolver.locale = locale
 
-                val (action, function) = resolution
-                try {
-                    playSfx(SFXManager.SFX.ACTION_CONFIRM)
-                    speak(
-                        lr.getString(R.string.commands_response_fmt_accepted) + ". ",
-                        locale
-                    )
-                    _resolutionName.postValue(commandResolver.nameOf(action))
-                    viewModelScope.launch(Dispatchers.IO) {
-                        function()
+                resolvers.forEach {
+                    val resolution = it.resolveToExecute(s)
+                    if (resolution == null) {
+                        _resolutionName.postValue(lr.getString(R.string.error_speech_unrecognised))
+                        return@launch
                     }
-                    speak(commandResolver.responseTo(action), locale)
-                } catch (e: Exception) {
-                    playSfx(SFXManager.SFX.NOTIFY_TECHNICAL)
-                    _resolutionName.postValue(e.message ?: e.toString())
+
+                    val (_, function, desc) = resolution
+                    try {
+                        playSfx(SFXManager.SFX.ACTION_CONFIRM)
+                        speak(
+                            lr.getString(R.string.commands_response_fmt_accepted) + ". ",
+                            locale
+                        )
+                        _resolutionName.postValue(desc.name)
+                        viewModelScope.launch(Dispatchers.IO) {
+                            function()
+                        }
+                        speak(desc.response, locale)
+                    } catch (e: Exception) {
+                        playSfx(SFXManager.SFX.NOTIFY_TECHNICAL)
+                        _resolutionName.postValue(e.message ?: e.toString())
+                    }
                 }
             }
         }
@@ -70,6 +76,6 @@ class VoiceVM(application: Application) : AndroidViewModel(application) {
 
     override fun onCleared() {
         super.onCleared()
-        actionResolver.destroy()
+        // actionResolver.destroy()
     }
 }
