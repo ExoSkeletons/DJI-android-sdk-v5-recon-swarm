@@ -30,25 +30,24 @@ import kotlinx.serialization.json.Json
 import java.util.Locale
 
 interface SpeechResolver<T> {
-    suspend fun resolve(speech: String): T?
+    suspend fun resolve(speech: String, locale: Locale = Locale.getDefault()): T?
 
     data class Description(
         val name: String,
         val response: String = ""
     )
 
-    fun describe(t: T): Description
-}
-
-interface Localised {
-    var locale: Locale?
+    fun describe(t: T, locale: Locale = Locale.getDefault()): Description
 }
 
 interface SpeechExecutor<T, R> : SpeechResolver<T> {
     fun execution(t: T): suspend () -> R
 
-    suspend fun resolveToExecute(speech: String): Triple<T, suspend () -> R, Description>? =
-        resolve(speech)?.let {
+    suspend fun resolveToExecute(
+        speech: String,
+        locale: Locale = Locale.getDefault()
+    ): Triple<T, suspend () -> R, Description>? =
+        resolve(speech, locale)?.let {
             Triple(
                 it,
                 execution(it),
@@ -56,17 +55,18 @@ interface SpeechExecutor<T, R> : SpeechResolver<T> {
             )
         }
 
-    suspend fun resolveAndExecute(speech: String): R? = resolve(speech)?.let { execution(it)() }
+    suspend fun resolveAndExecute(speech: String, locale: Locale = Locale.getDefault()): R? =
+        resolve(speech)?.let { execution(it)() }
 }
 
 interface CandidateResolver<C, M> : SpeechResolver<Pair<C, M>> {
     val candidates: Collection<C>
 
-    fun matches(candidate: C, speech: String): M?
+    fun matches(candidate: C, speech: String, locale: Locale): M?
 
-    override suspend fun resolve(speech: String): Pair<C, M>? {
+    override suspend fun resolve(speech: String, locale: Locale): Pair<C, M>? {
         candidates.forEach { c ->
-            val match = matches(c, speech)
+            val match = matches(c, speech, locale)
             if (match != null)
                 return c to match
         }
@@ -82,14 +82,14 @@ interface CandidateExecutor<C, M, R> : SpeechExecutor<Pair<C, M>, R> {
 }
 
 interface RegexResolver<T> : CandidateResolver<T, MatchResult> {
-    override fun matches(candidate: T, speech: String): MatchResult? {
+    override fun matches(candidate: T, speech: String, locale: Locale): MatchResult? {
         val regex = candidate.toString().toRegex(RegexOption.IGNORE_CASE)
         return regex.find(speech)
     }
 }
 
 abstract class CommandResolver<A, M>(val context: Context) :
-    CandidateResolver<CommandResolver.Command<A>, M>, Localised {
+    CandidateResolver<CommandResolver.Command<A>, M> {
     data class Command<A>(
         val promptRegexStringId: Int,
         val responseFmtStringId: Int? = null,
@@ -109,11 +109,6 @@ abstract class CommandResolver<A, M>(val context: Context) :
     val commands: MutableList<Command<A>> = mutableListOf()
     override val candidates get() = commands
 
-    override var locale: Locale? = null
-
-    val resources: Resources
-        get() = locale?.let { context.getLocalizedResources(it) } ?: context.resources
-
     fun setCommands(commands: Collection<Command<A>> = emptyList()) {
         candidates.clear()
         candidates.addAll(commands)
@@ -123,16 +118,21 @@ abstract class CommandResolver<A, M>(val context: Context) :
 class RegexCommandResolver(context: Context) :
     CommandResolver<MatchResult, MatchResult>(context),
     CandidateExecutor<CommandResolver.Command<MatchResult>, MatchResult, Unit> {
-    override fun matches(candidate: Command<MatchResult>, speech: String): MatchResult? {
-        return candidate.prompt(resources)
+    override fun matches(
+        candidate: Command<MatchResult>,
+        speech: String,
+        locale: Locale
+    ): MatchResult? {
+        return candidate.prompt(context.getLocalizedResources(locale))
             .toRegex(RegexOption.IGNORE_CASE)
             .find(speech)
     }
 
-    override fun describe(t: Pair<Command<MatchResult>, MatchResult>): Description {
+    override fun describe(t: Pair<Command<MatchResult>, MatchResult>, locale: Locale): Description {
+        val lr = context.getLocalizedResources(locale)
         return Description(
-            t.first.name(resources),
-            t.first.response(resources) ?: ""
+            t.first.name(lr),
+            t.first.response(lr) ?: ""
         )
     }
 
@@ -147,7 +147,7 @@ interface SerialisedResolver<T> : SpeechResolver<T> {
     val serializer: KSerializer<T>
     val decoder: Json get() = Json { ignoreUnknownKeys = true }
 
-    override suspend fun resolve(speech: String): T? = try {
+    override suspend fun resolve(speech: String, locale: Locale): T? = try {
         decoder.decodeFromString(serializer, speech)
     } catch (e: Exception) {
         Log.e("SerialisedResolver", "error decoding json: ${e.message}", e)
@@ -302,10 +302,9 @@ interface SerialisedResolver<T> : SpeechResolver<T> {
     }
 }
 
-abstract class LlamaSerialisedResolver<T>(val context: Context) : SerialisedResolver<T>, Localised {
+abstract class LlamaSerialisedResolver<T>(val context: Context) : SerialisedResolver<T> {
     private val engine: InferenceEngine = AiChat.getInferenceEngine(context)
     protected abstract val systemPrompt: String
-    override var locale: Locale? = Locale.getDefault() // todo: put locale in prompt something?
     protected abstract val schema: String
     override val decoder: Json
         get() = Json {
@@ -350,7 +349,7 @@ abstract class LlamaSerialisedResolver<T>(val context: Context) : SerialisedReso
         return result
     }
 
-    override suspend fun resolve(speech: String): T? {
+    override suspend fun resolve(speech: String, locale: Locale): T? {
         val preProcessedSpeech = preProcess(speech)
         val t0 = System.currentTimeMillis()
         Log.d("LlamaSerialisedResolver", "generating")
@@ -361,7 +360,7 @@ abstract class LlamaSerialisedResolver<T>(val context: Context) : SerialisedReso
         )
         val processedResult = postProcess(result)
         Log.d("LlamaSerialisedResolver", "parsed response:\n$processedResult")
-        return super.resolve(processedResult)
+        return super.resolve(processedResult, locale)
     }
 
     fun destroy() = engine.destroy()
@@ -371,7 +370,7 @@ class ActionResolver(private val controller: AircraftController) :
     SerialisedResolver<Action>,
     SpeechExecutor<Action, Unit> {
     override val serializer: KSerializer<Action> = Action.serializer()
-    override fun describe(t: Action): Description = Description(t.description)
+    override fun describe(t: Action, locale: Locale): Description = Description(t.description)
 
     override fun execution(t: Action): suspend () -> Unit = { controller.let { t.act(it) } }
 }
@@ -397,7 +396,7 @@ class LlamaActionSequenceResolver(private val controller: AircraftController, co
         }
     }
 
-    override fun describe(t: List<Action>): Description =
+    override fun describe(t: List<Action>, locale: Locale): Description =
         Description(t.joinToString(", ") { it.description })
 
     override fun execution(t: List<Action>): suspend () -> Unit = {

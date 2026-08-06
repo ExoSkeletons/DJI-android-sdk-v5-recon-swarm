@@ -4,10 +4,10 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
+import com.kcg.dr.utils.LocaleUtils.getLocalizedResources
 import com.kcg.dr.utils.SFXManager
 import com.kcg.dr.utils.SFXManager.playSfx
 import com.kcg.dr.utils.TTSManager.speak
-import com.kcg.dr.utils.LocaleUtils.getLocalizedResources
 import dji.sampleV5.aircraft.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -23,10 +23,12 @@ class VoiceVM(application: Application) : AndroidViewModel(application) {
 
     private val commandResolver = RegexCommandResolver(application)
     // private val actionResolver = LlamaActionSequenceResolver(application)
+
     private val resolvers = listOf(
         commandResolver,
         // actionResolver
     )
+
     // user of vm calls this to set the commands
     fun setCommands(commands: Collection<CommandResolver.Command<MatchResult>> = emptyList()) {
         commandResolver.commands.clear()
@@ -44,10 +46,8 @@ class VoiceVM(application: Application) : AndroidViewModel(application) {
             }
 
             viewModelScope.launch {
-                commandResolver.locale = locale
-
                 resolvers.forEach {
-                    val resolution = it.resolveToExecute(s)
+                    val resolution = it.resolveToExecute(s, locale ?: Locale.getDefault())
                     if (resolution == null) {
                         _resolutionName.postValue(lr.getString(R.string.error_speech_unrecognised))
                         return@launch

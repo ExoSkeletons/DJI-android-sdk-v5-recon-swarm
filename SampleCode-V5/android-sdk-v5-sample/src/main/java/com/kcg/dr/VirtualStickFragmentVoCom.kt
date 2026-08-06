@@ -1336,7 +1336,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         val rtv = binding?.sttResult
         val stv = binding?.txtSpeechResult
         val lr = requireContext().getLocalizedResources(locale)
-        commandResolver.locale = locale
         val resolver = actionResolver
 
         lifecycleScope.launch {
@@ -1344,7 +1343,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             rtv?.text = "processing..." // todo: hide/show spinner
 
             val match = withContext(Dispatchers.Default) {
-                resolver.resolveToExecute(spokenText)
+                resolver.resolveToExecute(spokenText, locale)
             }
 
             if (match == null) {
