@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import com.kcg.dr.utils.TTSManager.speak
 import com.kcg.dr.voice.VoiceVM
 import dji.sampleV5.aircraft.databinding.FragVocomDemoBinding
 
@@ -43,7 +44,7 @@ class DemoFragment : Fragment() {
 
         binding.btnDemoTextPlay.setOnClickListener {
             demoVM.getCurrentText()?.let { text ->
-                voiceVM.speak(text) { _, locale ->
+                speak(text) { _, locale ->
                     Toast.makeText(
                         requireContext(),
                         "TTS for $locale not available",

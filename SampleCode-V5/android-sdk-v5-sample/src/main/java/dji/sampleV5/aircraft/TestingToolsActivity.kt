@@ -6,7 +6,6 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.commit
 import androidx.navigation.Navigation
-import com.kcg.dr.utils.SFXManager
 import dji.sampleV5.aircraft.databinding.ActivityTestingToolsBinding
 import dji.sampleV5.aircraft.models.MSDKCommonOperateVm
 import dji.sampleV5.aircraft.util.DJIToastUtil
@@ -31,8 +30,6 @@ abstract class TestingToolsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Init SFX
-        SFXManager.init(this)
         binding = ActivityTestingToolsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -98,7 +95,6 @@ abstract class TestingToolsActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         DJIToastUtil.dJIToastLD = null
-        SFXManager.release()
     }
 
     open fun loadTitleView() {

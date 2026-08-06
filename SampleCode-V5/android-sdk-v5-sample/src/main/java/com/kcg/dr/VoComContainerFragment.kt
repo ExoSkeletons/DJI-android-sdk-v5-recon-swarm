@@ -12,8 +12,8 @@ import com.kcg.dr.api.ApiServerVM
 import com.kcg.dr.flight.AircraftControlViewModel
 import com.kcg.dr.location.DeviceLocationViewModel
 import com.kcg.dr.location.LiveLocationProvider
+import com.kcg.dr.utils.TTSManager.speak
 import com.kcg.dr.utils.asDjiLocation
-import com.kcg.dr.voice.RCommandResolver
 import com.kcg.dr.voice.RCommandResolver.Command
 import com.kcg.dr.voice.VoiceVM
 import dji.sampleV5.aircraft.R
@@ -63,13 +63,13 @@ class VoComContainerFragment : DJIFragment() {
                 Command(
                     R.string.command_hello,
                 ) {
-                    voiceVM.speak("Hello there!")
+                    speak("Hello there!")
                     aircraftControlVM.controller.fly { wave() }
                 },
                 Command(
                     R.string.commands_spin,
                 ) {
-                    voiceVM.speak("Wheeee Heee eeeeee whhheeee whheee")
+                    speak("Wheeee Heee eeeeee whhheeee whheee")
                     aircraftControlVM.controller.fly { spinBy(720.0, velocity = 180.0) }
                 },
             )

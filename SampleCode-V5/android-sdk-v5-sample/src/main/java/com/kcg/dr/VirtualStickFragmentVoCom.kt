@@ -343,7 +343,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             // TTS
             tts = TextToSpeech(this, onInitListener)
         }
-        SFXManager.init(context = requireContext())
     }
 
     override fun onCreateView(
@@ -575,8 +574,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         ServiceUtils.stopService(
             requireContext(),
             AudioControlService::class.java
-        ) // Stop TTS service
-        SFXManager.release()
+        )
     }
 
     override fun onResume() {

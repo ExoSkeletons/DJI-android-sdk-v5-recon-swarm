@@ -14,6 +14,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.kcg.dr.recognition.ReconTTSFragment
 import com.kcg.dr.utils.LocaleUtils
 import com.kcg.dr.utils.SFXManager
+import com.kcg.dr.utils.TTSManager
 import com.kcg.dr.voice.VoiceControlFragment
 import dji.sampleV5.aircraft.R
 import java.util.Locale
@@ -42,6 +43,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         SFXManager.init(this)
+        TTSManager.init(this)
 
         setupLocaleSwitcherView()
         setupFragments(savedInstanceState)
@@ -50,6 +52,7 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         SFXManager.release()
+        TTSManager.release()
     }
 
     private fun setupFragments(savedInstanceState: Bundle?) {

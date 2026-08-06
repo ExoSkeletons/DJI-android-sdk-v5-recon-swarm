@@ -48,7 +48,7 @@ class VoiceControlFragment : Fragment() {
             binding.txtSpeechResult.text = it
         }
 
-        voiceVM.commandResult.observe(viewLifecycleOwner) {
+        voiceVM.resolutionName.observe(viewLifecycleOwner) {
             binding.sttResult.text = it
         }
     }
