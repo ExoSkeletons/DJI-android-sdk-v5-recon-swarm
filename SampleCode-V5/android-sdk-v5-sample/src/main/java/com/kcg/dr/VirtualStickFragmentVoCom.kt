@@ -122,7 +122,14 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         },
         { AircraftControlViewModel.Factory }
     )
-    private val apiServerVM: ApiServerVM by activityViewModels()
+    private val apiServerVM: ApiServerVM by activityViewModels(
+        {
+            MutableCreationExtras(defaultViewModelCreationExtras).apply {
+                set(ApiServerVM.CONTROLLER_KEY, controllerVM.controller)
+            }
+        },
+        { ApiServerVM.Factory }
+    )
 
     private val controller: AircraftController get() = controllerVM.controller
     private lateinit var commandResolver: RegexCommandResolver
