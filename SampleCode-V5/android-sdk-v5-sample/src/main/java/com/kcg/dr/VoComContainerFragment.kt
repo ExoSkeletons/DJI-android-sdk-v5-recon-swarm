@@ -5,7 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewmodel.MutableCreationExtras
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
 import com.kcg.dr.api.ApiServerVM
@@ -15,30 +15,44 @@ import com.kcg.dr.location.LiveLocationProvider
 import com.kcg.dr.utils.TTSManager.speak
 import com.kcg.dr.utils.asDjiLocation
 import com.kcg.dr.voice.CommandResolver.Command
+import com.kcg.dr.voice.RegexCommandResolver
 import com.kcg.dr.voice.VoiceVM
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVocomContainerBinding
-import dji.sampleV5.aircraft.models.BasicAircraftControlVM
 import dji.sampleV5.aircraft.models.RecordingVM
 import dji.sampleV5.aircraft.models.VirtualStickVM
 import dji.sampleV5.aircraft.pages.DJIFragment
-import kotlinx.coroutines.launch
 
 class VoComContainerFragment : DJIFragment() {
     private var _binding: FragVocomContainerBinding? = null
     private val binding get() = _binding!!
 
     private val recordingVM: RecordingVM by activityViewModels()
-    private val voiceVM: VoiceVM by activityViewModels()
+    private val voiceVM: VoiceVM by activityViewModels({
+        MutableCreationExtras(defaultViewModelCreationExtras).apply {
+            set(VoiceVM.RES_LIST_KEY, listOf(commandResolver))
+        }
+    }, { VoiceVM.Factory })
 
-    private val apiVM: ApiServerVM by activityViewModels()
-    private val aircraftControlVM: AircraftControlViewModel by activityViewModels()
+    private val apiVM: ApiServerVM by activityViewModels({
+        MutableCreationExtras(defaultViewModelCreationExtras).apply {
+            set(ApiServerVM.CONTROLLER_KEY, aircraftControlVM.controller)
+        }
+    }, { ApiServerVM.Factory })
+    private lateinit var commandResolver: RegexCommandResolver
+    // Original DJI ViewModels needed for controller init
+    private val aircraftControlVM: AircraftControlViewModel by activityViewModels(
+        {
+            MutableCreationExtras(defaultViewModelCreationExtras).apply {
+                set(AircraftControlViewModel.STICK_VM_KEY, virtualStickVM)
+            }
+        },
+        { AircraftControlViewModel.Factory }
+    )
 
     private val deviceLocationVM: DeviceLocationViewModel by activityViewModels()
     private val locationProvider = LiveLocationProvider(this, 200, 50, 500)
 
-    // Original DJI ViewModels needed for controller init
-    private val basicAircraftControlVM: BasicAircraftControlVM by activityViewModels()
     private val virtualStickVM: VirtualStickVM by activityViewModels()
 
     override fun onCreateView(
@@ -53,12 +67,8 @@ class VoComContainerFragment : DJIFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Initialize the controller in the ViewModel
-        lifecycleScope.launch {
-            aircraftControlVM.init(virtualStickVM)
-        }
-
-        voiceVM.setCommands(
+        commandResolver = RegexCommandResolver(requireContext())
+        commandResolver.setCommands(
             listOf(
                 Command(
                     R.string.command_hello,

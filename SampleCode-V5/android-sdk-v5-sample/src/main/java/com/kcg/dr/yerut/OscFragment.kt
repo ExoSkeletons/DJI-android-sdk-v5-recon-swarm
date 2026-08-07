@@ -8,7 +8,7 @@ import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewmodel.MutableCreationExtras
 import com.kcg.dr.flight.AircraftControlViewModel
 import dji.sampleV5.aircraft.databinding.FragOscBinding
 import dji.sampleV5.aircraft.models.BasicAircraftControlVM
@@ -16,7 +16,6 @@ import dji.sampleV5.aircraft.models.CameraGimbalVM
 import dji.sampleV5.aircraft.models.IntelligentFlightVM
 import dji.sampleV5.aircraft.models.VirtualStickVM
 import dji.sampleV5.aircraft.models.WayPointV3VM
-import kotlinx.coroutines.launch
 
 class OscFragment : Fragment() {
     lateinit var binding: FragOscBinding
@@ -28,15 +27,14 @@ class OscFragment : Fragment() {
     private val cameraGimbalVM: CameraGimbalVM by activityViewModels()
     private val intelligentFlightVM: IntelligentFlightVM by activityViewModels()
     private val wayPointV3VM: WayPointV3VM by activityViewModels()
-    private val controllerVM: AircraftControlViewModel by activityViewModels()
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        lifecycleScope.launch {
-            controllerVM.init(virtualStickVM)
-        }
-    }
+    private val controllerVM: AircraftControlViewModel by activityViewModels(
+        {
+            MutableCreationExtras(defaultViewModelCreationExtras).apply {
+                set(AircraftControlViewModel.STICK_VM_KEY, virtualStickVM)
+            }
+        },
+        { AircraftControlViewModel.Factory }
+    )
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,

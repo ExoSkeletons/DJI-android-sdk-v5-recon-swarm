@@ -8,21 +8,40 @@ import android.content.ServiceConnection
 import android.os.IBinder
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.switchMap
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.CreationExtras
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.kcg.dr.api.Tunneling.Cloudflared
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.utils.ServiceUtils
 import kotlinx.coroutines.launch
 
-class ApiServerVM(application: Application) : AndroidViewModel(application) {
+class ApiServerVM(
+    application: Application,
+    private val controller: AircraftController
+) : AndroidViewModel(application) {
+    companion object {
+        val CONTROLLER_KEY = object : CreationExtras.Key<AircraftController> {}
+        val Factory = viewModelFactory {
+            initializer {
+                ApiServerVM(
+                    this[APPLICATION_KEY]
+                        ?: throw IllegalArgumentException("Application required"),
+                    this[CONTROLLER_KEY]
+                        ?: throw IllegalArgumentException("AircraftController required in CreationExtras"),
+                )
+            }
+        }
+    }
 
     val isServiceRunning = MutableLiveData(false)
     val isServiceBound = MutableLiveData(false)
     val tunnelingUrl = MutableLiveData<String>(null)
 
     private val server = MutableLiveData<ApiServer?>()
-    private var controller: AircraftController? = null
 
     val isServerRunning = server.switchMap {
         it?.isRunning ?: MutableLiveData(false)
@@ -57,11 +76,6 @@ class ApiServerVM(application: Application) : AndroidViewModel(application) {
         } catch (e: Exception) {
             e.printStackTrace()
         }
-    }
-
-    fun initController(c: AircraftController) {
-        controller = c
-        server.value?.setController(c)
     }
 
     fun startService(channelId: String, host: String = "0.0.0.0", port: Int = 8080) {

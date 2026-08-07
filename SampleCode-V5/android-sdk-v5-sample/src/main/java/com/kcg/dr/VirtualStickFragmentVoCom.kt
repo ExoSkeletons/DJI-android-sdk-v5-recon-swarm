@@ -28,18 +28,17 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewmodel.MutableCreationExtras
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.Priority
 import com.kcg.dr.api.ApiServerVM
 import com.kcg.dr.api.KeyActivator
-import com.kcg.dr.api.Responses.toJson
 import com.kcg.dr.flight.AircraftControlViewModel
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.flight.AircraftController.CircleFaceMode
 import com.kcg.dr.location.LiveLocationProvider
-import com.kcg.dr.utils.DJIErrorException
 import com.kcg.dr.utils.LocaleUtils.getLocalizedResources
 import com.kcg.dr.utils.LocationUtils
 import com.kcg.dr.utils.LocationUtils.bearingTo
@@ -115,7 +114,14 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     private val virtualStickVM: VirtualStickVM by activityViewModels()
     private val simulatorVM: SimulatorVM by activityViewModels()
     private val liveStreamVM: LiveStreamVM by activityViewModels()
-    private val controllerVM: AircraftControlViewModel by activityViewModels()
+    private val controllerVM: AircraftControlViewModel by activityViewModels(
+        {
+            MutableCreationExtras(defaultViewModelCreationExtras).apply {
+                set(AircraftControlViewModel.STICK_VM_KEY, virtualStickVM)
+            }
+        },
+        { AircraftControlViewModel.Factory }
+    )
     private val apiServerVM: ApiServerVM by activityViewModels()
 
     private val controller: AircraftController get() = controllerVM.controller
@@ -363,7 +369,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        initController()
         initVoiceCommandResolver()
 
         binding?.widgetHorizontalSituationIndicator?.setSimpleModeEnable(false)
@@ -533,6 +538,13 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             binding?.leftStickView, binding?.rightStickView
         )
         virtualStickVM.listenRCStick()
+        virtualStickVM.currentVirtualStickStateInfo.observe(viewLifecycleOwner) {
+            binding?.tvControllerOwner?.text = "Control : " +
+                    when (it?.state?.isVirtualStickEnable) {
+                        true -> "Auto"
+                        else -> "Manual"
+                    }
+        }
         virtualStickVM.currentSpeedLevel.observe(viewLifecycleOwner) { updateVirtualStickInfo() }
         virtualStickVM.useRcStick.observe(viewLifecycleOwner) { updateVirtualStickInfo() }
         virtualStickVM.currentVirtualStickStateInfo.observe(viewLifecycleOwner) { updateVirtualStickInfo() }
@@ -570,7 +582,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     override fun onDestroy() {
         super.onDestroy()
         apiServerVM.stopService()
-        actionResolver.destroy()
         ServiceUtils.stopService(
             requireContext(),
             AudioControlService::class.java
@@ -918,30 +929,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                 )
             }
         })
-    }
-
-    private fun initController() {
-        virtualStickVM.currentVirtualStickStateInfo.observe(viewLifecycleOwner) {
-            binding?.tvControllerOwner?.text = "Control : " +
-                    when (it?.state?.isVirtualStickEnable) {
-                        true -> "Auto"
-                        else -> "Manual"
-                    }
-        }
-        lifecycleScope.launch {
-            try {
-                controllerVM.init(virtualStickVM)
-                apiServerVM.initController(controllerVM.controller)
-            } catch (e: Exception) {
-                Log.e("initController", "${e.message}", e)
-                ToastUtils.showToast(
-                    "c. init failed: ${
-                        if (e is DJIErrorException) e.error.toJson()
-                        else e.message
-                    }"
-                )
-            }
-        }
     }
 
     private fun initVoiceCommandResolver() {
@@ -1340,7 +1327,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
         lifecycleScope.launch {
             stv?.text = spokenText
-            rtv?.text = "processing..." // todo: hide/show spinner
+            rtv?.text = "processing..." // todo: hide/show spinner (observe resolverVm state
 
             val match = withContext(Dispatchers.Default) {
                 resolver.resolveToExecute(spokenText, locale)

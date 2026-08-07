@@ -3,7 +3,11 @@ package com.kcg.dr.voice
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.CreationExtras
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.kcg.dr.utils.LocaleUtils.getLocalizedResources
 import com.kcg.dr.utils.SFXManager
 import com.kcg.dr.utils.SFXManager.playSfx
@@ -13,27 +17,29 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.util.Locale
 
-class VoiceVM(application: Application) : AndroidViewModel(application) {
+class VoiceVM(
+    application: Application,
+    private val resolvers: List<SpeechExecutor<*, *>>
+) : AndroidViewModel(application) {
+    companion object {
+        val RES_LIST_KEY = object : CreationExtras.Key<List<SpeechExecutor<*, *>>> {}
+
+        val Factory = viewModelFactory {
+            initializer {
+                VoiceVM(
+                    this[APPLICATION_KEY]!!,
+                    this[RES_LIST_KEY] ?: emptyList()
+                )
+            }
+        }
+    }
+
     private val _speechResult = MutableLiveData<String>()
     val speechResult = _speechResult
     private val _resolutionName = MutableLiveData<String>()
     val resolutionName = _resolutionName
     private val _resolutionResponse = MutableLiveData<String>()
     val resolutionResponse = _resolutionResponse
-
-    private val commandResolver = RegexCommandResolver(application)
-    // private val actionResolver = LlamaActionSequenceResolver(application)
-
-    private val resolvers = listOf(
-        commandResolver,
-        // actionResolver
-    )
-
-    // user of vm calls this to set the commands
-    fun setCommands(commands: Collection<CommandResolver.Command<MatchResult>> = emptyList()) {
-        commandResolver.commands.clear()
-        commandResolver.commands.addAll(commands)
-    }
 
     fun processSpeech(spokenText: String, locale: Locale? = null) {
         spokenText.let { s ->
