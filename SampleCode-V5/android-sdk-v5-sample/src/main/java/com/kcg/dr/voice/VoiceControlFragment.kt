@@ -11,15 +11,40 @@ import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.viewmodel.MutableCreationExtras
+import com.kcg.dr.flight.AircraftControlVM
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVocomVoiceControlBinding
+import dji.sampleV5.aircraft.models.VirtualStickVM
 import java.util.Locale
 
 class VoiceControlFragment : Fragment() {
     private var _binding: FragVocomVoiceControlBinding? = null
     private val binding get() = _binding!!
 
-    private val voiceVM: VoiceVM by activityViewModels()
+    private val stickVM: VirtualStickVM by activityViewModels()
+    private val controllerVM: AircraftControlVM by activityViewModels(
+        {
+            MutableCreationExtras(defaultViewModelCreationExtras).apply {
+                set(AircraftControlVM.STICK_VM_KEY, stickVM)
+            }
+        },
+        { AircraftControlVM.Factory }
+    )
+    private val viewModel: SpeechResloversVM by activityViewModels(
+        {
+            MutableCreationExtras(defaultViewModelCreationExtras).apply {
+                set(
+                    SpeechResloversVM.RES_LIST_KEY,
+                    listOf(
+                        // RegexCommandResolver(requireContext()),
+                        LlamaActionSequenceResolver(controllerVM.controller, requireContext())
+                    )
+                )
+            }
+        },
+        { SpeechResloversVM.Factory }
+    )
     private val locale = Locale("iw", "IL")
 
     private val speechRecognizerLauncher = registerForActivityResult(
@@ -30,11 +55,15 @@ class VoiceControlFragment : Fragment() {
                 ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
                 ?.firstOrNull()
 
-            spokenText?.let { voiceVM.processSpeech(it, locale) }
+            spokenText?.let { viewModel.processSpeech(it, locale) }
         }
     }
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
         _binding = FragVocomVoiceControlBinding.inflate(inflater, container, false)
         return binding.root
     }
@@ -44,18 +73,21 @@ class VoiceControlFragment : Fragment() {
 
         binding.btnMic.setOnClickListener { startListening() }
 
-        voiceVM.speechResult.observe(viewLifecycleOwner) {
+        viewModel.speechResult.observe(viewLifecycleOwner) {
             binding.txtSpeechResult.text = it
         }
 
-        voiceVM.resolutionName.observe(viewLifecycleOwner) {
+        viewModel.resolutionName.observe(viewLifecycleOwner) {
             binding.sttResult.text = it
         }
     }
 
     private fun startListening(locale: Locale = this.locale) {
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(
+                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+            )
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, locale.toLanguageTag())
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, locale.toLanguageTag())
             putExtra(RecognizerIntent.EXTRA_PROMPT, getString(R.string.speech_prompt_listening))

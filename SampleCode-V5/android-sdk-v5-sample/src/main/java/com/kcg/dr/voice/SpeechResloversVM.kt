@@ -18,7 +18,7 @@ import kotlinx.coroutines.launch
 import java.io.Closeable
 import java.util.Locale
 
-class VoiceVM(
+class SpeechResloversVM(
     application: Application,
     private val resolvers: List<SpeechExecutor<*, *>>
 ) : AndroidViewModel(application) {
@@ -27,7 +27,7 @@ class VoiceVM(
 
         val Factory = viewModelFactory {
             initializer {
-                VoiceVM(
+                SpeechResloversVM(
                     this[APPLICATION_KEY]!!,
                     this[RES_LIST_KEY] ?: emptyList()
                 )
