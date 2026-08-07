@@ -15,6 +15,7 @@ import com.kcg.dr.utils.TTSManager.speak
 import dji.sampleV5.aircraft.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.io.Closeable
 import java.util.Locale
 
 class VoiceVM(
@@ -82,6 +83,8 @@ class VoiceVM(
 
     override fun onCleared() {
         super.onCleared()
-        // actionResolver.destroy()
+        for (resolver in resolvers)
+            if (resolver is Closeable)
+                resolver.close()
     }
 }

@@ -27,6 +27,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
+import java.io.Closeable
 import java.util.Locale
 
 interface SpeechResolver<T> {
@@ -302,7 +303,8 @@ interface SerialisedResolver<T> : SpeechResolver<T> {
     }
 }
 
-abstract class LlamaSerialisedResolver<T>(val context: Context) : SerialisedResolver<T> {
+abstract class LlamaSerialisedResolver<T>(val context: Context) :
+    SerialisedResolver<T>, Closeable {
     private val engine: InferenceEngine = AiChat.getInferenceEngine(context)
     protected abstract val systemPrompt: String
     protected abstract val schema: String
@@ -363,7 +365,7 @@ abstract class LlamaSerialisedResolver<T>(val context: Context) : SerialisedReso
         return super.resolve(processedResult, locale)
     }
 
-    fun destroy() = engine.destroy()
+    override fun close() = engine.destroy()
 }
 
 class ActionResolver(private val controller: AircraftController) :
