@@ -16,7 +16,7 @@ import com.kcg.dr.flight.dji.DJIVirtualStick
 import dji.sampleV5.aircraft.models.VirtualStickVM
 import kotlinx.coroutines.launch
 
-class AircraftControlViewModel(
+class AircraftControlVM(
     application: Application,
     virtualStickVM: VirtualStickVM,
 ) : AndroidViewModel(application) {
@@ -26,7 +26,7 @@ class AircraftControlViewModel(
 
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
-                AircraftControlViewModel(
+                AircraftControlVM(
                     this[APPLICATION_KEY]
                         ?: throw IllegalArgumentException("Application required"),
                     this[STICK_VM_KEY]

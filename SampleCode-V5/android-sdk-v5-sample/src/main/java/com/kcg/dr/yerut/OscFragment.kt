@@ -9,7 +9,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.viewmodel.MutableCreationExtras
-import com.kcg.dr.flight.AircraftControlViewModel
+import com.kcg.dr.flight.AircraftControlVM
 import dji.sampleV5.aircraft.databinding.FragOscBinding
 import dji.sampleV5.aircraft.models.BasicAircraftControlVM
 import dji.sampleV5.aircraft.models.CameraGimbalVM
@@ -27,13 +27,13 @@ class OscFragment : Fragment() {
     private val cameraGimbalVM: CameraGimbalVM by activityViewModels()
     private val intelligentFlightVM: IntelligentFlightVM by activityViewModels()
     private val wayPointV3VM: WayPointV3VM by activityViewModels()
-    private val controllerVM: AircraftControlViewModel by activityViewModels(
+    private val controllerVM: AircraftControlVM by activityViewModels(
         {
             MutableCreationExtras(defaultViewModelCreationExtras).apply {
-                set(AircraftControlViewModel.STICK_VM_KEY, virtualStickVM)
+                set(AircraftControlVM.STICK_VM_KEY, virtualStickVM)
             }
         },
-        { AircraftControlViewModel.Factory }
+        { AircraftControlVM.Factory }
     )
 
     override fun onCreateView(

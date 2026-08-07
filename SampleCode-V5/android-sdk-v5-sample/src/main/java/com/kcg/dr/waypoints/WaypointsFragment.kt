@@ -14,7 +14,7 @@ import com.google.android.gms.location.Priority
 import com.kcg.dr.utils.LocaleUtils.getLocalizedResources
 import com.kcg.dr.utils.LocationUtils.distanceTo
 import com.kcg.dr.utils.as2D
-import com.kcg.dr.flight.AircraftControlViewModel
+import com.kcg.dr.flight.AircraftControlVM
 import com.kcg.dr.location.DeviceLocationViewModel
 import com.kcg.dr.location.LiveLocationProvider
 import dji.sampleV5.aircraft.R
@@ -28,7 +28,7 @@ class WaypointsFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val waypointsVM: WaypointsVM by activityViewModels()
-    private val aircraftVM: AircraftControlViewModel by activityViewModels()
+    private val aircraftVM: AircraftControlVM by activityViewModels()
     private val deviceLocationVM: DeviceLocationViewModel by activityViewModels()
 
     private lateinit var waypointAdapter: LocationAdapter

@@ -18,7 +18,7 @@ class StatusFragment : Fragment() {
     private var _binding: FragVocomStatusBinding? = null
     private val binding get() = _binding!!
 
-    private val aircraftVM: AircraftControlViewModel by activityViewModels()
+    private val aircraftVM: AircraftControlVM by activityViewModels()
     private val deviceLocationVM: DeviceLocationViewModel by activityViewModels()
 
     override fun onCreateView(

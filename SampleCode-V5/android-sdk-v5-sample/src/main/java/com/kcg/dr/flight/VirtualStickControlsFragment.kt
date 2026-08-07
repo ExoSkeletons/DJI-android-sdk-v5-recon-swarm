@@ -18,7 +18,7 @@ class VirtualStickControlsFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val virtualStickVM: VirtualStickVM by activityViewModels()
-    private val aircraftVM: AircraftControlViewModel by activityViewModels()
+    private val aircraftVM: AircraftControlVM by activityViewModels()
 
     private val deviation: Double = 0.02
 

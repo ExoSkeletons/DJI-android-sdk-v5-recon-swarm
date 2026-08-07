@@ -9,7 +9,7 @@ import androidx.lifecycle.viewmodel.MutableCreationExtras
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
 import com.kcg.dr.api.ApiServerVM
-import com.kcg.dr.flight.AircraftControlViewModel
+import com.kcg.dr.flight.AircraftControlVM
 import com.kcg.dr.location.DeviceLocationViewModel
 import com.kcg.dr.location.LiveLocationProvider
 import com.kcg.dr.utils.TTSManager.speak
@@ -41,13 +41,13 @@ class VoComContainerFragment : DJIFragment() {
     }, { ApiServerVM.Factory })
     private lateinit var commandResolver: RegexCommandResolver
     // Original DJI ViewModels needed for controller init
-    private val aircraftControlVM: AircraftControlViewModel by activityViewModels(
+    private val aircraftControlVM: AircraftControlVM by activityViewModels(
         {
             MutableCreationExtras(defaultViewModelCreationExtras).apply {
-                set(AircraftControlViewModel.STICK_VM_KEY, virtualStickVM)
+                set(AircraftControlVM.STICK_VM_KEY, virtualStickVM)
             }
         },
-        { AircraftControlViewModel.Factory }
+        { AircraftControlVM.Factory }
     )
 
     private val deviceLocationVM: DeviceLocationViewModel by activityViewModels()

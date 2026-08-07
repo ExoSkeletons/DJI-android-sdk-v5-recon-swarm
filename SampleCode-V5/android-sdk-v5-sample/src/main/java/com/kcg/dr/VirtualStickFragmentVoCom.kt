@@ -35,7 +35,7 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.Priority
 import com.kcg.dr.api.ApiServerVM
 import com.kcg.dr.api.KeyActivator
-import com.kcg.dr.flight.AircraftControlViewModel
+import com.kcg.dr.flight.AircraftControlVM
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.flight.AircraftController.CircleFaceMode
 import com.kcg.dr.location.LiveLocationProvider
@@ -114,13 +114,13 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     private val virtualStickVM: VirtualStickVM by activityViewModels()
     private val simulatorVM: SimulatorVM by activityViewModels()
     private val liveStreamVM: LiveStreamVM by activityViewModels()
-    private val controllerVM: AircraftControlViewModel by activityViewModels(
+    private val controllerVM: AircraftControlVM by activityViewModels(
         {
             MutableCreationExtras(defaultViewModelCreationExtras).apply {
-                set(AircraftControlViewModel.STICK_VM_KEY, virtualStickVM)
+                set(AircraftControlVM.STICK_VM_KEY, virtualStickVM)
             }
         },
-        { AircraftControlViewModel.Factory }
+        { AircraftControlVM.Factory }
     )
     private val apiServerVM: ApiServerVM by activityViewModels(
         {
