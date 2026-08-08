@@ -37,9 +37,20 @@ class VoiceControlFragment : Fragment() {
             MutableCreationExtras(defaultViewModelCreationExtras).apply {
                 set(
                     SpeechResolversVM.RES_LIST_KEY,
-                    listOf(
-                        // RegexCommandResolver(requireContext()),
-                        LlamaActionSequenceResolver(controllerVM.controller, requireContext())
+                    mapOf(
+                        RegexCommandResolver(
+                            requireContext()
+                        ) to SpeechResolversVM.ResolverMetadata(
+                            R.string.commands_parser_title,
+                            R.drawable.maplibre_info_icon_default
+                        ),
+                        LlamaActionSequenceResolver(
+                            controllerVM.controller,
+                            requireContext()
+                        ) to SpeechResolversVM.ResolverMetadata(
+                            R.string.tts_title,
+                            R.drawable.tec_support_icon
+                        )
                     )
                 )
             }
@@ -81,51 +92,54 @@ class VoiceControlFragment : Fragment() {
             binding.sttResult.text = it
         }
         viewModel.resolverStatuses.observe(viewLifecycleOwner) { statuses ->
-            updateResolverUI(statuses)
+            updateResolverStatuses(statuses)
+        }
+        rowBinds.clear()
+        viewModel.resolvers.forEach { (r, data) ->
+            val rowBinding =
+                ItemResolverBinding.inflate(layoutInflater, binding.tlResolvers, true)
+            rowBinding.tvName.setText(data.nameId)
+            rowBinding.ivIcon.setImageResource(data.iconId)
+            rowBinds[r] = rowBinding
         }
     }
 
-    private val rowBinds = mutableListOf<ItemResolverBinding>()
+    private val rowBinds = mutableMapOf<SpeechExecutor<*, *>, ItemResolverBinding>()
 
-    private fun updateResolverUI(statuses: List<SpeechResolversVM.ResolverStatus>) {
-        if (rowBinds.size != statuses.size) {
-            binding.tlResolvers.removeAllViews()
-            rowBinds.clear()
-            statuses.forEach { status ->
-                val rowBinding =
-                    ItemResolverBinding.inflate(layoutInflater, binding.tlResolvers, true)
-                rowBinding.tvName.text = status.name
-                rowBinds.add(rowBinding)
-            }
-        }
+    private fun updateResolverStatuses(statuses: Map<SpeechExecutor<*, *>, SpeechResolversVM.ResolverStatus>) {
+        statuses.forEach { (r, status) ->
+            val rBind = rowBinds[r] ?: return@forEach
 
-        statuses.forEachIndexed { index, status ->
-            val rBind = rowBinds[index]
-            rBind.root.alpha = if (status.state == SpeechResolversVM.State.IDLE) 0.5f else 1.0f
+            rBind.root.alpha =
+                if (
+                    status.state == SpeechResolversVM.State.ACTIVE
+                    || status.result != null
+                ) 1.0f
+                else 0.5f
 
-            when (status.state) {
-                SpeechResolversVM.State.IDLE -> {
-                    rBind.prog.visibility = View.GONE
-                    rBind.ivStatus.visibility = View.GONE
-                }
-
-                SpeechResolversVM.State.ACTIVE -> {
-                    rBind.prog.visibility = View.VISIBLE
-                    rBind.ivStatus.visibility = View.GONE
-                }
-            }
-            status.result?.takeIf { it.isSuccess }
-                ?.let {
-                    rBind.prog.visibility = View.GONE
-                    rBind.ivStatus.visibility = View.VISIBLE
+            status.result?.let {
+                rBind.prog.visibility = View.GONE
+                rBind.ivStatus.visibility = View.VISIBLE
+                if (status.result.isSuccess) {
                     rBind.ivStatus.setImageResource(R.drawable.uxsdk_ic_alert_good)
                     // rBind.tvResult = it?.getOrNull()
-                }
-                ?: run {
-                    rBind.prog.visibility = View.GONE
-                    rBind.ivStatus.visibility = View.VISIBLE
+                } else if (status.result.isFailure) {
                     rBind.ivStatus.setImageResource(R.drawable.uxsdk_ic_cancel_landing_disabled)
                 }
+            } ?: run {
+                when (status.state) {
+                    SpeechResolversVM.State.ACTIVE -> {
+                        rBind.prog.visibility = View.VISIBLE
+                        rBind.ivStatus.setImageResource(R.drawable.uxsdk_ic_customer_loading)
+                        rBind.ivStatus.visibility = View.GONE
+                    }
+
+                    else -> {
+                        rBind.prog.visibility = View.GONE
+                        rBind.ivStatus.visibility = View.GONE
+                    }
+                }
+            }
         }
     }
 

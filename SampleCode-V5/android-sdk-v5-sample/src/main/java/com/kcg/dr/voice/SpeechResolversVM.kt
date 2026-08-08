@@ -1,6 +1,8 @@
 package com.kcg.dr.voice
 
 import android.app.Application
+import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -22,16 +24,17 @@ import java.util.Locale
 
 class SpeechResolversVM(
     application: Application,
-    private val resolvers: List<SpeechExecutor<*, *>>
+    val resolvers: Map<SpeechExecutor<*, *>, ResolverMetadata>
 ) : AndroidViewModel(application) {
     companion object {
-        val RES_LIST_KEY = object : CreationExtras.Key<List<SpeechExecutor<*, *>>> {}
+        val RES_LIST_KEY =
+            object : CreationExtras.Key<Map<SpeechExecutor<*, *>, ResolverMetadata>> {}
 
         val Factory = viewModelFactory {
             initializer {
                 SpeechResolversVM(
                     this[APPLICATION_KEY]!!,
-                    this[RES_LIST_KEY] ?: emptyList()
+                    this[RES_LIST_KEY] ?: emptyMap()
                 )
             }
         }
@@ -42,17 +45,23 @@ class SpeechResolversVM(
     private val _resolutionName = MutableLiveData<String>()
     val resolutionName = _resolutionName
 
+    data class ResolverMetadata(
+        @field:StringRes
+        val nameId: Int,
+        @field:DrawableRes
+        val iconId: Int,
+    )
+
     enum class State { IDLE, ACTIVE }
     data class ResolverStatus(
-        val name: String,
         val state: State = State.IDLE,
         val result: Result<String>? = null
     )
 
-    private val _resolverStatuses = MutableLiveData<List<ResolverStatus>>(
-        resolvers.map { ResolverStatus(it::class.java.simpleName) }
+    private val _resolverStatuses = MutableLiveData<Map<SpeechExecutor<*, *>, ResolverStatus>>(
+        buildResetStatuses()
     )
-    val resolverStatuses: LiveData<List<ResolverStatus>> = _resolverStatuses
+    val resolverStatuses: LiveData<Map<SpeechExecutor<*, *>, ResolverStatus>> = _resolverStatuses
 
     fun processSpeech(spokenText: String, locale: Locale? = null) {
         spokenText.let { s ->
@@ -65,35 +74,39 @@ class SpeechResolversVM(
             }
 
             viewModelScope.launch {
-                val statuses = resolvers.map {
-                    ResolverStatus(it::class.java.simpleName, State.IDLE, null)
-                }.toMutableList()
-                _resolverStatuses.postValue(statuses.toList())
+                _resolverStatuses.postValue(buildResetStatuses())
 
-                resolvers.forEachIndexed { i, it ->
-                    statuses[i] = statuses[i].copy(state = State.ACTIVE)
-                    _resolverStatuses.postValue(statuses.toList())
+                val statuses = buildResetStatuses().mapValues {
+                    it.value.copy(state = State.IDLE)
+                }.toMutableMap()
 
-                    val resolution = it.resolveToExecute(s, locale ?: Locale.getDefault())
+                resolvers.forEach { (r, data) ->
+                    val status = statuses[r] ?: ResolverStatus()
+                    statuses[r] = status.copy(state = State.ACTIVE)
+                    _resolverStatuses.postValue(statuses.toMap())
+
+                    val resolution = r.resolveToExecute(s, locale ?: Locale.getDefault())
 
                     if (resolution == null) {
-                        statuses[i] =
-                            statuses[i].copy(result = Result.failure(ParseException("", 0)))
-                        _resolverStatuses.postValue(statuses.toList())
-                        return@forEachIndexed
+                        statuses[r] = (statuses[r] ?: ResolverStatus()).copy(
+                            state = State.IDLE,
+                            result = Result.failure(ParseException("", 0))
+                        )
+                        _resolverStatuses.postValue(statuses.toMap())
+                        return@forEach
                     }
 
                     val (_, function, desc) = resolution
 
-                    statuses[i] = statuses[i].copy(result = Result.success(desc.name))
-                    _resolverStatuses.postValue(statuses.toList())
+                    statuses[r] = status.copy(
+                        state = State.IDLE,
+                        result = Result.success(desc.name)
+                    )
+                    _resolverStatuses.postValue(statuses.toMap())
 
                     try {
                         playSfx(SFXManager.SFX.ACTION_CONFIRM)
-                        speak(
-                            lr.getString(R.string.commands_response_fmt_accepted) + ". ",
-                            locale
-                        )
+                        speak(lr.getString(R.string.commands_response_fmt_accepted) + ". ", locale)
                         _resolutionName.postValue(desc.name)
                         viewModelScope.launch(Dispatchers.IO) {
                             function()
@@ -112,10 +125,14 @@ class SpeechResolversVM(
         }
     }
 
+    private fun buildResetStatuses(): Map<SpeechExecutor<*, *>, ResolverStatus> =
+        resolvers.mapValues { ResolverStatus() }.toMap()
+
     override fun onCleared() {
         super.onCleared()
-        for (resolver in resolvers)
-            if (resolver is Closeable)
-                resolver.close()
+        resolvers.keys.forEach {
+            if (it is Closeable)
+                it.close()
+        }
     }
 }

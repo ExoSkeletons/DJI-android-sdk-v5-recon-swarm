@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <TableRow xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/resolver_row"
     android:layout_width="match_parent"
@@ -8,12 +9,19 @@
     android:padding="4dp"
     android:alpha="0.5">
 
+    <ImageView
+        android:id="@+id/ivIcon"
+        android:layout_width="@dimen/uxsdk_32_dp"
+        android:layout_height="@dimen/uxsdk_32_dp"
+        tools:srcCompat="@drawable/uxsdk_ic_bird" />
+
     <TextView
         android:id="@+id/tvName"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_vertical"
         android:layout_marginEnd="8dp"
+        android:layout_weight="1"
         android:textColor="@android:color/white"
         android:textSize="14sp"
         tools:text="RegexResolver" />
