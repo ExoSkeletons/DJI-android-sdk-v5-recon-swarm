@@ -20,7 +20,7 @@ import java.io.Closeable
 import java.text.ParseException
 import java.util.Locale
 
-class SpeechResloversVM(
+class SpeechResolversVM(
     application: Application,
     private val resolvers: List<SpeechExecutor<*, *>>
 ) : AndroidViewModel(application) {
@@ -29,7 +29,7 @@ class SpeechResloversVM(
 
         val Factory = viewModelFactory {
             initializer {
-                SpeechResloversVM(
+                SpeechResolversVM(
                     this[APPLICATION_KEY]!!,
                     this[RES_LIST_KEY] ?: emptyList()
                 )

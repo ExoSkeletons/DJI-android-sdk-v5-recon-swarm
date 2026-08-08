@@ -16,7 +16,7 @@ import com.kcg.dr.utils.TTSManager.speak
 import com.kcg.dr.utils.asDjiLocation
 import com.kcg.dr.voice.CommandResolver.Command
 import com.kcg.dr.voice.RegexCommandResolver
-import com.kcg.dr.voice.SpeechResloversVM
+import com.kcg.dr.voice.SpeechResolversVM
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVocomContainerBinding
 import dji.sampleV5.aircraft.models.RecordingVM
@@ -28,11 +28,11 @@ class VoComContainerFragment : DJIFragment() {
     private val binding get() = _binding!!
 
     private val recordingVM: RecordingVM by activityViewModels()
-    private val speechResloversVM: SpeechResloversVM by activityViewModels({
+    private val speechResloversVM: SpeechResolversVM by activityViewModels({
         MutableCreationExtras(defaultViewModelCreationExtras).apply {
-            set(SpeechResloversVM.RES_LIST_KEY, listOf(commandResolver))
+            set(SpeechResolversVM.RES_LIST_KEY, listOf(commandResolver))
         }
-    }, { SpeechResloversVM.Factory })
+    }, { SpeechResolversVM.Factory })
 
     private val apiVM: ApiServerVM by activityViewModels({
         MutableCreationExtras(defaultViewModelCreationExtras).apply {

@@ -32,11 +32,11 @@ class VoiceControlFragment : Fragment() {
         },
         { AircraftControlVM.Factory }
     )
-    private val viewModel: SpeechResloversVM by activityViewModels(
+    private val viewModel: SpeechResolversVM by activityViewModels(
         {
             MutableCreationExtras(defaultViewModelCreationExtras).apply {
                 set(
-                    SpeechResloversVM.RES_LIST_KEY,
+                    SpeechResolversVM.RES_LIST_KEY,
                     listOf(
                         // RegexCommandResolver(requireContext()),
                         LlamaActionSequenceResolver(controllerVM.controller, requireContext())
@@ -44,7 +44,7 @@ class VoiceControlFragment : Fragment() {
                 )
             }
         },
-        { SpeechResloversVM.Factory }
+        { SpeechResolversVM.Factory }
     )
     private val locale = Locale("iw", "IL")
 
@@ -87,7 +87,7 @@ class VoiceControlFragment : Fragment() {
 
     private val rowBinds = mutableListOf<ItemResolverBinding>()
 
-    private fun updateResolverUI(statuses: List<SpeechResloversVM.ResolverStatus>) {
+    private fun updateResolverUI(statuses: List<SpeechResolversVM.ResolverStatus>) {
         if (rowBinds.size != statuses.size) {
             binding.tlResolvers.removeAllViews()
             rowBinds.clear()
@@ -101,15 +101,15 @@ class VoiceControlFragment : Fragment() {
 
         statuses.forEachIndexed { index, status ->
             val rBind = rowBinds[index]
-            rBind.root.alpha = if (status.state == SpeechResloversVM.State.IDLE) 0.5f else 1.0f
+            rBind.root.alpha = if (status.state == SpeechResolversVM.State.IDLE) 0.5f else 1.0f
 
             when (status.state) {
-                SpeechResloversVM.State.IDLE -> {
+                SpeechResolversVM.State.IDLE -> {
                     rBind.prog.visibility = View.GONE
                     rBind.ivStatus.visibility = View.GONE
                 }
 
-                SpeechResloversVM.State.ACTIVE -> {
+                SpeechResolversVM.State.ACTIVE -> {
                     rBind.prog.visibility = View.VISIBLE
                     rBind.ivStatus.visibility = View.GONE
                 }
