@@ -49,11 +49,15 @@
         android:label="virtual_stick_vocom_waypoints_page"
         tools:layout="@layout/frag_vocom_waypoints"/>
 
+    -->
+
     <fragment
         android:id="@+id/virtual_stick_page_vocom_voice"
         android:name="com.kcg.dr.voice.VoiceControlFragment"
         android:label="virtual_stick_vocom_voice_page"
         tools:layout="@layout/frag_vocom_voice_control"/>
+
+    <!--
 
     <fragment
         android:id="@+id/virtual_stick_page_vocom_demo"

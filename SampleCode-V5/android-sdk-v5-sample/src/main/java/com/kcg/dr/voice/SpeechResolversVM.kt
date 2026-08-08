@@ -24,17 +24,16 @@ import java.util.Locale
 
 class SpeechResolversVM(
     application: Application,
-    val resolvers: Map<SpeechExecutor<*, *>, ResolverMetadata>
+    private val resolvers: Map<SpeechExecutor<*, *>, ResolverItem>
 ) : AndroidViewModel(application) {
     companion object {
-        val RES_LIST_KEY =
-            object : CreationExtras.Key<Map<SpeechExecutor<*, *>, ResolverMetadata>> {}
+        val RES_LIST_KEY = object : CreationExtras.Key<Map<SpeechExecutor<*, *>, ResolverItem>> {}
 
         val Factory = viewModelFactory {
             initializer {
                 SpeechResolversVM(
                     this[APPLICATION_KEY]!!,
-                    this[RES_LIST_KEY] ?: emptyMap()
+                    (this[RES_LIST_KEY] ?: emptyMap())
                 )
             }
         }
@@ -45,23 +44,29 @@ class SpeechResolversVM(
     private val _resolutionName = MutableLiveData<String>()
     val resolutionName = _resolutionName
 
-    data class ResolverMetadata(
-        @field:StringRes
-        val nameId: Int,
-        @field:DrawableRes
-        val iconId: Int,
+    data class ResolverItem(
+        @field:StringRes val nameId: Int,
+        @field:DrawableRes val iconId: Int,
     )
 
     enum class State { IDLE, ACTIVE }
+
     data class ResolverStatus(
         val state: State = State.IDLE,
         val result: Result<String>? = null
     )
 
-    private val _resolverStatuses = MutableLiveData<Map<SpeechExecutor<*, *>, ResolverStatus>>(
-        buildResetStatuses()
+    data class ResolverViewState(
+        val item: ResolverItem,
+        val status: ResolverStatus,
     )
-    val resolverStatuses: LiveData<Map<SpeechExecutor<*, *>, ResolverStatus>> = _resolverStatuses
+
+    private val statuses = mutableMapOf<SpeechExecutor<*, *>, ResolverStatus>().apply {
+        resolvers.keys.forEach { put(it, ResolverStatus()) }
+    }
+
+    private val _uiStates = MutableLiveData<List<ResolverViewState>>(buildUiStates())
+    val uiStates: LiveData<List<ResolverViewState>> = _uiStates
 
     fun processSpeech(spokenText: String, locale: Locale? = null) {
         spokenText.let { s ->
@@ -74,35 +79,31 @@ class SpeechResolversVM(
             }
 
             viewModelScope.launch {
-                _resolverStatuses.postValue(buildResetStatuses())
+                resetStatuses()
+                emitUiStates()
 
-                val statuses = buildResetStatuses().mapValues {
-                    it.value.copy(state = State.IDLE)
-                }.toMutableMap()
-
-                resolvers.forEach { (r, data) ->
-                    val status = statuses[r] ?: ResolverStatus()
-                    statuses[r] = status.copy(state = State.ACTIVE)
-                    _resolverStatuses.postValue(statuses.toMap())
+                resolvers.forEach { (r, d) ->
+                    statuses[r] = ResolverStatus(state = State.ACTIVE)
+                    emitUiStates()
 
                     val resolution = r.resolveToExecute(s, locale ?: Locale.getDefault())
 
                     if (resolution == null) {
-                        statuses[r] = (statuses[r] ?: ResolverStatus()).copy(
+                        statuses[r] = ResolverStatus(
                             state = State.IDLE,
                             result = Result.failure(ParseException("", 0))
                         )
-                        _resolverStatuses.postValue(statuses.toMap())
+                        emitUiStates()
                         return@forEach
                     }
 
                     val (_, function, desc) = resolution
 
-                    statuses[r] = status.copy(
+                    statuses[r] = ResolverStatus(
                         state = State.IDLE,
                         result = Result.success(desc.name)
                     )
-                    _resolverStatuses.postValue(statuses.toMap())
+                    emitUiStates()
 
                     try {
                         playSfx(SFXManager.SFX.ACTION_CONFIRM)
@@ -125,8 +126,13 @@ class SpeechResolversVM(
         }
     }
 
-    private fun buildResetStatuses(): Map<SpeechExecutor<*, *>, ResolverStatus> =
-        resolvers.mapValues { ResolverStatus() }.toMap()
+    private fun resetStatuses() = resolvers.keys.forEach { statuses[it] = ResolverStatus() }
+
+    private fun emitUiStates() = _uiStates.postValue(buildUiStates())
+
+    private fun buildUiStates(): List<ResolverViewState> = resolvers.map { (r, d) ->
+        ResolverViewState(d, statuses[r] ?: ResolverStatus())
+    }
 
     override fun onCleared() {
         super.onCleared()

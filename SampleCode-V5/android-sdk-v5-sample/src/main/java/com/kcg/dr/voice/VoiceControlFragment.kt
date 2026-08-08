@@ -12,7 +12,12 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.viewmodel.MutableCreationExtras
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.ListAdapter
+import androidx.recyclerview.widget.RecyclerView
 import com.kcg.dr.flight.AircraftControlVM
+import com.kcg.dr.voice.SpeechResolversVM.ResolverViewState
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVocomVoiceControlBinding
 import dji.sampleV5.aircraft.databinding.ItemResolverBinding
@@ -40,16 +45,16 @@ class VoiceControlFragment : Fragment() {
                     mapOf(
                         RegexCommandResolver(
                             requireContext()
-                        ) to SpeechResolversVM.ResolverMetadata(
-                            R.string.commands_parser_title,
-                            R.drawable.maplibre_info_icon_default
+                        ) to SpeechResolversVM.ResolverItem(
+                            R.string.commands_parser_regex,
+                            R.drawable.ic_gears
                         ),
                         LlamaActionSequenceResolver(
                             controllerVM.controller,
                             requireContext()
-                        ) to SpeechResolversVM.ResolverMetadata(
-                            R.string.tts_title,
-                            R.drawable.tec_support_icon
+                        ) to SpeechResolversVM.ResolverItem(
+                            R.string.commands_parser_llm,
+                            R.drawable.ic_llm_brain
                         )
                     )
                 )
@@ -71,6 +76,7 @@ class VoiceControlFragment : Fragment() {
         }
     }
 
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -91,55 +97,12 @@ class VoiceControlFragment : Fragment() {
         viewModel.resolutionName.observe(viewLifecycleOwner) {
             binding.sttResult.text = it
         }
-        viewModel.resolverStatuses.observe(viewLifecycleOwner) { statuses ->
-            updateResolverStatuses(statuses)
-        }
-        rowBinds.clear()
-        viewModel.resolvers.forEach { (r, data) ->
-            val rowBinding =
-                ItemResolverBinding.inflate(layoutInflater, binding.tlResolvers, true)
-            rowBinding.tvName.setText(data.nameId)
-            rowBinding.ivIcon.setImageResource(data.iconId)
-            rowBinds[r] = rowBinding
-        }
-    }
 
-    private val rowBinds = mutableMapOf<SpeechExecutor<*, *>, ItemResolverBinding>()
-
-    private fun updateResolverStatuses(statuses: Map<SpeechExecutor<*, *>, SpeechResolversVM.ResolverStatus>) {
-        statuses.forEach { (r, status) ->
-            val rBind = rowBinds[r] ?: return@forEach
-
-            rBind.root.alpha =
-                if (
-                    status.state == SpeechResolversVM.State.ACTIVE
-                    || status.result != null
-                ) 1.0f
-                else 0.5f
-
-            status.result?.let {
-                rBind.prog.visibility = View.GONE
-                rBind.ivStatus.visibility = View.VISIBLE
-                if (status.result.isSuccess) {
-                    rBind.ivStatus.setImageResource(R.drawable.uxsdk_ic_alert_good)
-                    // rBind.tvResult = it?.getOrNull()
-                } else if (status.result.isFailure) {
-                    rBind.ivStatus.setImageResource(R.drawable.uxsdk_ic_cancel_landing_disabled)
-                }
-            } ?: run {
-                when (status.state) {
-                    SpeechResolversVM.State.ACTIVE -> {
-                        rBind.prog.visibility = View.VISIBLE
-                        rBind.ivStatus.setImageResource(R.drawable.uxsdk_ic_customer_loading)
-                        rBind.ivStatus.visibility = View.GONE
-                    }
-
-                    else -> {
-                        rBind.prog.visibility = View.GONE
-                        rBind.ivStatus.visibility = View.GONE
-                    }
-                }
-            }
+        val adapter = ResolverAdapter()
+        binding.rvResolvers.layoutManager = LinearLayoutManager(requireContext())
+        binding.rvResolvers.adapter = adapter
+        viewModel.uiStates.observe(viewLifecycleOwner) { states ->
+            adapter.submitList(states)
         }
     }
 
@@ -165,5 +128,69 @@ class VoiceControlFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    class ResolverAdapter : ListAdapter<
+            ResolverViewState,
+            ResolverAdapter.ViewHolder>(
+        DiffCallback
+    ) {
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder = ViewHolder(
+            ItemResolverBinding.inflate(
+                LayoutInflater.from(parent.context),
+                parent,
+                false
+            )
+        )
+
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) =
+            holder.bind(getItem(position))
+
+        class ViewHolder(private val binding: ItemResolverBinding) :
+            RecyclerView.ViewHolder(binding.root) {
+            fun bind(viewState: ResolverViewState) {
+                val data = viewState.item
+                binding.tvName.setText(data.nameId)
+                binding.ivIcon.setImageResource(data.iconId)
+
+                val status = viewState.status
+                val state = status.state
+                val result = status.result
+                binding.root.alpha =
+                    if (state == SpeechResolversVM.State.ACTIVE || result != null) 1.0f
+                    else 0.5f
+
+                binding.prog.visibility =
+                    if (state == SpeechResolversVM.State.ACTIVE && result == null)
+                        View.VISIBLE
+                    else View.GONE
+
+                // Status Icon: Visible if result exists
+                binding.ivStatus.visibility =
+                    if (result != null) View.VISIBLE
+                    else View.GONE
+
+                result?.let { res ->
+                    binding.ivStatus.setImageResource(
+                        if (res.isSuccess) R.drawable.uxsdk_ic_alert_good
+                        else R.drawable.uxsdk_ic_cancel_landing_disabled
+                    )
+                } ?: run {
+                    binding.ivStatus.setImageResource(R.drawable.uxsdk_ic_customer_loading)
+                }
+            }
+        }
+
+        object DiffCallback : DiffUtil.ItemCallback<ResolverViewState>() {
+            override fun areItemsTheSame(
+                oldItem: ResolverViewState,
+                newItem: ResolverViewState
+            ): Boolean = oldItem.item.nameId == newItem.item.nameId
+
+            override fun areContentsTheSame(
+                oldItem: ResolverViewState,
+                newItem: ResolverViewState
+            ): Boolean = oldItem == newItem
+        }
     }
 }

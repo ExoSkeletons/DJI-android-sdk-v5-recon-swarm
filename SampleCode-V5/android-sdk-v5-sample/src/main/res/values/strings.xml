@@ -567,6 +567,8 @@ More refer to the release notes." </string>
     <string name="command_go_left">(go )?left(ward(s)?)?</string>
 
     <string name="commands_parser_title">STT</string>
+    <string name="commands_parser_regex">Flash</string>
+    <string name="commands_parser_llm">Deep Think</string>
 
     <string name="tts_tv_prompt">Enter text to speak</string>
     <string name="tts_speak">Speak</string>

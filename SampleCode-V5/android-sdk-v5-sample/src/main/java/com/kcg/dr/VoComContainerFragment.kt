@@ -28,9 +28,17 @@ class VoComContainerFragment : DJIFragment() {
     private val binding get() = _binding!!
 
     private val recordingVM: RecordingVM by activityViewModels()
-    private val speechResloversVM: SpeechResolversVM by activityViewModels({
+    private val speechResolversVM: SpeechResolversVM by activityViewModels({
         MutableCreationExtras(defaultViewModelCreationExtras).apply {
-            set(SpeechResolversVM.RES_LIST_KEY, listOf(commandResolver))
+            set(
+                SpeechResolversVM.RES_LIST_KEY,
+                mapOf(
+                    commandResolver to SpeechResolversVM.ResolverItem(
+                        R.string.commands_parser_regex,
+                        R.drawable.ic_gears
+                    ),
+                )
+            )
         }
     }, { SpeechResolversVM.Factory })
 
@@ -40,6 +48,7 @@ class VoComContainerFragment : DJIFragment() {
         }
     }, { ApiServerVM.Factory })
     private lateinit var commandResolver: RegexCommandResolver
+
     // Original DJI ViewModels needed for controller init
     private val aircraftControlVM: AircraftControlVM by activityViewModels(
         {

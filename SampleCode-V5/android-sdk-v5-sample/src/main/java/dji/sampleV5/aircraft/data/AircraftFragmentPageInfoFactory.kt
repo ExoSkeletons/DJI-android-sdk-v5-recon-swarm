@@ -18,15 +18,13 @@ class AircraftFragmentPageInfoFactory : IFragmentPageInfoFactory {
             items.add(FragmentPageItem(R.id.virtual_stick_page_vocom, R.string.item_vocom_title, R.string.item_vocom_description))
 
             items.add(FragmentPageItem(R.id.virtual_stick_page_vocom_container, R.string.item_vocom_container_title, R.string.item_vocom_description))
-            /*
-            items.add(FragmentPageItem(R.id.virtual_stick_page_vocom_camera, R.string.item_vocom_camera_title, R.string.item_vocom_generic_desc))
-            items.add(FragmentPageItem(R.id.virtual_stick_page_vocom_status, R.string.item_vocom_status_title, R.string.item_vocom_generic_desc))
-            items.add(FragmentPageItem(R.id.virtual_stick_page_vocom_waypoints, R.string.item_vocom_waypoints_title, R.string.item_vocom_generic_desc))
+            // items.add(FragmentPageItem(R.id.virtual_stick_page_vocom_camera, R.string.item_vocom_camera_title, R.string.item_vocom_generic_desc))
+            // items.add(FragmentPageItem(R.id.virtual_stick_page_vocom_status, R.string.item_vocom_status_title, R.string.item_vocom_generic_desc))
+            // items.add(FragmentPageItem(R.id.virtual_stick_page_vocom_waypoints, R.string.item_vocom_waypoints_title, R.string.item_vocom_generic_desc))
             items.add(FragmentPageItem(R.id.virtual_stick_page_vocom_voice, R.string.item_vocom_voice_title, R.string.item_vocom_generic_desc))
-            items.add(FragmentPageItem(R.id.virtual_stick_page_vocom_stick, R.string.item_vocom_sticks_title, R.string.item_vocom_generic_desc))
-            items.add(FragmentPageItem(R.id.virtual_stick_page_vocom_demo, R.string.item_vocom_demo_title, R.string.item_vocom_generic_desc))
-            items.add(FragmentPageItem(R.id.vocom_recon_page, R.string.item_vocom_recon_title, R.string.item_vocom_generic_desc))
-            */
+            // items.add(FragmentPageItem(R.id.virtual_stick_page_vocom_stick, R.string.item_vocom_sticks_title, R.string.item_vocom_generic_desc))
+            // items.add(FragmentPageItem(R.id.virtual_stick_page_vocom_demo, R.string.item_vocom_demo_title, R.string.item_vocom_generic_desc))
+            // items.add(FragmentPageItem(R.id.vocom_recon_page, R.string.item_vocom_recon_title, R.string.item_vocom_generic_desc))
 
             items.add(FragmentPageItem(R.id.virtual_stick_page, R.string.item_virtual_stick_title, R.string.item_virtual_description))
             items.add(FragmentPageItem(R.id.flight_record_page, R.string.item_flight_record_title, R.string.item_flight_record_description))

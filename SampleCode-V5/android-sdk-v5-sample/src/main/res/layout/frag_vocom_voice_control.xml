@@ -2,23 +2,57 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/linearLayout2"
+    android:id="@+id/layout"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/uxsdk_white_10_percent"
-    android:backgroundTint="@color/green">
+    android:layout_height="match_parent">
 
     <ImageButton
         android:id="@+id/btnMic"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:background="@color/uxsdk_transparent"
+        android:background="@color/green_transparent"
         android:importantForAccessibility="no"
+        android:scaleType="fitCenter"
         android:src="@android:drawable/ic_btn_speak_now"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <LinearLayout
+        android:id="@+id/resolverLayout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@color/black_transparent"
+        android:orientation="vertical"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvResolvers"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@color/half_transparent"
+            android:padding="4dp"
+            tools:itemCount="2"
+            tools:listitem="@layout/item_resolver" />
+
+        <TextView
+            android:id="@+id/speech"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="?android:attr/colorForeground"
+            android:textSize="20sp"
+            android:textStyle="italic"
+            android:visibility="visible" />
+
+        <TextView
+            android:id="@+id/sttResult"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:textSize="24dp" />
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -30,29 +64,14 @@
         app:layout_constraintStart_toStartOf="parent">
 
         <TextView
-            android:id="@+id/speech"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/speech_prompt"
-            android:textColor="@color/colorAccent"
-            android:textSize="16sp"
-            android:textStyle="italic" />
+            android:textColor="?android:attr/colorForeground"
+            android:textSize="20sp"
+            android:textStyle="italic"
+            android:visibility="visible" />
 
-        <TableLayout
-            android:id="@+id/tlResolvers"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:padding="8dp">
-
-        </TableLayout>
-
-        <TextView
-            android:id="@+id/sttResult"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:textSize="24dp" />
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
