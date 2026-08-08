@@ -2,6 +2,7 @@ package com.kcg.dr.voice
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.viewModelScope
@@ -16,6 +17,7 @@ import dji.sampleV5.aircraft.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.Closeable
+import java.text.ParseException
 import java.util.Locale
 
 class SpeechResloversVM(
@@ -36,11 +38,21 @@ class SpeechResloversVM(
     }
 
     private val _speechResult = MutableLiveData<String>()
-    val speechResult = _speechResult
+    val speechText = _speechResult
     private val _resolutionName = MutableLiveData<String>()
     val resolutionName = _resolutionName
-    private val _resolutionResponse = MutableLiveData<String>()
-    val resolutionResponse = _resolutionResponse
+
+    enum class State { IDLE, ACTIVE }
+    data class ResolverStatus(
+        val name: String,
+        val state: State = State.IDLE,
+        val result: Result<String>? = null
+    )
+
+    private val _resolverStatuses = MutableLiveData<List<ResolverStatus>>(
+        resolvers.map { ResolverStatus(it::class.java.simpleName) }
+    )
+    val resolverStatuses: LiveData<List<ResolverStatus>> = _resolverStatuses
 
     fun processSpeech(spokenText: String, locale: Locale? = null) {
         spokenText.let { s ->
@@ -53,14 +65,29 @@ class SpeechResloversVM(
             }
 
             viewModelScope.launch {
-                resolvers.forEach {
+                val statuses = resolvers.map {
+                    ResolverStatus(it::class.java.simpleName, State.IDLE, null)
+                }.toMutableList()
+                _resolverStatuses.postValue(statuses.toList())
+
+                resolvers.forEachIndexed { i, it ->
+                    statuses[i] = statuses[i].copy(state = State.ACTIVE)
+                    _resolverStatuses.postValue(statuses.toList())
+
                     val resolution = it.resolveToExecute(s, locale ?: Locale.getDefault())
+
                     if (resolution == null) {
-                        _resolutionName.postValue(lr.getString(R.string.error_speech_unrecognised))
-                        return@launch
+                        statuses[i] =
+                            statuses[i].copy(result = Result.failure(ParseException("", 0)))
+                        _resolverStatuses.postValue(statuses.toList())
+                        return@forEachIndexed
                     }
 
                     val (_, function, desc) = resolution
+
+                    statuses[i] = statuses[i].copy(result = Result.success(desc.name))
+                    _resolverStatuses.postValue(statuses.toList())
+
                     try {
                         playSfx(SFXManager.SFX.ACTION_CONFIRM)
                         speak(
@@ -72,11 +99,15 @@ class SpeechResloversVM(
                             function()
                         }
                         speak(desc.response, locale)
+                        return@launch
                     } catch (e: Exception) {
                         playSfx(SFXManager.SFX.NOTIFY_TECHNICAL)
                         _resolutionName.postValue(e.message ?: e.toString())
                     }
                 }
+
+                playSfx(SFXManager.SFX.NOTIFY_TECHNICAL)
+                _resolutionName.postValue(lr.getString(R.string.error_speech_unrecognised))
             }
         }
     }

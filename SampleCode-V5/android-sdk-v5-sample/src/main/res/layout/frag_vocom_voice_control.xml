@@ -30,7 +30,7 @@
         app:layout_constraintStart_toStartOf="parent">
 
         <TextView
-            android:id="@+id/tvSpeech"
+            android:id="@+id/speech"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/speech_prompt"
@@ -39,61 +39,16 @@
             android:textStyle="italic" />
 
         <TableLayout
+            android:id="@+id/tlResolvers"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:foregroundGravity="center_horizontal"
+            android:layout_height="wrap_content"
             android:gravity="center"
-            android:orientation="horizontal">
-
-            <TableRow
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center_horizontal">
-
-                <TextView
-                    android:id="@+id/tvResTypeRegex"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_vertical"
-                    android:gravity="center"
-                    android:text="Regex" />
-
-                <ProgressBar
-                    android:id="@+id/prRegex"
-                    style="@android:style/Widget.DeviceDefault.Light.ProgressBar"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    tools:visibility="visible" />
-
-            </TableRow>
-
-            <TableRow
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center_horizontal">
-
-                <TextView
-                    android:id="@+id/tvResTypeLlm"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_vertical"
-                    android:gravity="center"
-                    android:text="LLM" />
-
-                <ProgressBar
-                    android:id="@+id/prLlm"
-                    style="@android:style/Widget.DeviceDefault.Light.ProgressBar"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:visibility="invisible"
-                    tools:visibility="visible" />
-
-            </TableRow>
+            android:padding="8dp">
 
         </TableLayout>
 
         <TextView
-            android:id="@+id/tvSttResult"
+            android:id="@+id/sttResult"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"

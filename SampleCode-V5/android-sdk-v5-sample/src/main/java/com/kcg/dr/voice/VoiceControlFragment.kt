@@ -15,6 +15,7 @@ import androidx.lifecycle.viewmodel.MutableCreationExtras
 import com.kcg.dr.flight.AircraftControlVM
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVocomVoiceControlBinding
+import dji.sampleV5.aircraft.databinding.ItemResolverBinding
 import dji.sampleV5.aircraft.models.VirtualStickVM
 import java.util.Locale
 
@@ -73,12 +74,58 @@ class VoiceControlFragment : Fragment() {
 
         binding.btnMic.setOnClickListener { startListening() }
 
-        viewModel.speechResult.observe(viewLifecycleOwner) {
-            binding.txtSpeechResult.text = it
+        viewModel.speechText.observe(viewLifecycleOwner) {
+            binding.speech.text = it
         }
-
         viewModel.resolutionName.observe(viewLifecycleOwner) {
             binding.sttResult.text = it
+        }
+        viewModel.resolverStatuses.observe(viewLifecycleOwner) { statuses ->
+            updateResolverUI(statuses)
+        }
+    }
+
+    private val rowBinds = mutableListOf<ItemResolverBinding>()
+
+    private fun updateResolverUI(statuses: List<SpeechResloversVM.ResolverStatus>) {
+        if (rowBinds.size != statuses.size) {
+            binding.tlResolvers.removeAllViews()
+            rowBinds.clear()
+            statuses.forEach { status ->
+                val rowBinding =
+                    ItemResolverBinding.inflate(layoutInflater, binding.tlResolvers, true)
+                rowBinding.tvName.text = status.name
+                rowBinds.add(rowBinding)
+            }
+        }
+
+        statuses.forEachIndexed { index, status ->
+            val rBind = rowBinds[index]
+            rBind.root.alpha = if (status.state == SpeechResloversVM.State.IDLE) 0.5f else 1.0f
+
+            when (status.state) {
+                SpeechResloversVM.State.IDLE -> {
+                    rBind.prog.visibility = View.GONE
+                    rBind.ivStatus.visibility = View.GONE
+                }
+
+                SpeechResloversVM.State.ACTIVE -> {
+                    rBind.prog.visibility = View.VISIBLE
+                    rBind.ivStatus.visibility = View.GONE
+                }
+            }
+            status.result?.takeIf { it.isSuccess }
+                ?.let {
+                    rBind.prog.visibility = View.GONE
+                    rBind.ivStatus.visibility = View.VISIBLE
+                    rBind.ivStatus.setImageResource(R.drawable.uxsdk_ic_alert_good)
+                    // rBind.tvResult = it?.getOrNull()
+                }
+                ?: run {
+                    rBind.prog.visibility = View.GONE
+                    rBind.ivStatus.visibility = View.VISIBLE
+                    rBind.ivStatus.setImageResource(R.drawable.uxsdk_ic_cancel_landing_disabled)
+                }
         }
     }
 
@@ -97,7 +144,7 @@ class VoiceControlFragment : Fragment() {
             speechRecognizerLauncher.launch(intent)
         } catch (e: Exception) {
             Log.e("VoiceControlFragment", "Failed to start speech recognition", e)
-            binding.txtSpeechResult.text = getString(R.string.dji_msdk_error_common_unsupported)
+            binding.speech.text = getString(R.string.dji_msdk_error_common_unsupported)
         }
     }
 

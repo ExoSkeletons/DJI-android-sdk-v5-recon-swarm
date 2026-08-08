@@ -313,7 +313,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                 ?.get(0)
 
             if (spokenText != null) onHearText(spokenText)
-            else binding?.txtSpeechResult?.text = getString(R.string.error_speech_unrecognised)
+            else binding?.sttResult?.text = getString(R.string.error_speech_unrecognised)
         }
     }
 
@@ -1321,14 +1321,13 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         try {
             speechRecognizerLauncher.launch(intent)
         } catch (_: Exception) {
-            binding?.txtSpeechResult?.text =
-                getString(R.string.dji_msdk_error_common_unsupported)
+            binding?.sttResult?.text = getString(R.string.dji_msdk_error_common_unsupported)
         }
     }
 
     private fun onHearText(spokenText: String) {
         val rtv = binding?.sttResult
-        val stv = binding?.txtSpeechResult
+        val stv = binding?.sttResult
         val lr = requireContext().getLocalizedResources(locale)
         val resolver = actionResolver
 
