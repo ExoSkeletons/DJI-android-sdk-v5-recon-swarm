@@ -128,7 +128,9 @@ class SpeechResolversVM(
 
     private fun resetStatuses() = resolvers.keys.forEach { statuses[it] = ResolverStatus() }
 
-    private fun emitUiStates() = _uiStates.postValue(buildUiStates())
+    private fun emitUiStates() {
+        _uiStates.value = buildUiStates()
+    }
 
     private fun buildUiStates(): List<ResolverViewState> = resolvers.map { (r, d) ->
         ResolverViewState(d, statuses[r] ?: ResolverStatus())
