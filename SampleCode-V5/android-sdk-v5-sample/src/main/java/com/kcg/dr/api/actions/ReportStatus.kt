@@ -26,8 +26,8 @@ data class ReportStatus(
         @SerialDescription("If asked where aircraft is.")
         Location,
 
-//        @SerialDescription("If asked how fast aircraft is moving.")
-//        Velocity,
+        @SerialDescription("If asked how fast aircraft is moving.")
+        Speed,
     }
 
     override suspend fun act(controller: AircraftController) =
@@ -42,12 +42,14 @@ data class ReportStatus(
                 append(controller.ac.location.value?.let {
                     "I'm at ${it.toJson()}"
                 } ?: "Location is unknown")
-                append(controller.ac.heading.value?.let {
+                append(controller.ac.heading.value.let {
                     ", Heading is ${it.toDegrees()}°"
                 })
             }
 
-            // Topic.Velocity -> "Flying speed is ${controller.ac.velocity.value}ms"
+            Topic.Speed -> controller.ac.velocity.value.let {
+                "Moving at ${it.x} x, ${it.y} y, ${it.z}z m/s"
+            }
         }
         speak(text)
         ToastUtils.showToast(text)

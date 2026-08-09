@@ -9,6 +9,7 @@ import dji.sdk.keyvalue.key.FlightControllerKey
 import dji.sdk.keyvalue.value.common.Attitude
 import dji.sdk.keyvalue.value.common.EmptyMsg
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
+import dji.sdk.keyvalue.value.common.Velocity3D
 import dji.v5.common.callback.CommonCallbacks
 import dji.v5.common.error.IDJIError
 import dji.v5.et.action
@@ -29,6 +30,7 @@ class DJIAircraft : IAircraft {
     private val _isFlying = MutableStateFlow(false)
     private val _height = MutableStateFlow(0.0)
     private val _location: MutableStateFlow<LocationCoordinate3D?> = MutableStateFlow(null)
+    private val _velocity: MutableStateFlow<Velocity3D> = MutableStateFlow(Velocity3D())
     private val _batteryPercent = MutableStateFlow(0)
     private val _attitude = MutableStateFlow(Attitude())
     private val _heading = MutableStateFlow(0.0)
@@ -36,6 +38,7 @@ class DJIAircraft : IAircraft {
     val areMotorsOn = MutableStateFlow(false)
     override val height = _height
     override val location = _location
+    override val velocity = _velocity
     override val batteryPercent = _batteryPercent
     override val attitude = _attitude
     override val heading = _heading
@@ -103,6 +106,9 @@ class DJIAircraft : IAircraft {
         }
         FlightControllerKey.KeyAircraftLocation3D.create().listen(this) {
             location.value = it
+        }
+        FlightControllerKey.KeyAircraftVelocity.create().listen(this) {
+            it?.let { velocity.value = it } ?: Velocity3D()
         }
         FlightControllerKey.KeyAltitude.create().listen(this) {
             it?.let { height.value = it }

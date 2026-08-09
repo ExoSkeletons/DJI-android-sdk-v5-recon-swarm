@@ -29,6 +29,7 @@ import dji.sdk.keyvalue.value.common.Attitude
 import dji.sdk.keyvalue.value.common.EmptyMsg
 import dji.sdk.keyvalue.value.common.LocationCoordinate2D
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
+import dji.sdk.keyvalue.value.common.Velocity3D
 import dji.sdk.keyvalue.value.common.XYZ
 import dji.sdk.keyvalue.value.flightcontroller.FlightCoordinateSystem
 import dji.sdk.keyvalue.value.gimbal.GimbalAngleRotation
@@ -109,6 +110,7 @@ open class AircraftController(
         val isFlying: StateFlow<Boolean>
         val height: StateFlow<Double>
         val location: StateFlow<LocationCoordinate3D?>
+        val velocity: StateFlow<Velocity3D>
         val batteryPercent: StateFlow<Int>
         val attitude: StateFlow<Attitude>
         val heading: StateFlow<Double>
