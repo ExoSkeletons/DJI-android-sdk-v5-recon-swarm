@@ -255,23 +255,25 @@ open class AircraftController(
 
         var coordinateSystem: FlightCoordinateSystem = FlightCoordinateSystem.BODY,
     ) {
-        operator fun plus(other: FlightParam): FlightParam {
-            return FlightParam().apply {
-                pitch = other.pitch ?: this@FlightParam.pitch
-                roll = other.roll ?: this@FlightParam.roll
-                yaw = other.yaw ?: this@FlightParam.yaw
-                verticalThrottle = other.verticalThrottle ?: this@FlightParam.verticalThrottle
-
-                coordinateSystem = other.coordinateSystem
-            }
-        }
-
         override fun toString(): String {
             return "" +
                     (if (pitch != null) "pitch: $pitch," else "") +
                     (if (roll != null) " roll: $roll," else "") +
                     (if (yaw != null) " yaw: $yaw," else "") +
                     (if (verticalThrottle != null) " verticalThrottle: $verticalThrottle" else "")
+        }
+    }
+
+    operator fun FlightParam?.plus(other: FlightParam?): FlightParam {
+        if (this == null) return other ?: FlightParam()
+        if (other == null) return this
+        return FlightParam().apply {
+            pitch = other.pitch ?: this.pitch
+            roll = other.roll ?: this.roll
+            yaw = other.yaw ?: this.yaw
+            verticalThrottle = other.verticalThrottle ?: this.verticalThrottle
+
+            coordinateSystem = other.coordinateSystem
         }
     }
 
@@ -324,7 +326,10 @@ open class AircraftController(
     private val scope = CoroutineScope(Dispatchers.IO)
     private var flightJob: Job? = null
 
-    suspend fun safely(onRCOverride: () -> Unit = {}, block: suspend AircraftController.() -> Unit) = coroutineScope {
+    suspend fun safely(
+        onRCOverride: () -> Unit = {},
+        block: suspend AircraftController.() -> Unit
+    ) = coroutineScope {
         runCatching {
             block()
         }.onFailure { e ->
