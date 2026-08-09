@@ -11,22 +11,29 @@ import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.MutableCreationExtras
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.kcg.dr.flight.AircraftControlVM
+import com.kcg.dr.utils.TTSManager
 import com.kcg.dr.voice.SpeechResolversVM.ResolverViewState
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVocomVoiceControlBinding
 import dji.sampleV5.aircraft.databinding.ItemResolverBinding
 import dji.sampleV5.aircraft.models.VirtualStickVM
+import dji.sampleV5.aircraft.util.ToastUtils
+import kotlinx.coroutines.launch
 import java.util.Locale
 
 class VoiceControlFragment : Fragment() {
     private var _binding: FragVocomVoiceControlBinding? = null
     private val binding get() = _binding!!
+
+    private lateinit var commandResolver: RegexCommandResolver
+    private lateinit var actionResolver: LlamaActionSequenceResolver
 
     private val stickVM: VirtualStickVM by activityViewModels()
     private val controllerVM: AircraftControlVM by activityViewModels(
@@ -43,16 +50,11 @@ class VoiceControlFragment : Fragment() {
                 set(
                     SpeechResolversVM.RES_LIST_KEY,
                     mapOf(
-                        RegexCommandResolver(
-                            requireContext()
-                        ) to SpeechResolversVM.ResolverItem(
+                        commandResolver to SpeechResolversVM.ResolverItem(
                             R.string.commands_parser_regex,
                             R.drawable.ic_gears
                         ),
-                        LlamaActionSequenceResolver(
-                            controllerVM.controller,
-                            requireContext()
-                        ) to SpeechResolversVM.ResolverItem(
+                        actionResolver to SpeechResolversVM.ResolverItem(
                             R.string.commands_parser_llm,
                             R.drawable.ic_llm_brain
                         )
@@ -88,6 +90,23 @@ class VoiceControlFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        commandResolver = RegexCommandResolver(requireContext())
+        commandResolver.setCommands(
+            listOf(
+                CommandResolver.Command(
+                    R.string.command_hello,
+                    R.string.commands_response_fmt_simple,
+                ) {
+                    ToastUtils.showShortToast("hello!")
+                    TTSManager.speak("hello!")
+                }
+            )
+        )
+        actionResolver = LlamaActionSequenceResolver(controllerVM.controller, requireContext())
+        lifecycleScope.launch {
+            actionResolver.init("qwen2.5-coder-1.5b-instruct-q4_0.gguf")
+        }
 
         binding.btnMic.setOnClickListener { startListening() }
 
