@@ -44,7 +44,7 @@ sealed class TemporalActions {
         override val description get() = "Wait $seconds seconds"
     }
 
-    @Serializable
+    /*@Serializable
     @SerialName("repeat")
     data class Repeat(val times: Int, val action: Action) : Action {
         override suspend fun act(controller: AircraftController) {
@@ -53,7 +53,7 @@ sealed class TemporalActions {
         }
 
         override val description get() = "Repeat (${action.description}) $times times"
-    }
+    }*/
 }
 
 sealed class BasicActions {
