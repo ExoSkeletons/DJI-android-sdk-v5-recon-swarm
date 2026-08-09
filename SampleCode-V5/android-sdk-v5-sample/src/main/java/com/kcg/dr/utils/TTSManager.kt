@@ -10,7 +10,7 @@ import java.util.Locale
 object TTSManager {
     const val TAG = "TTS-Manager"
 
-    private lateinit var tts: TextToSpeech
+    private var tts: TextToSpeech? = null
     val silent = MutableLiveData(false)
 
     fun init(context: Context) {
@@ -31,7 +31,7 @@ object TTSManager {
         queueMode: Int = TextToSpeech.QUEUE_ADD,
         onLangUnavailable: ((TextToSpeech, Locale) -> Unit)? = null
     ) {
-        if (text.isNotBlank() && silent.value != true) tts.apply {
+        if (text.isNotBlank() && silent.value != true) tts?.apply {
             if (locale != null && isLanguageAvailable(locale) < TextToSpeech.LANG_AVAILABLE) {
                 onLangUnavailable?.invoke(this, locale)
                 return
@@ -44,7 +44,7 @@ object TTSManager {
     }
 
     fun release() {
-        tts.apply {
+        tts?.apply {
             stop()
             shutdown()
         }
