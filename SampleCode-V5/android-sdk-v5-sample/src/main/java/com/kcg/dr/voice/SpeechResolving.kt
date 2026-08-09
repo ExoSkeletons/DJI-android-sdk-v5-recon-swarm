@@ -5,8 +5,8 @@ import android.content.res.Resources
 import android.util.Log
 import com.arm.aichat.AiChat
 import com.arm.aichat.InferenceEngine
-import com.kcg.dr.api.Action
 import com.kcg.dr.flight.AircraftController
+import com.kcg.dr.api.actions.Action
 import com.kcg.dr.utils.AssetUtils.getAssetOrExtract
 import com.kcg.dr.utils.LocaleUtils.getLocalizedResources
 import com.kcg.dr.voice.SerialisedResolver.Companion.appendPropertyShortJson
