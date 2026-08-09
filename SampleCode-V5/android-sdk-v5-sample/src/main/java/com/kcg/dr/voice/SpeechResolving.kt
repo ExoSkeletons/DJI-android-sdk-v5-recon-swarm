@@ -5,8 +5,9 @@ import android.content.res.Resources
 import android.util.Log
 import com.arm.aichat.AiChat
 import com.arm.aichat.InferenceEngine
-import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.api.actions.Action
+import com.kcg.dr.flight.AircraftController
+import com.kcg.dr.location.UserMetrics
 import com.kcg.dr.utils.AssetUtils.getAssetOrExtract
 import com.kcg.dr.utils.LocaleUtils.getLocalizedResources
 import com.kcg.dr.voice.SerialisedResolver.Companion.appendPropertyShortJson
@@ -368,16 +369,23 @@ abstract class LlamaSerialisedResolver<T>(val context: Context) :
     override fun close() = engine.destroy()
 }
 
-class ActionResolver(private val controller: AircraftController) :
+class ActionResolver(
+    private val controller: AircraftController,
+    private val device: UserMetrics,
+) :
     SerialisedResolver<Action>,
     SpeechExecutor<Action, Unit> {
     override val serializer: KSerializer<Action> = Action.serializer()
     override fun describe(t: Action, locale: Locale): Description = Description(t.description)
 
-    override fun execution(t: Action): suspend () -> Unit = { controller.let { t.act(it) } }
+    override fun execution(t: Action): suspend () -> Unit = { t.act(controller, device) }
 }
 
-class LlamaActionSequenceResolver(private val controller: AircraftController, context: Context) :
+class LlamaActionSequenceResolver(
+    context: Context,
+    private val controller: AircraftController,
+    private val device: UserMetrics,
+) :
     LlamaSerialisedResolver<List<Action>>(context),
     SpeechExecutor<List<Action>, Unit> {
     override val serializer: KSerializer<List<Action>> = ListSerializer(Action.serializer())
@@ -404,7 +412,7 @@ class LlamaActionSequenceResolver(private val controller: AircraftController, co
     override fun execution(t: List<Action>): suspend () -> Unit = {
         controller.safely {
             for (action in t)
-                action.act(this)
+                action.act(this, device)
         }
     }
 

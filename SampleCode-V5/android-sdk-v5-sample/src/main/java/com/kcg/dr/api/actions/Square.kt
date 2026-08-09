@@ -3,6 +3,7 @@
 package com.kcg.dr.api.actions
 
 import com.kcg.dr.flight.AircraftController
+import com.kcg.dr.location.UserMetrics
 import kotlinx.schema.generator.json.SerialDescription
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.SerialName
@@ -16,6 +17,6 @@ data class Square(
     val velocity: Double,
     val clockwise: Boolean = true,
 ) : Action {
-    override suspend fun act(controller: AircraftController) =
-        controller.flySquare(side, velocity, clockwise)
+    override suspend fun act(aircraft: AircraftController, user: UserMetrics?) =
+        aircraft.flySquare(side, velocity, clockwise)
 }

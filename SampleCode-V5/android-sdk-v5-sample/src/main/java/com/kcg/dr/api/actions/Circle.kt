@@ -4,6 +4,7 @@ package com.kcg.dr.api.actions
 
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.flight.AircraftController.CircleFaceMode
+import com.kcg.dr.location.UserMetrics
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -18,6 +19,6 @@ data class Circle(
     @property:SerialName("facing")
     val faceMode: CircleFaceMode = CircleFaceMode.CENTER,
 ) : Action {
-    override suspend fun act(controller: AircraftController) =
-        controller.flyCircle(radius, velocity, count, clockwise, faceMode)
+    override suspend fun act(aircraft: AircraftController, user: UserMetrics?) =
+        aircraft.flyCircle(radius, velocity, count, clockwise, faceMode)
 }

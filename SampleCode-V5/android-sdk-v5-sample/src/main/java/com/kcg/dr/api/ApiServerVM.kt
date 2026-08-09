@@ -16,15 +16,18 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.kcg.dr.api.Tunneling.Cloudflared
 import com.kcg.dr.flight.AircraftController
+import com.kcg.dr.location.UserMetrics
 import com.kcg.dr.utils.ServiceUtils
 import kotlinx.coroutines.launch
 
 class ApiServerVM(
     application: Application,
-    private val controller: AircraftController
+    private val controller: AircraftController,
+    private val user: UserMetrics
 ) : AndroidViewModel(application) {
     companion object {
         val CONTROLLER_KEY = object : CreationExtras.Key<AircraftController> {}
+        val USER_KEY = object : CreationExtras.Key<UserMetrics> {}
         val Factory = viewModelFactory {
             initializer {
                 ApiServerVM(
@@ -32,6 +35,9 @@ class ApiServerVM(
                         ?: throw IllegalArgumentException("Application required"),
                     this[CONTROLLER_KEY]
                         ?: throw IllegalArgumentException("AircraftController required in CreationExtras"),
+                    this[USER_KEY]
+                        ?: throw IllegalArgumentException("UserMetrics required in CreationExtras")
+
                 )
             }
         }
@@ -58,7 +64,7 @@ class ApiServerVM(
             server.value = binder?.server
             isServiceBound.value = true
 
-            binder?.server?.setController(controller)
+            binder?.server?.configure(controller, user)
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {

@@ -33,6 +33,7 @@ import com.kcg.dr.api.KeyActivator
 import com.kcg.dr.flight.AircraftControlVM
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.flight.AircraftController.CircleFaceMode
+import com.kcg.dr.location.DeviceLocationViewModel
 import com.kcg.dr.location.LiveLocationProvider
 import com.kcg.dr.utils.CoroutineUtils.observe
 import com.kcg.dr.utils.LocaleUtils.getLocalizedResources
@@ -126,6 +127,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         },
         { ApiServerVM.Factory }
     )
+    private val deviceVM: DeviceLocationViewModel by activityViewModels()
 
     private val controller: AircraftController get() = controllerVM.controller
     private lateinit var commandResolver: RegexCommandResolver
@@ -148,7 +150,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         500,
         Priority.PRIORITY_HIGH_ACCURACY
     )
-    private val deviceLocation: MutableLiveData<LocationCoordinate3D> = MutableLiveData()
     private var aircraftLocation: LocationCoordinate3D? = null
 
     // Waypoints
@@ -368,7 +369,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             override fun onLocationResult(locationResult: LocationResult) {
                 for (location in locationResult.locations) {
                     // update device location
-                    deviceLocation.postValue(location.asDjiLocation().apply {
+                    deviceVM.location.postValue(location.asDjiLocation().apply {
                         // DJI Aircraft measures alt from ground level, not sea level.
                         altitude = cfg.humanHeight
                     })
@@ -390,7 +391,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         controllerVM.aircraftLocation.observe(viewLifecycleOwner) { aircraft ->
             aircraftLocation = aircraft
 
-            val device = deviceLocation.value
+            val device = deviceVM.location.value
 
             var dist: Double? = null
             var dist2D: Double? = null
@@ -782,7 +783,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                     lookAtWithSpin(loc.as2D, cfg.humanHeight)
                 }
             },
-            deviceLocation, controllerVM.aircraftLocation
+            deviceVM.location, controllerVM.aircraftLocation
         )
         binding?.rvWaypointLocations?.layoutManager = LinearLayoutManager(requireContext())
         binding?.rvWaypointLocations?.adapter = waypointAdapter
@@ -973,7 +974,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                     val targetLocation = waypointRepo.locations()[flagKey]
                         ?: throw RuntimeException("can't find flag location")
                     controller.fly {
-                        withEyesOn(deviceLocation) {
+                        withEyesOn(deviceVM.location) {
                             flyToSticks(targetLocation, maxVelocity = cfg.followVelocity * .5)
                         }
                     }
@@ -994,7 +995,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                     respFmtExId,
                     R.string.commands_mission_recon_name
                 ) { match ->
-                    val selfReconLocation = deviceLocation.value?.atAlt(cfg.scanHeightHigh)
+                    val selfReconLocation = deviceVM.location.value?.atAlt(cfg.scanHeightHigh)
                     val (nameKey, target) = matchWaypointLocationFromRegexCapture(
                         match,
                         selfReconLocation
@@ -1043,7 +1044,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                     respFmtExId,
                     R.string.commands_mission_scan_name
                 ) { match ->
-                    val selfScanLocation = deviceLocation.value?.atAlt(cfg.scanHeightHigh)
+                    val selfScanLocation = deviceVM.location.value?.atAlt(cfg.scanHeightHigh)
                     val (nameKey, target) = matchWaypointLocationFromRegexCapture(
                         match,
                         selfScanLocation
@@ -1209,7 +1210,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
         lifecycleScope.launch(Dispatchers.Default) {
             try {
-                actionResolver = LlamaActionSequenceResolver(controller, requireContext())
+                actionResolver = LlamaActionSequenceResolver(requireContext(), controller, deviceVM.metrics)
                 actionResolver.init("qwen2.5-coder-1.5b-instruct-q4_0.gguf")
                 /*    val actions = actionResolver.resolve(
                         """
@@ -1344,8 +1345,8 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
     private fun enableSimulator() {
         val initLocation = LocationCoordinate2D(
-            deviceLocation.value?.latitude ?: 0.0,
-            deviceLocation.value?.longitude ?: 0.0
+            deviceVM.location.value?.latitude ?: 0.0,
+            deviceVM.location.value?.longitude ?: 0.0
         )
         val satelliteCount = 20
         simulatorVM.enableSimulator(
@@ -1389,7 +1390,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         Log.d("DeviceLocation", "awaiting location")
         liveLocation.startRequesting()
         val res = withTimeoutOrNull(timeout) {
-            while (isActive && deviceLocation.value == null)
+            while (isActive && deviceVM.location.value == null)
                 delay(updateInterval)
         }
         if (res == null) {
@@ -1407,7 +1408,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         }
 
         // If aircraft is far from a perch position, move closer
-        val dl = deviceLocation.value!!
+        val dl = deviceVM.location.value!!
         val pl = dl.atAlt(cfg.cruiseHeight)
         if (abs(
                 ac.location.value?.as2D?.distanceTo(dl.as2D)
@@ -1431,7 +1432,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
         // Orbiting pattern
         perchShoulder(
-            deviceLocation,
+            deviceVM.location,
             cfg.cruiseHeight, cfg.followDistance,
             followVelocity = cfg.followVelocity,
             watch12Duration = cfg.watch12Time,
@@ -1446,7 +1447,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             launch { takeoff() }
         }
         flyToSticks(
-            deviceLocation.value!!,
+            deviceVM.location.value!!,
             maxVelocity = cfg.maxVelocity,
             accelerationDist = cfg.accelerationDist,
             decelerationDist = cfg.decelerationDist
@@ -1459,6 +1460,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         awaitDeviceLocation()
         ToastUtils.showToast("camera tracking phone location")
 
-        lookAtAndTrack(deviceLocation, fovTolerance = 17.0)
+        lookAtAndTrack(deviceVM.location, fovTolerance = 17.0)
     }
 }

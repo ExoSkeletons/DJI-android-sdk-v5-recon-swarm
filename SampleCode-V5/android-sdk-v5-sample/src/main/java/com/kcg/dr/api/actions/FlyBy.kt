@@ -3,6 +3,7 @@
 package com.kcg.dr.api.actions
 
 import com.kcg.dr.flight.AircraftController
+import com.kcg.dr.location.UserMetrics
 import kotlinx.schema.generator.json.SerialDescription
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.SerialName
@@ -21,8 +22,8 @@ data class FlyBy(
     @property:SerialDescription("(m/s)")
     val velocity: Double = 4.0,
 ) : Action {
-    override suspend fun act(controller: AircraftController) =
-        controller.flyBy(Triple(dx, dy, dz), velocity)
+    override suspend fun act(aircraft: AircraftController, user: UserMetrics?) =
+        aircraft.flyBy(Triple(dx, dy, dz), velocity)
 
     override val description = "Fly ${
         buildString {

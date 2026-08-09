@@ -7,8 +7,9 @@ import androidx.lifecycle.MutableLiveData
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
 
 class DeviceLocationViewModel(application: Application) : AndroidViewModel(application) {
-    val location = MutableLiveData<LocationCoordinate3D?>(null)
+    val location = MutableLiveData<LocationCoordinate3D>()
     val humanHeight = MutableLiveData(3.0)
+    val metrics: UserMetrics = UserMetrics(location, humanHeight)
     val standingLocation = MediatorLiveData<LocationCoordinate3D?>(null).apply {
         addSource(location) {
             val l = it ?: return@addSource

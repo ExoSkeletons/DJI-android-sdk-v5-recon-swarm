@@ -8,6 +8,7 @@ import com.kcg.dr.api.Responses.exceptResponse
 import com.kcg.dr.api.Responses.nok
 import com.kcg.dr.api.Responses.ok
 import com.kcg.dr.flight.AircraftController
+import com.kcg.dr.location.UserMetrics
 import com.kcg.dr.utils.CoroutineUtils.actionOrExcept
 import com.kcg.dr.utils.DJIErrorException
 import dji.sdk.keyvalue.key.AirLinkKey
@@ -65,13 +66,15 @@ private const val TAG = "ApiHttpServer"
 class ApiServer {
     private var server: ApplicationEngine? = null
     private var controller: AircraftController? = null
+    private var user: UserMetrics? = null
 
     val requests = MutableLiveData<List<String>>(emptyList())
 
     val isRunning = MutableLiveData(false)
 
-    fun setController(c: AircraftController?) {
+    fun configure(c: AircraftController?, u: UserMetrics?) {
         controller = c
+        user = u
     }
 
     fun stop() {
@@ -141,7 +144,7 @@ class ApiServer {
                 route("/status") { aircraftStatusRoute() }
 
                 route("/c") {
-                    controllerRoute { this@ApiServer.controller }
+                    controllerRoute { this@ApiServer.controller to this@ApiServer.user }
                     route("/ws") {
                         webSocket("/echo") {
                             send("Echo connected")

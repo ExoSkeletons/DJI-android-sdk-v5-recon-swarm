@@ -3,6 +3,7 @@
 package com.kcg.dr.api.actions
 
 import com.kcg.dr.flight.AircraftController
+import com.kcg.dr.location.UserMetrics
 import kotlinx.schema.generator.json.SerialDescription
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.SerialName
@@ -14,6 +15,8 @@ import kotlinx.serialization.Serializable
 data class SpinBy(
     val degrees: Double,
 ) : Action {
-    override suspend fun act(controller: AircraftController) = controller.spinBy(degrees)
+    override suspend fun act(aircraft: AircraftController, user: UserMetrics?) =
+        aircraft.spinBy(degrees)
+
     override val description = "Spin ${degrees}°"
 }

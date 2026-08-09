@@ -3,6 +3,7 @@
 package com.kcg.dr.api.actions
 
 import com.kcg.dr.flight.AircraftController
+import com.kcg.dr.location.UserMetrics
 import kotlinx.schema.generator.json.SerialDescription
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.SerialName
@@ -12,6 +13,6 @@ import kotlinx.serialization.Serializable
 @SerialName("wave")
 @SerialDescription("Demo function to Wave the camera in a cute way")
 data class Wave(val count: Int = 2) : Action {
-    override suspend fun act(controller: AircraftController) =
-        controller.wave(count)
+    override suspend fun act(aircraft: AircraftController, user: UserMetrics?) =
+        aircraft.wave(count)
 }

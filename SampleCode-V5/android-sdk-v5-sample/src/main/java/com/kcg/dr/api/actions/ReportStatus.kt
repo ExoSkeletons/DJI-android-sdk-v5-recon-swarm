@@ -4,6 +4,7 @@ package com.kcg.dr.api.actions
 
 import android.util.Log
 import com.kcg.dr.flight.AircraftController
+import com.kcg.dr.location.UserMetrics
 import com.kcg.dr.utils.TTSManager.speak
 import com.kcg.dr.utils.toDegrees
 import dji.sampleV5.aircraft.util.ToastUtils
@@ -26,7 +27,7 @@ data class ReportStatus(
         Battery,
 
         @SerialName("location")
-        @SerialDescription("If asked where aircraft is.")
+        @SerialDescription("If asked where we are.")
         Location,
 
         @SerialName("speed")
@@ -34,11 +35,11 @@ data class ReportStatus(
         Velocity,
     }
 
-    override suspend fun act(controller: AircraftController) {
+    override suspend fun act(aircraft: AircraftController, user: UserMetrics?) {
         val topics = (of.takeIf { it.isNotEmpty() } ?: Topic.values().toList())
         val report = buildString {
             topics.forEach {
-                appendReportOn(it, controller)
+                appendReportOn(it, aircraft, user)
                 appendLine()
             }
         }
@@ -47,15 +48,22 @@ data class ReportStatus(
         Log.i("ReportStatus", report)
     }
 
-    private fun StringBuilder.appendReportOn(topic: Topic, controller: AircraftController) {
+    private fun StringBuilder.appendReportOn(
+        topic: Topic,
+        controller: AircraftController,
+        user: UserMetrics?
+    ) {
         when (topic) {
             Topic.Battery -> append("Battery is at ${controller.ac.batteryPercent.value}%")
             Topic.Location -> {
-                append(controller.ac.location.value?.let {
+                append(controller.ac.location.value?.let { // todo: add resources/context to act and use stringRes
                     "I'm at ${it.toJson()}"
                 } ?: "Location is unknown")
                 append(controller.ac.heading.value.let {
                     ", Heading is ${it.toDegrees()}°"
+                })
+                append(user?.liveLocation?.value.let {
+                    ", You're at ${it?.toJson()}"
                 })
             }
 

@@ -4,6 +4,7 @@ package com.kcg.dr.api.actions
 
 import com.kcg.dr.api.SerializerSurrogates.LocationCoordinate3DSerializer
 import com.kcg.dr.flight.AircraftController
+import com.kcg.dr.location.UserMetrics
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
 import kotlinx.schema.generator.json.SerialDescription
 import kotlinx.serialization.InternalSerializationApi
@@ -20,8 +21,8 @@ data class FlyTo(
     @SerialName("(m/s)")
     val maxVelocity: Double
 ) : Action {
-    override suspend fun act(controller: AircraftController) =
-        controller.flyToSticks(target, maxVelocity = maxVelocity)
+    override suspend fun act(aircraft: AircraftController, user: UserMetrics?) =
+        aircraft.flyToSticks(target, maxVelocity = maxVelocity)
 
     override val description get() = "Fly to ${target.toJson()}"
 }

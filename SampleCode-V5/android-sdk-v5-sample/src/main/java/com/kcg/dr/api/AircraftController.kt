@@ -4,10 +4,11 @@ package com.kcg.dr.api
 
 import com.kcg.dr.api.Responses.ok
 import com.kcg.dr.api.Responses.status
-import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.api.actions.Action
 import com.kcg.dr.api.actions.FlyTo
 import com.kcg.dr.api.actions.LookAt
+import com.kcg.dr.flight.AircraftController
+import com.kcg.dr.location.UserMetrics
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCallPipeline
 import io.ktor.server.application.call
@@ -25,16 +26,20 @@ import kotlinx.serialization.serializer
 data class FlyRequest(val mission: List<Action>)
 
 @OptIn(ExperimentalSerializationApi::class)
-fun Route.controllerRoute(c: () -> AircraftController?) {
+fun Route.controllerRoute(f: () -> Pair<AircraftController?, UserMetrics?>) {
     lateinit var controller: AircraftController
+    lateinit var user: UserMetrics
+
     intercept(ApplicationCallPipeline.Plugins) {
-        val cr = c()
+        val (cr, usr) = f()
         if (cr == null) {
             call.respond(HttpStatusCode.ServiceUnavailable, "AircraftController not initialized.")
             finish() // This prevents the actual get/post handlers below from running
             return@intercept
         }
         controller = cr
+        if (usr != null)
+            user = usr
     }
 
     get("/") { call.respond(status { "controller is ready" }) }
@@ -68,7 +73,7 @@ fun Route.controllerRoute(c: () -> AircraftController?) {
         val request = call.receive<FlyRequest>()
         controller.fly {
             for (action: Action in request.mission)
-                action.act(controller)
+                action.act(controller, user)
         }
         // respond without waiting for completion
         call.respond(status { "starting mission" })
