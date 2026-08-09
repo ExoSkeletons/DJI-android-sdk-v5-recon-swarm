@@ -1,15 +1,10 @@
 package com.kcg.dr
 
-import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
-import android.content.BroadcastReceiver
-import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.content.res.Configuration
 import android.graphics.Color
-import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.speech.RecognizerIntent
@@ -39,6 +34,7 @@ import com.kcg.dr.flight.AircraftControlVM
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.flight.AircraftController.CircleFaceMode
 import com.kcg.dr.location.LiveLocationProvider
+import com.kcg.dr.utils.CoroutineUtils.observe
 import com.kcg.dr.utils.LocaleUtils.getLocalizedResources
 import com.kcg.dr.utils.LocationUtils
 import com.kcg.dr.utils.LocationUtils.bearingTo
@@ -134,12 +130,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     private val controller: AircraftController get() = controllerVM.controller
     private lateinit var commandResolver: RegexCommandResolver
     private lateinit var actionResolver: LlamaActionSequenceResolver
-    private val audioControlReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == AudioControlService.ACTION_START_VOICE_RECOGNITION)
-                startListening()
-        }
-    }
 
     // Live camera feed
     private lateinit var svCameraStream: SurfaceView
@@ -327,7 +317,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     }
     private var silent = MutableLiveData(false)
 
-    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -339,19 +328,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                 this,
                 Intent(this, AudioControlService::class.java),
             )
-            // Register Media Control receiver
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                registerReceiver(
-                    audioControlReceiver,
-                    IntentFilter(AudioControlService.ACTION_START_VOICE_RECOGNITION),
-                    Context.RECEIVER_NOT_EXPORTED
-                )
-            } else {
-                registerReceiver(
-                    audioControlReceiver,
-                    IntentFilter(AudioControlService.ACTION_START_VOICE_RECOGNITION)
-                )
-            }
 
             // TTS
             tts = TextToSpeech(this, onInitListener)
@@ -564,6 +540,9 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         apiServerVM.tunnelingUrl.observe(viewLifecycleOwner) {
             ToastUtils.showToast("tunneling url: $it")
         }
+        AudioControlService.mediaButtonPresses.observe(viewLifecycleOwner) {
+            startListening()
+        }
     }
 
     override fun onDestroyView() {
@@ -576,7 +555,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
         controller.destroy()
         liveLocation.stopRequesting()
-        activity?.unregisterReceiver(audioControlReceiver)
 
         if (cameraStreamSurface != null) {
             cameraStreamManager.removeCameraStreamSurface(cameraStreamSurface!!)

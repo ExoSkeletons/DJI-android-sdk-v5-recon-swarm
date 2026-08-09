@@ -17,9 +17,21 @@ import androidx.media.session.MediaButtonReceiver
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.utils.ServiceUtils.startAsForeground
 import dji.sampleV5.aircraft.R
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 
 class AudioControlService : Service() {
-    val NOTIFICATION_ID = 87506
+    companion object {
+        const val NOTIFICATION_ID = 87506
+
+        private val _mediaButtonPresses = MutableSharedFlow<Unit>(
+            extraBufferCapacity = 1,
+            onBufferOverflow = BufferOverflow.DROP_OLDEST
+        )
+        val mediaButtonPresses = _mediaButtonPresses.asSharedFlow()
+    }
+
     private var mediaSession: MediaSessionCompat? = null
     private var mediaPlayer: MediaPlayer? = null
 
@@ -54,9 +66,7 @@ class AudioControlService : Service() {
                         KeyEvent.KEYCODE_MEDIA_PLAY, KeyEvent.KEYCODE_MEDIA_PAUSE,
                         KeyEvent.KEYCODE_MEDIA_RECORD,
                         KeyEvent.KEYCODE_HEADSETHOOK -> {
-                            sendBroadcast(Intent().apply {
-                                action = ACTION_START_VOICE_RECOGNITION
-                            })
+                            _mediaButtonPresses.tryEmit(Unit)
                             return true
                         }
                     }
@@ -98,9 +108,5 @@ class AudioControlService : Service() {
             setSmallIcon(R.drawable.ic_mic_white_36dp)
             setOngoing(true)
         }.build()
-    }
-
-    companion object {
-        const val ACTION_START_VOICE_RECOGNITION = "ACTION_START_VOICE_RECOGNITION"
     }
 }
