@@ -2,6 +2,7 @@
 
 package com.kcg.dr.api.actions
 
+import android.util.Log
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.utils.TTSManager.speak
 import com.kcg.dr.utils.toDegrees
@@ -33,15 +34,23 @@ data class ReportStatus(
         Velocity,
     }
 
-    override suspend fun act(controller: AircraftController) =
-        (of.takeIf { it.isNotEmpty() } ?: Topic.values().toList()).forEach {
-            reportOn(it, controller)
+    override suspend fun act(controller: AircraftController) {
+        val topics = (of.takeIf { it.isNotEmpty() } ?: Topic.values().toList())
+        val report = buildString {
+            topics.forEach {
+                appendReportOn(it, controller)
+                appendLine()
+            }
         }
+        speak(report)
+        ToastUtils.showToast(report)
+        Log.i("ReportStatus", report)
+    }
 
-    fun reportOn(topic: Topic, controller: AircraftController) {
-        val text = when (topic) {
-            Topic.Battery -> "Battery is at ${controller.ac.batteryPercent.value}%"
-            Topic.Location -> buildString {
+    private fun StringBuilder.appendReportOn(topic: Topic, controller: AircraftController) {
+        when (topic) {
+            Topic.Battery -> append("Battery is at ${controller.ac.batteryPercent.value}%")
+            Topic.Location -> {
                 append(controller.ac.location.value?.let {
                     "I'm at ${it.toJson()}"
                 } ?: "Location is unknown")
@@ -50,11 +59,9 @@ data class ReportStatus(
                 })
             }
 
-            Topic.Velocity -> controller.ac.velocity.value.let {
+            Topic.Velocity -> append(controller.ac.velocity.value.let {
                 "Moving at ${it.x} x, ${it.y} y, ${it.z}z m/s"
-            }
+            })
         }
-        speak(text)
-        ToastUtils.showToast(text)
     }
 }
