@@ -47,7 +47,7 @@
         <item>שיחים|שיח|שש|6</item>
     </array>
 
-    <string name="command_hello">שלום|הי|היי|הלו|מה נשמע|מה קורה|אהלן|נפנוף|נפנף</string>
+    <string name="command_hello">שלום|היי|הלו|מה נשמע|מה קורה|אהלן|נפנוף|נפנף</string>
     <string name="commands_square">ריבוע|קיבוע|ריבוי</string>
     <string name="commands_circle">עיגול|מעגל|מאגר|עגול</string>
     <string name="commands_cam_fan">מניפה</string>
