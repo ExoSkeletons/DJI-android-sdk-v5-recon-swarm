@@ -23,7 +23,7 @@
         android:id="@+id/resolverLayout"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:background="@color/black_transparent"
+        android:background="@color/uxsdk_yellow"
         android:orientation="vertical"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -52,6 +52,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
             android:textSize="24dp" />
+
     </LinearLayout>
 
     <LinearLayout
