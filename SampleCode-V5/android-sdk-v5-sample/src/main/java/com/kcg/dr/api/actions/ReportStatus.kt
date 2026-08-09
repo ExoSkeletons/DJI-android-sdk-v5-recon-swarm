@@ -21,13 +21,16 @@ data class ReportStatus(
 ) : Action {
     @Serializable
     enum class Topic {
+        @SerialName("battery")
         Battery,
 
+        @SerialName("location")
         @SerialDescription("If asked where aircraft is.")
         Location,
 
+        @SerialName("speed")
         @SerialDescription("If asked how fast aircraft is moving.")
-        Speed,
+        Velocity,
     }
 
     override suspend fun act(controller: AircraftController) =
@@ -47,7 +50,7 @@ data class ReportStatus(
                 })
             }
 
-            Topic.Speed -> controller.ac.velocity.value.let {
+            Topic.Velocity -> controller.ac.velocity.value.let {
                 "Moving at ${it.x} x, ${it.y} y, ${it.z}z m/s"
             }
         }
