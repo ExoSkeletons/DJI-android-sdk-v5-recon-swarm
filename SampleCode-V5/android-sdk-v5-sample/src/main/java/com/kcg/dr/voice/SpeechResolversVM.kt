@@ -43,6 +43,8 @@ class SpeechResolversVM(
     val speechText = _speechResult
     private val _resolutionName = MutableLiveData<String>()
     val resolutionName = _resolutionName
+    private val _resolutionResponse = MutableLiveData<String>()
+    val resolutionResponse = _resolutionResponse
 
     data class ResolverItem(
         @field:StringRes val nameId: Int,
@@ -90,8 +92,8 @@ class SpeechResolversVM(
 
                     if (resolution == null) {
                         statuses[r] = ResolverStatus(
-                            state = State.IDLE,
-                            result = Result.failure(ParseException("", 0))
+                            State.IDLE,
+                            Result.failure(ParseException("", 0))
                         )
                         emitUiStates()
                         return@forEach
@@ -99,25 +101,24 @@ class SpeechResolversVM(
 
                     val (_, function, desc) = resolution
 
-                    statuses[r] = ResolverStatus(
-                        state = State.IDLE,
-                        result = Result.success(desc.name)
-                    )
+                    statuses[r] = ResolverStatus(State.IDLE, Result.success(desc.name))
                     emitUiStates()
 
-                    try {
-                        playSfx(SFXManager.SFX.ACTION_CONFIRM)
-                        speak(lr.getString(R.string.commands_response_fmt_accepted) + ". ", locale)
-                        _resolutionName.postValue(desc.name)
-                        viewModelScope.launch(Dispatchers.IO) {
+                    playSfx(SFXManager.SFX.ACTION_CONFIRM)
+                    speak(lr.getString(R.string.commands_response_fmt_accepted) + ".", locale)
+                    speak(desc.response, locale)
+                    _resolutionName.postValue(desc.name)
+                    _resolutionResponse.postValue(desc.response)
+
+                    viewModelScope.launch(Dispatchers.IO) {
+                        try {
                             function()
+                        } catch (e: Exception) {
+                            playSfx(SFXManager.SFX.NOTIFY_TECHNICAL)
+                            _resolutionName.postValue(e.message ?: e.toString())
                         }
-                        speak(desc.response, locale)
-                        return@launch
-                    } catch (e: Exception) {
-                        playSfx(SFXManager.SFX.NOTIFY_TECHNICAL)
-                        _resolutionName.postValue(e.message ?: e.toString())
                     }
+                    return@launch
                 }
 
                 playSfx(SFXManager.SFX.NOTIFY_TECHNICAL)
