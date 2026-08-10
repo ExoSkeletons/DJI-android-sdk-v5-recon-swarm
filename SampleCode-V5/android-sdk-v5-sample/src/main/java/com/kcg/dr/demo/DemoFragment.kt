@@ -49,7 +49,7 @@ class DemoFragment : Fragment() {
                         requireContext(),
                         "TTS for $locale not available",
                         Toast.LENGTH_SHORT
-                    )
+                    ).show()
                 }
             }
         }
