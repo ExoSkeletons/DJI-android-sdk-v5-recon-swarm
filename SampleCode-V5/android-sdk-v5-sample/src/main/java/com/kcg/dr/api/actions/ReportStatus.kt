@@ -33,9 +33,16 @@ data class ReportStatus(
         @SerialDescription("If asked where we are.")
         Location,
 
+        @SerialName("user_location")
+        UserLocation,
+
         @SerialName("speed")
-        @SerialDescription("If asked how fast aircraft is moving.")
+        @SerialDescription("aircraft speed.")
         Velocity,
+
+        @SerialName("distance")
+        @SerialDescription("aircraft distance from user.")
+        Distance,
     }
 
     override suspend fun act(aircraft: AircraftController, user: UserMetrics?) {
@@ -83,6 +90,9 @@ data class ReportStatus(
                             )
                         )
                     }
+                }
+
+                Metric.UserLocation -> {
                     user?.liveLocation?.value?.let {
                         append(
                             ".\n" + getString(
@@ -98,6 +108,11 @@ data class ReportStatus(
                     // getString(R.string.report_fmt_velocity_aircraft_xyz, it.x, it.y, it.z)
                     getString(R.string.report_fmt_velocity_aircraft, it.asXYZ().mag)
                 })
+
+                Metric.Distance -> {
+                    val loc = controller.ac.location.value ?: "I can't find my location"
+                    val userLoc = user?.liveLocation?.value ?: "I can't find your location"
+                }
             }
         }
     }
