@@ -56,7 +56,7 @@ interface SpeechExecutor<T, R> : SpeechResolver<T> {
             Triple(
                 it,
                 execution(it),
-                describe(it),
+                describe(it, locale),
             )
         }
 
