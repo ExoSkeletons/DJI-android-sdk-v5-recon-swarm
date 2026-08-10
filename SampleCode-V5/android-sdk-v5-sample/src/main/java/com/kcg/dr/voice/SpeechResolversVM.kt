@@ -74,6 +74,8 @@ class SpeechResolversVM(
     fun processSpeech(spokenText: String, locale: Locale? = null) {
         spokenText.let { s ->
             _speechResult.postValue(s)
+            resetStatuses()
+            emitUiStates()
 
             val context = getApplication<Application>().applicationContext
             val lr = with(context) {
@@ -83,13 +85,9 @@ class SpeechResolversVM(
             }
 
             viewModelScope.launch {
-                resetStatuses()
-                emitUiStates()
-
                 resolvers.forEach { (r, d) ->
                     statuses[r] = ResolverStatus(state = State.ACTIVE)
                     emitUiStates()
-
 
                     val resolution = withContext(Dispatchers.Default) {
                         r.resolveToExecute(s, locale ?: Locale.getDefault())
