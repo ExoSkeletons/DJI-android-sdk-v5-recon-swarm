@@ -18,6 +18,7 @@ import com.kcg.dr.utils.TTSManager.speak
 import dji.sampleV5.aircraft.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.Closeable
 import java.text.ParseException
 import java.util.Locale
@@ -89,8 +90,10 @@ class SpeechResolversVM(
                     statuses[r] = ResolverStatus(state = State.ACTIVE)
                     emitUiStates()
 
-                    val resolution = r.resolveToExecute(s, locale ?: Locale.getDefault())
 
+                    val resolution = withContext(Dispatchers.Default) {
+                        r.resolveToExecute(s, locale ?: Locale.getDefault())
+                    }
                     if (resolution == null) {
                         statuses[r] = ResolverStatus(
                             State.IDLE,
