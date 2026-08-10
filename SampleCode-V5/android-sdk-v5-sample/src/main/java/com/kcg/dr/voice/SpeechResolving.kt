@@ -276,7 +276,12 @@ interface SerialisedResolver<T> : SpeechResolver<T> {
             appendLine(",")
         }
 
-        fun findJson(text: String): String? {
+        fun findJson(t: String): String? {
+            var text = t
+            text = text
+                .substringAfterLast("```json")
+                .substringBeforeLast("```")
+
             val start = text.indexOfFirst { it == '{' || it == '[' }
             if (start == -1) return null
 
