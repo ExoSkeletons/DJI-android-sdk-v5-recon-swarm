@@ -38,6 +38,7 @@ inline val XYZ.mag get(): Double = sqrt(this.x * this.x + this.y * this.y + this
 fun XYZ.normalized(eps: Double = EPS): XYZ = if (mag < eps) XYZ(0.0, 0.0, 0.0) else this / this.mag
 fun XYZ.asVector(): Triple<Double, Double, Double> = Triple(this.x, this.y, this.z)
 fun Triple<Double, Double, Double>.asXYZ(): XYZ = XYZ(this.x, this.y, this.z)
+fun Velocity3D.asXYZ(): XYZ = XYZ(this.x, this.y, this.z)
 fun XYZ.dt(t: Double): Velocity3D = Velocity3D(this.x / t, this.y / t, this.z / t)
 
 

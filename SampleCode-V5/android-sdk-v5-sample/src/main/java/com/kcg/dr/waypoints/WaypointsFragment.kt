@@ -13,6 +13,7 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.Priority
 import com.kcg.dr.flight.AircraftControlVM
 import com.kcg.dr.location.LiveLocationProvider
+import com.kcg.dr.utils.ResourcesManager
 import com.kcg.dr.location.UserVM
 import com.kcg.dr.utils.LocaleUtils.getLocalizedResources
 import com.kcg.dr.utils.LocationUtils.distanceTo
@@ -33,7 +34,7 @@ class WaypointsFragment : Fragment() {
 
     private lateinit var waypointAdapter: LocationAdapter
     private lateinit var liveLocationProvider: LiveLocationProvider
-    private val locale = Locale("iw", "IL")
+    private val locale: Locale get() = ResourcesManager.locale
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -46,6 +47,8 @@ class WaypointsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        ResourcesManager.setLocale(requireContext(), Locale("he", "IL"))
 
         waypointsVM.loadWaypoints()
 

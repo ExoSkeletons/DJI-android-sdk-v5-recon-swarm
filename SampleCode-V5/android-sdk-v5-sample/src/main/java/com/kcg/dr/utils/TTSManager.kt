@@ -4,7 +4,9 @@ import android.content.Context
 import android.speech.tts.TextToSpeech
 import android.util.Log
 import android.widget.Toast
+import androidx.annotation.StringRes
 import androidx.lifecycle.MutableLiveData
+import com.kcg.dr.utils.LocaleUtils.getLocalizedResources
 import java.util.Locale
 
 object TTSManager {
@@ -24,6 +26,23 @@ object TTSManager {
             Log.i(TAG, "TTS init success")
         }
     }
+
+    fun Context.speak(
+        @StringRes
+        textId: Int,
+        vararg formatArgs: Any,
+        locale: Locale? = Locale("iw", "IL"),
+        queueMode: Int = TextToSpeech.QUEUE_ADD,
+        onLangUnavailable: ((TextToSpeech, Locale) -> Unit)? = null
+    ) = speak(
+        (locale?.let {
+            this.getLocalizedResources(locale)
+        } ?: this.resources)
+            .getString(textId, formatArgs),
+        locale,
+        queueMode,
+        onLangUnavailable
+    )
 
     fun speak(
         text: String,

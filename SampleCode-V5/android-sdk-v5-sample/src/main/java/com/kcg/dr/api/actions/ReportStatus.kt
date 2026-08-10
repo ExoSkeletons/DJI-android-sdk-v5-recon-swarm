@@ -4,9 +4,12 @@ package com.kcg.dr.api.actions
 
 import android.util.Log
 import com.kcg.dr.flight.AircraftController
+import com.kcg.dr.utils.ResourcesManager
 import com.kcg.dr.location.UserMetrics
 import com.kcg.dr.utils.TTSManager.speak
-import com.kcg.dr.utils.toDegrees
+import com.kcg.dr.utils.asXYZ
+import com.kcg.dr.utils.mag
+import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.util.ToastUtils
 import kotlinx.schema.generator.json.SerialDescription
 import kotlinx.serialization.InternalSerializationApi
@@ -53,23 +56,43 @@ data class ReportStatus(
         controller: AircraftController,
         user: UserMetrics?
     ) {
-        when (topic) {
-            Topic.Battery -> append("Battery is at ${controller.ac.batteryPercent.value}%")
-            Topic.Location -> {
-                append(controller.ac.location.value?.let { // todo: add resources/context to act and use stringRes
-                    "I'm at ${it.toJson()}"
-                } ?: "Location is unknown")
-                append(controller.ac.heading.value.let {
-                    ", Heading is ${it.toDegrees()}°"
-                })
-                append(user?.liveLocation?.value.let {
-                    ", You're at ${it?.toJson()}"
+        with(ResourcesManager.resources) {
+            when (topic) {
+                Topic.Battery -> append(
+                    getString(
+                        R.string.report_fmt_battery,
+                        controller.ac.batteryPercent.value
+                    )
+                )
+
+                Topic.Location -> {
+                    append(controller.ac.location.value?.let {
+                        getString(
+                            R.string.report_fmt_location_aircraft,
+                            it.latitude,
+                            it.longitude,
+                            it.altitude
+                        )
+                    } ?: getString(R.string.location_unknown))
+                    append(controller.ac.heading.value.let {
+                        ", " + getString(R.string.report_fmt_heading, it)
+                    })
+                    append(user?.liveLocation?.value?.let {
+                        ", " + getString(
+                            R.string.report_fmt_location_device,
+                            it.latitude,
+                            it.longitude
+                        )
+                    })
+                }
+
+                Topic.Velocity -> append(controller.ac.velocity.value.let {
+                    // getString(R.string.report_fmt_velocity_aircraft_xyz, it.x, it.y, it.z)
+                    getString(R.string.report_fmt_velocity_aircraft, it.asXYZ().mag)
                 })
             }
-
-            Topic.Velocity -> append(controller.ac.velocity.value.let {
-                "Moving at ${it.x} x, ${it.y} y, ${it.z}z m/s"
-            })
         }
     }
+
+    override val description: String get() = "Report ${of.joinToString(", ")} Status"
 }

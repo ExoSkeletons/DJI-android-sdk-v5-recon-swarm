@@ -18,6 +18,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.kcg.dr.flight.AircraftControlVM
+import com.kcg.dr.utils.ResourcesManager
 import com.kcg.dr.location.UserVM
 import com.kcg.dr.utils.TTSManager
 import com.kcg.dr.voice.SpeechResolversVM.ResolverViewState
@@ -66,7 +67,7 @@ class VoiceControlFragment : Fragment() {
         },
         { SpeechResolversVM.Factory }
     )
-    private val locale = Locale("iw", "IL")
+    private val locale = ResourcesManager.locale
 
     private val speechRecognizerLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -92,6 +93,8 @@ class VoiceControlFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        ResourcesManager.setLocale(requireContext(), Locale("iw", "IL"))
 
         commandResolver = RegexCommandResolver(requireContext())
         commandResolver.setCommands(

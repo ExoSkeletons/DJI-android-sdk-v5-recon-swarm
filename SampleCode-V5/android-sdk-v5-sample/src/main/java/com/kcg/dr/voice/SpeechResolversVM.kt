@@ -74,7 +74,8 @@ class SpeechResolversVM(
         spokenText.let { s ->
             _speechResult.postValue(s)
 
-            val lr = with(getApplication<Application>()) {
+            val context = getApplication<Application>().applicationContext
+            val lr = with(context) {
                 locale?.let {
                     this.getLocalizedResources(locale)
                 } ?: this.resources
@@ -105,7 +106,7 @@ class SpeechResolversVM(
                     emitUiStates()
 
                     playSfx(SFXManager.SFX.ACTION_CONFIRM)
-                    speak(lr.getString(R.string.commands_response_fmt_accepted) + ".", locale)
+                    context.speak(R.string.commands_response_fmt_accepted, locale = locale)
                     speak(desc.response, locale)
                     _resolutionName.postValue(desc.name)
                     _resolutionResponse.postValue(desc.response)

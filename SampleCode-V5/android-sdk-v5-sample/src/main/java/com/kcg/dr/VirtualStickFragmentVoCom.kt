@@ -34,6 +34,7 @@ import com.kcg.dr.flight.AircraftControlVM
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.flight.AircraftController.CircleFaceMode
 import com.kcg.dr.location.LiveLocationProvider
+import com.kcg.dr.utils.ResourcesManager
 import com.kcg.dr.location.UserVM
 import com.kcg.dr.utils.CoroutineUtils.observe
 import com.kcg.dr.utils.LocaleUtils.getLocalizedResources
@@ -104,7 +105,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
     private var binding: FragVirtualStickVocomPageBinding? = null
 
-    private val locale = Locale("iw", "IL")
 
     private val basicAircraftControlVM: BasicAircraftControlVM by activityViewModels()
     private val recordingVM: RecordingVM by activityViewModels()
@@ -129,6 +129,8 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         { ApiServerVM.Factory }
     )
     private val deviceVM: UserVM by activityViewModels()
+
+    private val locale: Locale = ResourcesManager.locale
 
     private val controller: AircraftController get() = controllerVM.controller
     private lateinit var commandResolver: RegexCommandResolver
@@ -333,6 +335,8 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
             // TTS
             tts = TextToSpeech(this, onInitListener)
+            // Locale
+            ResourcesManager.setLocale(this, Locale("he", "IL"))
         }
     }
 
