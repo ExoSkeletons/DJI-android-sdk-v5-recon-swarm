@@ -12,6 +12,6 @@ object ResourcesManager {
 
     fun setLocale(context: Context, locale: Locale) {
         _locale = locale
-        resources = context.getLocalizedResources(locale)
+        resources = context.applicationContext.getLocalizedResources(locale)
     }
 }
