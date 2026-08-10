@@ -44,6 +44,7 @@ import com.kcg.dr.utils.LocationUtils.distanceTo
 import com.kcg.dr.utils.LocationUtils.translate
 import com.kcg.dr.utils.SFXManager
 import com.kcg.dr.utils.ServiceUtils
+import com.kcg.dr.utils.TTSManager.speak
 import com.kcg.dr.utils.as2D
 import com.kcg.dr.utils.asDjiLocation
 import com.kcg.dr.utils.atAlt
@@ -311,14 +312,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         }
     }
 
-    // TTS
-    private val preferredTTSEngine = "com.google.android.tts"
-    private lateinit var tts: TextToSpeech
-    private val onInitListener = TextToSpeech.OnInitListener { status ->
-        if (status == TextToSpeech.SUCCESS) {
-            checkAndPromptPreferredTTSEngine()
-        }
-    }
     private var silent = MutableLiveData(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -333,8 +326,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                 Intent(this, AudioControlService::class.java),
             )
 
-            // TTS
-            tts = TextToSpeech(this, onInitListener)
             // Locale
             ResourcesManager.setLocale(this, Locale("he", "IL"))
         }
@@ -555,10 +546,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         super.onDestroyView()
         binding = null
 
-
-        tts.stop()
-        tts.shutdown()
-
         controller.destroy()
         liveLocation.stopRequesting()
 
@@ -593,67 +580,9 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         liveLocation.stopRequesting() // disable location requesting to conserve battery
     }
 
-    private fun speakText(
-        text: String,
-        locale: Locale? = this.locale,
-        queueMode: Int = TextToSpeech.QUEUE_ADD
-    ) {
-        if (text.isNotBlank() && !(silent.value ?: false)) {
-            if (tts.isLanguageAvailable(locale) < TextToSpeech.LANG_AVAILABLE) {
-                promptInstallTTSLang()
-                return
-            }
-            tts.language = locale
-            tts.setSpeechRate(1.3f)
-            SFXManager.playSfx(SFXManager.SFX.NOTIFY_INFO)
-            tts.speak(text, queueMode, null, null)
-        }
-    }
-
-    private fun checkAndPromptPreferredTTSEngine() {
-        val currentEngine = Settings.Secure.getString(
-            requireContext().contentResolver,
-            Settings.Secure.TTS_DEFAULT_SYNTH
-        )
-
-        if (currentEngine != null && currentEngine != preferredTTSEngine) {
-            AlertDialog.Builder(requireContext())
-                .setTitle(getString(R.string.tts_switch_engine_prompt))
-                .setMessage(getString(R.string.tts_switch_engine_prompt_details))
-                .setPositiveButton("Open Settings") { dialog, _ ->
-                    try {
-                        val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
-                        startActivity(intent)
-                    } catch (_: Exception) {
-                        Toast.makeText(
-                            requireContext(),
-                            "Unable to open settings",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                    dialog.dismiss()
-                }
-                .setNegativeButton(R.string.cancel) { dialog, _ -> dialog.dismiss() }
-                .show()
-        }
-    }
-
-    private fun promptInstallTTSLang() {
-        val installIntent = Intent(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA)
-        try {
-            startActivity(installIntent)
-        } catch (_: Exception) {
-            Toast.makeText(
-                requireContext(),
-                "No TTS engine available to install language data.",
-                Toast.LENGTH_LONG
-            ).show()
-        }
-    }
-
     private fun speakDemo() {
         demoTextIndex.value?.let {
-            speakText(demoTexts[it], queueMode = TextToSpeech.QUEUE_FLUSH)
+            speak(demoTexts[it], queueMode = TextToSpeech.QUEUE_FLUSH)
             demoTextIndex.postValue(it + 1)
         }
     }
@@ -1331,7 +1260,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
             val (_, function, desc) = match
             SFXManager.playSfx(SFXManager.SFX.ACTION_CONFIRM)
-            speakText(lr.getString(R.string.commands_response_fmt_accepted) + ". " + desc.response)
+            speak(lr.getString(R.string.commands_response_fmt_accepted) + ". " + desc.response)
             rtv?.text = desc.name
 
             launch {

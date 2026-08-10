@@ -18,9 +18,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.kcg.dr.flight.AircraftControlVM
-import com.kcg.dr.utils.ResourcesManager
 import com.kcg.dr.location.UserVM
-import com.kcg.dr.utils.TTSManager
+import com.kcg.dr.utils.ResourcesManager
 import com.kcg.dr.voice.SpeechResolversVM.ResolverViewState
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVocomVoiceControlBinding
@@ -94,7 +93,7 @@ class VoiceControlFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        ResourcesManager.setLocale(requireContext(), Locale("iw", "IL"))
+        ResourcesManager.setLocale(requireContext(), Locale("he", "IL"))
 
         commandResolver = RegexCommandResolver(requireContext())
         commandResolver.setCommands(
@@ -104,7 +103,6 @@ class VoiceControlFragment : Fragment() {
                     R.string.commands_response_fmt_simple,
                 ) {
                     ToastUtils.showShortToast("hello!")
-                    TTSManager.speak("hello!")
                 }
             )
         )

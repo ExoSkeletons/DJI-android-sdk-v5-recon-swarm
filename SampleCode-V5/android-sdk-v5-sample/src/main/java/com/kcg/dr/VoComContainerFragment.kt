@@ -82,7 +82,6 @@ class VoComContainerFragment : DJIFragment() {
                 Command(
                     R.string.command_hello,
                 ) {
-                    speak("Hello there!")
                     aircraftControlVM.controller.fly { wave() }
                 },
                 Command(
