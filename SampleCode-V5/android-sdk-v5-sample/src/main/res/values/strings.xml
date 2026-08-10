@@ -610,8 +610,10 @@ More refer to the release notes." </string>
 
     <string name="report_fmt_battery">Battery is at %d percent</string>
     <string name="location_unknown">Location is unknown</string>
+    <string name="report_fmt_location_device_unknown">I can\'t find your location</string>
     <string name="report_fmt_location_aircraft">I\'m at lat: %f, lon: %f alt: %.2f</string>
     <string name="report_fmt_location_device">You\'re at lat: %f, lon: %f</string>
+    <string name="report_fmt_distance_aircraft">I\'m %.1f meters away from you</string>
     <string name="report_fmt_heading">Heading is %.0f°</string>
     <string name="report_fmt_velocity_aircraft">Moving at around %.1f m/s</string>
     <string name="report_fmt_velocity_aircraft_xyz">Moving at %.2f x %.2f y %.2f z m/s</string>

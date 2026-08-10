@@ -5,6 +5,7 @@ package com.kcg.dr.api.actions
 import android.util.Log
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.location.UserMetrics
+import com.kcg.dr.utils.LocationUtils.distanceTo
 import com.kcg.dr.utils.ResourcesManager
 import com.kcg.dr.utils.TTSManager.speak
 import com.kcg.dr.utils.asXYZ
@@ -110,8 +111,19 @@ data class ReportStatus(
                 })
 
                 Metric.Distance -> {
-                    val loc = controller.ac.location.value ?: "I can't find my location"
-                    val userLoc = user?.liveLocation?.value ?: "I can't find your location"
+                    append(
+                        run {
+                            val loc = controller.ac.location.value
+                                ?: return@run getString(R.string.location_unknown)
+                            val userLoc = user?.liveLocation?.value
+                                ?: return@run getString(R.string.report_fmt_location_device_unknown)
+
+                            getString(
+                                R.string.report_fmt_distance_aircraft,
+                                loc.distanceTo(userLoc)
+                            )
+                        }
+                    )
                 }
             }
         }

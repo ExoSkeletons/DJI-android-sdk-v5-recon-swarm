@@ -103,8 +103,10 @@
 
     <string name="report_fmt_battery">סוללה ב- %d אחוז</string>
     <string name="location_unknown">מיקום לא ידוע</string>
+    <string name="report_fmt_location_device_unknown">מיקומך לא זמין</string>
     <string name="report_fmt_location_aircraft">אני ב- %f, lon: %f alt: %.2f</string>
     <string name="report_fmt_location_device">אתה ב- lat: %f, lon: %f</string>
+    <string name="report_fmt_distance_aircraft">אני %.1f מטר ממך</string>
     <string name="report_fmt_heading">אזימוט %.0f°</string>
     <string name="report_fmt_velocity_aircraft">מהירות היא סביבות %.1f m/s</string>
     <string name="report_fmt_velocity_aircraft_xyz">מהירות היא %.2f x %.2f y %.2f z m/s</string>
