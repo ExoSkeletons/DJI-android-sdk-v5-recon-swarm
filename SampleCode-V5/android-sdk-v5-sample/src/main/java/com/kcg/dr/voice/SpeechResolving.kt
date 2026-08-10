@@ -15,11 +15,14 @@ import com.kcg.dr.voice.SerialisedResolver.Companion.dereference
 import com.kcg.dr.voice.SpeechResolver.Description
 import io.ktor.http.parsing.ParseException
 import kotlinx.schema.generator.json.serialization.SerializationClassJsonSchemaGenerator
+import kotlinx.schema.json.ArrayContainer
 import kotlinx.schema.json.ArrayPropertyDefinition
 import kotlinx.schema.json.BooleanPropertyDefinition
+import kotlinx.schema.json.CommonSchemaAttributes
 import kotlinx.schema.json.JsonSchema
 import kotlinx.schema.json.NumericPropertyDefinition
 import kotlinx.schema.json.ObjectPropertyDefinition
+import kotlinx.schema.json.PropertiesContainer
 import kotlinx.schema.json.PropertyDefinition
 import kotlinx.schema.json.ReferencePropertyDefinition
 import kotlinx.schema.json.StringPropertyDefinition
@@ -230,16 +233,11 @@ interface SerialisedResolver<T> : SpeechResolver<T> {
                 return
             }
 
-            val types = when (p) {
-                is ValuePropertyDefinition<*> -> p.type
-                else -> null
-            }
-            val desc = when (p) {
-                is ObjectPropertyDefinition -> p.description
-                is ValuePropertyDefinition<*> -> p.description
-                is JsonSchema -> p.description
-                else -> null
-            }
+            val desc = (p as? CommonSchemaAttributes)?.description
+            val types = (p as? CommonSchemaAttributes)?.type
+            val properties =  (p as? PropertiesContainer)?.properties
+            val req = (p as? PropertiesContainer)?.required
+            val items = (p as? ArrayContainer)?.items
             val enum = when (p) {
                 is ObjectPropertyDefinition -> p.enum
                 is NumericPropertyDefinition -> p.enum
@@ -251,22 +249,29 @@ interface SerialisedResolver<T> : SpeechResolver<T> {
             }
 
             desc?.let { appendLine("$indent// $it") }
-            append("$indent\"${name}\"")
-            types?.let { append(": ${it.joinToString("|")}") }
+            append(indent)
+            name?.let { append("\"$it\": ") }
+            types?.let { append(" ${it.joinToString("|")}") }
             enum?.let { append(" enum [${it.joinToString("|")}]") }
             if (!required) append(" (optional)")
 
-            (p as? ObjectPropertyDefinition)?.properties?.takeIf { it.isNotEmpty() }?.let {
-                appendLine(": {")
-                it.forEach { (childName, childProperty) ->
+            properties?.takeIf { it.isNotEmpty() }?.let {
+                appendLine(" {")
+                properties.forEach { (childName, childProperty) ->
                     appendPropertyShortJson(
                         childProperty, defs,
                         childName,
-                        p.required?.contains(childName) == true,
+                        req?.contains(childName) == true,
                         depth + 1
                     )
                 }
                 append("$indent}")
+            }
+            items?.let {
+                appendLine(" [")
+                appendPropertyShortJson(items, defs, null, true, depth + 1)
+                appendLine("${indent}\t...,")
+                append("$indent]")
             }
             appendLine(",")
         }
@@ -322,6 +327,8 @@ abstract class LlamaSerialisedResolver<T>(val context: Context) :
         }
 
     suspend fun init(modelName: String) {
+        // todo: move to general init (modelName passed as text in constructor),
+        //  then init in super and use in VM
         try {
             val modelFile = context.getAssetOrExtract("models/$modelName")
             engine.loadModel(modelFile.absolutePath)
