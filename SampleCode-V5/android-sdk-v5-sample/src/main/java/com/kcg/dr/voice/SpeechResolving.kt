@@ -434,7 +434,7 @@ class LlamaActionSequenceResolver(
     
                You are a speech-to-intent engine.
     
-               Convert the user's natural language request into a JSON array of system actions.
+               Translate & Convert the user's natural language request into a JSON array of system actions.
     
                Each action must exactly match one of the JSON Schemas below.
     
@@ -447,8 +447,7 @@ class LlamaActionSequenceResolver(
                - Infer the user's intent and populate schema fields accordingly.
                - Use schema comments to infer a field's semantics.
                - If a field is optional and the user did not explicitly or implicitly specify a value, omit the field.
-               - If no action matches, return null not an empty Array.
-               - Output valid JSON only.
+               - Output valid JSON Array only.
             """.trimIndent() +
             "\n" + "\n" +
             "# Available Actions\n" +
