@@ -713,7 +713,7 @@ open class AircraftController(
     }
 
     suspend fun flyBy(
-        distance: Triple<Double, Double, Double>,
+        distance: XYZ,
         velocity: Double = 0.5,
     ) = coroutineScope {
         require(velocity >= 0) { "velocity must be positive" }
@@ -722,7 +722,7 @@ open class AircraftController(
         if (mag <= 1e-3) return@coroutineScope
 
         val travelTime = abs(mag / velocity)
-        val v = distance.asXYZ().dt(travelTime)
+        val v = distance.dt(travelTime)
         val flightParam = FlightParam().apply {
             roll = v.x
             pitch = v.y
