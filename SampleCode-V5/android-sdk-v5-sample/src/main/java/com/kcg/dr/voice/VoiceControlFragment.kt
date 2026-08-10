@@ -113,8 +113,10 @@ class VoiceControlFragment : Fragment() {
             controllerVM.controller,
             userVM.metrics,
         )
-        lifecycleScope.launch {
+        lifecycleScope.launch { // todo: init in vm
+            ToastUtils.showShortToast("AI is Loading...")
             actionResolver.init("qwen2.5-coder-1.5b-instruct-q4_0.gguf")
+            ToastUtils.showShortToast("AI is Loaded!")
         }
 
         binding.btnMic.setOnClickListener { startListening() }
