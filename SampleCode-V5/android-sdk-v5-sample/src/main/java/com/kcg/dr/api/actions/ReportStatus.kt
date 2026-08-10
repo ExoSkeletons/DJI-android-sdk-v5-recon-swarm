@@ -19,13 +19,13 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 @SerialName("report_status")
-@SerialDescription("Tells user aircraft status. Use if asked questions related to aircraft state.")
+@SerialDescription("Tell user the status of some aircraft metrics. Use if asked questions related to aircraft state.")
 data class ReportStatus(
-    @property:SerialDescription("Topics to report on. If empty, reports all.")
-    val of: List<Topic> = emptyList(),
+    @property:SerialDescription("Metrics to report on. Empty list for all.")
+    val of: List<Metric> = emptyList(),
 ) : Action {
     @Serializable
-    enum class Topic {
+    enum class Metric {
         @SerialName("battery")
         Battery,
 
@@ -39,9 +39,9 @@ data class ReportStatus(
     }
 
     override suspend fun act(aircraft: AircraftController, user: UserMetrics?) {
-        val topics = (of.takeIf { it.isNotEmpty() } ?: Topic.values().toList())
+        val metricCategories = (of.takeIf { it.isNotEmpty() } ?: Metric.values().toList())
         val report = buildString {
-            topics.forEach {
+            metricCategories.forEach {
                 appendReportOn(it, aircraft, user)
                 appendLine()
             }
@@ -52,20 +52,20 @@ data class ReportStatus(
     }
 
     private fun StringBuilder.appendReportOn(
-        topic: Topic,
+        metric: Metric,
         controller: AircraftController,
         user: UserMetrics?
     ) {
         with(ResourcesManager.resources) {
-            when (topic) {
-                Topic.Battery -> append(
+            when (metric) {
+                Metric.Battery -> append(
                     getString(
                         R.string.report_fmt_battery,
                         controller.ac.batteryPercent.value
                     )
                 )
 
-                Topic.Location -> {
+                Metric.Location -> {
                     append(controller.ac.location.value?.let {
                         getString(
                             R.string.report_fmt_location_aircraft,
@@ -93,7 +93,7 @@ data class ReportStatus(
                     }
                 }
 
-                Topic.Velocity -> append(controller.ac.velocity.value.let {
+                Metric.Velocity -> append(controller.ac.velocity.value.let {
                     // getString(R.string.report_fmt_velocity_aircraft_xyz, it.x, it.y, it.z)
                     getString(R.string.report_fmt_velocity_aircraft, it.asXYZ().mag)
                 })
