@@ -432,7 +432,7 @@ open class AircraftController(
         Log.d(TAG, "takeoff")
 
         if (isFlying()) {
-            Log.d(TAG, "already flying")
+            Log.i(TAG, "already flying")
             return
         }
 
@@ -721,6 +721,8 @@ open class AircraftController(
         val mag = distance.mag
         if (mag <= 1e-3) return@coroutineScope
 
+        takeoff()
+
         val travelTime = abs(mag / velocity)
         val v = distance.dt(travelTime)
         val flightParam = FlightParam().apply {
@@ -734,7 +736,7 @@ open class AircraftController(
 
 
     suspend fun ascendBy(distance: Double, velocity: Double = 0.5) =
-        flyBySticks(LocationUtils.RelativeDirection.UP, distance, velocity)
+        flyBy(XYZ(0.0, 0.0, distance), velocity)
 
     suspend fun ascendTo(
         altitude: Double,
@@ -765,10 +767,10 @@ open class AircraftController(
     }
 
     suspend fun forwardBy(distance: Double, velocity: Double = 1.0) =
-        flyBySticks(LocationUtils.RelativeDirection.FORWARD, distance, velocity)
+        flyBy(XYZ(distance, 0.0, 0.0), velocity)
 
     suspend fun leftBy(distance: Double, velocity: Double = 1.0) =
-        flyBySticks(LocationUtils.RelativeDirection.LEFT, distance, velocity)
+        flyBy(XYZ(0.0, distance, 0.0), velocity)
 
     suspend fun spinBy(
         angleDegrees: Double,
@@ -782,6 +784,8 @@ open class AircraftController(
         require(minVelocity >= 0) { "min velocity must be non-negative" }
         require(velocity >= minVelocity) { "min velocity cannot be greater than target velocity" }
         require(targetToleranceDegrees > 0) { "target tolerance must be positive" }
+
+        takeoff()
 
         val spinSign = sign(angleDegrees)
         var cumulativeYaw = 0.0
@@ -842,6 +846,8 @@ open class AircraftController(
     ) = coroutineScope {
         require(velocity > 0) { "velocity must be positive" }
 
+        takeoff()
+
         val travelDuration = 2.0 * Math.PI * count * radius / velocity
         val rotationSign = if (clockwise) 1 else -1
 
@@ -898,8 +904,11 @@ open class AircraftController(
         clockwise: Boolean = true,
         callback: CommonCallbacks.CompletionCallback = DEFAULT_CALLBACK
     ) = coroutineScope {
+        takeoff()
+
         camGim.setCameraGimbalMode(GimbalMode.YAW_FOLLOW)
         camGim.lookTo(scanRadius, -ac.height.value * .75)
+
         flyCircle(
             scanRadius,
             velocity,
@@ -954,6 +963,9 @@ open class AircraftController(
         var xyz0 = XYZ()
         var t = 0.0
         val dt = TRANSMISSION_INTERVAL.milliseconds.toDouble(DurationUnit.SECONDS)
+
+        takeoff()
+
         while (isActive) {
             val oscillation = sin(2 * PI * t)
             val rate = amplitudesMeters / periodSeconds
@@ -1176,7 +1188,7 @@ open class AircraftController(
                 // Adjust perch location to target location moved "back" (towards aircraft) by perch distance.
                 value = tl.translate(
                     perchDistance,
-                    LocationUtils.RelativeDirection.BACKWARD,
+                    BACKWARD,
                     heading
                 ).atAlt(perchHeight)
             }
@@ -1187,6 +1199,8 @@ open class AircraftController(
         }
         val obs = Observer<LocationCoordinate3D> {}
         perchLocation.observeForever(obs)
+
+        takeoff()
 
         try {
             whileFollowing(perchLocation, maxVelocity = followVelocity) {
@@ -1224,6 +1238,8 @@ open class AircraftController(
         require(tailDistance > 0) { "tailDistance must be positive" }
         require(maxVelocity > 0) { "maxVelocity must be positive" }
         require(approachTolerance > 0 && verticalTolerance > 0) { "tolerances must be positive" }
+
+        takeoff()
 
         while (isActive) {
             delay(TRANSMISSION_INTERVAL)
