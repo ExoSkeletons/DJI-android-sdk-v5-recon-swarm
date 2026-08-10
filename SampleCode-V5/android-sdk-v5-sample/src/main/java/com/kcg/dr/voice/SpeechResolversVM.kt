@@ -111,7 +111,7 @@ class SpeechResolversVM(
                     _resolutionName.postValue(desc.name)
                     _resolutionResponse.postValue(desc.response)
 
-                    viewModelScope.launch(Dispatchers.IO) {
+                    launch(Dispatchers.IO) {
                         try {
                             function()
                         } catch (e: Exception) {
