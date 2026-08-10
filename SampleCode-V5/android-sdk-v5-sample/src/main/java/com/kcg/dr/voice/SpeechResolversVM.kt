@@ -107,7 +107,6 @@ class SpeechResolversVM(
                     emitUiStates()
 
                     playSfx(SFXManager.SFX.ACTION_CONFIRM)
-                    context.speak(R.string.commands_response_fmt_accepted, locale = locale)
                     speak(desc.response, locale)
                     _resolutionName.postValue(desc.name)
                     _resolutionResponse.postValue(desc.response)
