@@ -4,8 +4,8 @@ package com.kcg.dr.api.actions
 
 import android.util.Log
 import com.kcg.dr.flight.AircraftController
-import com.kcg.dr.utils.ResourcesManager
 import com.kcg.dr.location.UserMetrics
+import com.kcg.dr.utils.ResourcesManager
 import com.kcg.dr.utils.TTSManager.speak
 import com.kcg.dr.utils.asXYZ
 import com.kcg.dr.utils.mag
@@ -74,16 +74,23 @@ data class ReportStatus(
                             it.altitude
                         )
                     } ?: getString(R.string.location_unknown))
-                    append(controller.ac.heading.value.let {
-                        ", " + getString(R.string.report_fmt_heading, it)
-                    })
-                    append(user?.liveLocation?.value?.let {
-                        ", " + getString(
-                            R.string.report_fmt_location_device,
-                            it.latitude,
-                            it.longitude
+                    controller.ac.heading.value.let {
+                        append(
+                            ", " + getString(
+                                R.string.report_fmt_heading,
+                                it
+                            )
                         )
-                    })
+                    }
+                    user?.liveLocation?.value?.let {
+                        append(
+                            ".\n" + getString(
+                                R.string.report_fmt_location_device,
+                                it.latitude,
+                                it.longitude
+                            )
+                        )
+                    }
                 }
 
                 Topic.Velocity -> append(controller.ac.velocity.value.let {
