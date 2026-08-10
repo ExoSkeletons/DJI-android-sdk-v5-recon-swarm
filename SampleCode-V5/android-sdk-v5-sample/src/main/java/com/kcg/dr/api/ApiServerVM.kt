@@ -37,7 +37,6 @@ class ApiServerVM(
                         ?: throw IllegalArgumentException("AircraftController required in CreationExtras"),
                     this[USER_KEY]
                         ?: throw IllegalArgumentException("UserMetrics required in CreationExtras")
-
                 )
             }
         }

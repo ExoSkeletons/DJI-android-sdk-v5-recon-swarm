@@ -18,7 +18,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.kcg.dr.flight.AircraftControlVM
-import com.kcg.dr.location.DeviceLocationViewModel
+import com.kcg.dr.location.UserVM
 import com.kcg.dr.utils.TTSManager
 import com.kcg.dr.voice.SpeechResolversVM.ResolverViewState
 import dji.sampleV5.aircraft.R
@@ -45,7 +45,7 @@ class VoiceControlFragment : Fragment() {
         },
         { AircraftControlVM.Factory }
     )
-    private val deviceVM: DeviceLocationViewModel by activityViewModels()
+    private val userVM: UserVM by activityViewModels()
     private val viewModel: SpeechResolversVM by activityViewModels(
         {
             MutableCreationExtras(defaultViewModelCreationExtras).apply {
@@ -108,7 +108,7 @@ class VoiceControlFragment : Fragment() {
         actionResolver = LlamaActionSequenceResolver(
             requireContext(),
             controllerVM.controller,
-            deviceVM.metrics,
+            userVM.metrics,
         )
         lifecycleScope.launch {
             actionResolver.init("qwen2.5-coder-1.5b-instruct-q4_0.gguf")

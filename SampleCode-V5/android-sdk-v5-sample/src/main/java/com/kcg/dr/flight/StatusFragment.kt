@@ -9,7 +9,7 @@ import androidx.fragment.app.activityViewModels
 import com.kcg.dr.utils.LocationUtils.bearingTo
 import com.kcg.dr.utils.LocationUtils.distanceTo
 import com.kcg.dr.utils.as2D
-import com.kcg.dr.location.DeviceLocationViewModel
+import com.kcg.dr.location.UserVM
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVocomStatusBinding
 import kotlin.math.roundToInt
@@ -19,7 +19,7 @@ class StatusFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val aircraftVM: AircraftControlVM by activityViewModels()
-    private val deviceLocationVM: DeviceLocationViewModel by activityViewModels()
+    private val deviceLocationVM: UserVM by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater,

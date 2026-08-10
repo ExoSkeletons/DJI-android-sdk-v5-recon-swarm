@@ -10,7 +10,7 @@ import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
 import com.kcg.dr.api.ApiServerVM
 import com.kcg.dr.flight.AircraftControlVM
-import com.kcg.dr.location.DeviceLocationViewModel
+import com.kcg.dr.location.UserVM
 import com.kcg.dr.location.LiveLocationProvider
 import com.kcg.dr.utils.TTSManager.speak
 import com.kcg.dr.utils.asDjiLocation
@@ -59,7 +59,7 @@ class VoComContainerFragment : DJIFragment() {
         { AircraftControlVM.Factory }
     )
 
-    private val deviceLocationVM: DeviceLocationViewModel by activityViewModels()
+    private val deviceLocationVM: UserVM by activityViewModels()
     private val locationProvider = LiveLocationProvider(this, 200, 50, 500)
 
     private val virtualStickVM: VirtualStickVM by activityViewModels()

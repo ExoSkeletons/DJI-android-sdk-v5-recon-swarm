@@ -33,8 +33,8 @@ import com.kcg.dr.api.KeyActivator
 import com.kcg.dr.flight.AircraftControlVM
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.flight.AircraftController.CircleFaceMode
-import com.kcg.dr.location.DeviceLocationViewModel
 import com.kcg.dr.location.LiveLocationProvider
+import com.kcg.dr.location.UserVM
 import com.kcg.dr.utils.CoroutineUtils.observe
 import com.kcg.dr.utils.LocaleUtils.getLocalizedResources
 import com.kcg.dr.utils.LocationUtils
@@ -123,11 +123,12 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         {
             MutableCreationExtras(defaultViewModelCreationExtras).apply {
                 set(ApiServerVM.CONTROLLER_KEY, controllerVM.controller)
+                set(ApiServerVM.USER_KEY, deviceVM.metrics)
             }
         },
         { ApiServerVM.Factory }
     )
-    private val deviceVM: DeviceLocationViewModel by activityViewModels()
+    private val deviceVM: UserVM by activityViewModels()
 
     private val controller: AircraftController get() = controllerVM.controller
     private lateinit var commandResolver: RegexCommandResolver

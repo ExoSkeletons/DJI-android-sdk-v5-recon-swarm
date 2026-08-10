@@ -9,6 +9,7 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.viewmodel.MutableCreationExtras
 import com.kcg.dr.flight.AircraftControlVM
 import com.kcg.dr.flight.AircraftController
+import com.kcg.dr.location.UserVM
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragApiServerBinding
 import dji.sampleV5.aircraft.models.VirtualStickVM
@@ -27,11 +28,13 @@ class ApiServerFragment : Fragment() {
         },
         { AircraftControlVM.Factory }
     )
+    private val userVM: UserVM by activityViewModels()
 
     private val viewModel: ApiServerVM by activityViewModels(
         {
             MutableCreationExtras(defaultViewModelCreationExtras).apply {
                 set(ApiServerVM.CONTROLLER_KEY, controllerVM.controller)
+                set(ApiServerVM.USER_KEY, userVM.metrics)
             }
         },
         { ApiServerVM.Factory }
