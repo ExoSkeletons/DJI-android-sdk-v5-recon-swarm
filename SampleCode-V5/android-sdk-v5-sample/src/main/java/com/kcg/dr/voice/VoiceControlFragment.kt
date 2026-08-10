@@ -114,8 +114,13 @@ class VoiceControlFragment : Fragment() {
         )
         lifecycleScope.launch(Dispatchers.Default) { // todo: init in vm
             ToastUtils.showShortToast("AI is Loading...")
-            actionResolver.init("qwen2.5-coder-1.5b-instruct-q4_0.gguf")
-            ToastUtils.showShortToast("AI is Loaded!")
+            try {
+                actionResolver.init("qwen2.5-coder-1.5b-instruct-q4_0.gguf")
+                ToastUtils.showShortToast("AI is Loaded!")
+            } catch (e: Exception) {
+                Log.e("LlamaActionResolver", "error: ${e.message}", e)
+                ToastUtils.showShortToast("AI Failed to Load: ${e.message}")
+            }
         }
 
         binding.btnMic.setOnClickListener { startListening() }

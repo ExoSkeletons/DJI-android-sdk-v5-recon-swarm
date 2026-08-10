@@ -235,7 +235,7 @@ interface SerialisedResolver<T> : SpeechResolver<T> {
 
             val desc = (p as? CommonSchemaAttributes)?.description
             val types = (p as? CommonSchemaAttributes)?.type
-            val properties =  (p as? PropertiesContainer)?.properties
+            val properties = (p as? PropertiesContainer)?.properties
             val req = (p as? PropertiesContainer)?.required
             val items = (p as? ArrayContainer)?.items
             val enum = when (p) {
@@ -334,20 +334,16 @@ abstract class LlamaSerialisedResolver<T>(val context: Context) :
     suspend fun init(modelName: String) {
         // todo: move to general init (modelName passed as text in constructor),
         //  then init in super and use in VM
-        try {
-            val modelFile = context.getAssetOrExtract("models/$modelName")
-            engine.loadModel(modelFile.absolutePath)
-            Log.d("LlamaActionResolver", "model loaded")
-            Log.d("LlamaActionResolver", "setting system prompt...")
-            val t1 = System.currentTimeMillis()
-            engine.setSystemPrompt(systemPrompt)
-            Log.d(
-                "LlamaActionResolver",
-                "system prompt set (took ${(System.currentTimeMillis() - t1) / 1000}s)"
-            )
-        } catch (e: Exception) {
-            Log.e("LlamaActionResolver", "error: ${e.message}", e)
-        }
+        val modelFile = context.getAssetOrExtract("models/$modelName")
+        engine.loadModel(modelFile.absolutePath)
+        Log.d("LlamaActionResolver", "model loaded")
+        Log.d("LlamaActionResolver", "setting system prompt...")
+        val t1 = System.currentTimeMillis()
+        engine.setSystemPrompt(systemPrompt)
+        Log.d(
+            "LlamaActionResolver",
+            "system prompt set (took ${(System.currentTimeMillis() - t1) / 1000}s)"
+        )
     }
 
     protected fun preProcess(speech: String): String = speech.trim().trimIndent()
@@ -355,13 +351,18 @@ abstract class LlamaSerialisedResolver<T>(val context: Context) :
         SerialisedResolver.findJson(result) ?: result
 
     private suspend fun generateAndCollect(speech: String): String {
-        val resultFlow = engine.sendUserPrompt(speech)
-        Log.i("LlamaActionResolver", "collecting result")
-        var result = ""
-        resultFlow.collect {
-            result += it
+        try {
+            val resultFlow = engine.sendUserPrompt(speech)
+            Log.i("LlamaActionResolver", "collecting result")
+            var result = ""
+            resultFlow.collect {
+                result += it
+            }
+            return result
+        } catch (e: Exception) {
+            Log.e("LlamaActionResolver", "error in llama generation: ${e.message}", e)
+            return ""
         }
-        return result
     }
 
     override suspend fun resolve(speech: String, locale: Locale): T? {
