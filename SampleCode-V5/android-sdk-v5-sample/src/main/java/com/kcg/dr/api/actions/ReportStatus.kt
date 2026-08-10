@@ -46,7 +46,7 @@ data class ReportStatus(
                 appendLine()
             }
         }
-        speak(report)
+        speak(report, ResourcesManager.locale)
         ToastUtils.showToast(report)
         Log.i("ReportStatus", report)
     }
@@ -57,6 +57,7 @@ data class ReportStatus(
         user: UserMetrics?
     ) {
         with(ResourcesManager.resources) {
+            Log.d("ResourceManager", getString(R.string.command_hello))
             when (metric) {
                 Metric.Battery -> append(
                     getString(

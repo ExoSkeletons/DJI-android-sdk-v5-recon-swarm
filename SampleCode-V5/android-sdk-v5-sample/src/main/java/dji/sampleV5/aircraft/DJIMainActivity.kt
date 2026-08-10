@@ -14,6 +14,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.kcg.dr.flight.AircraftController
+import com.kcg.dr.utils.ResourcesManager
+import com.kcg.dr.utils.SFXManager
+import com.kcg.dr.utils.TTSManager
+import com.kcg.dr.utils.TTSManager.promptInstallTTSLanguage
 import dji.sampleV5.aircraft.databinding.ActivityMainBinding
 import dji.sampleV5.aircraft.models.BaseMainActivityVm
 import dji.sampleV5.aircraft.models.MSDKInfoVm
@@ -93,6 +97,12 @@ abstract class DJIMainActivity : AppCompatActivity() {
         initMSDKInfoView()
         observeSDKManager()
         checkPermissionAndRequest()
+
+        SFXManager.init(this)
+        TTSManager.init(this) { tts, locale ->
+            promptInstallTTSLanguage(applicationContext)
+        }
+        ResourcesManager.setLocale(this)
     }
 
     override fun onRequestPermissionsResult(
