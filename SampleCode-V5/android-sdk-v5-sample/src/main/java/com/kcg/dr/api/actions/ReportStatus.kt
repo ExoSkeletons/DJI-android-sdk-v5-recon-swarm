@@ -20,9 +20,9 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 @SerialName("report_status")
-@SerialDescription("Tell user the status of some aircraft metrics. Use if asked questions related to aircraft state.")
+@SerialDescription("Inform user the status of one or more metrics")
 data class ReportStatus(
-    @property:SerialDescription("Metrics to report on. Empty list for all.")
+    @property:SerialDescription("Metrics to report on. Empty list reports all")
     val of: List<Metric> = emptyList(),
 ) : Action {
     @Serializable
@@ -31,18 +31,18 @@ data class ReportStatus(
         Battery,
 
         @SerialName("location")
-        @SerialDescription("If asked where we are.")
+        @SerialDescription("The aircraft/your location, not user's location")
         Location,
 
         @SerialName("user_location")
+        @SerialDescription("The user's location")
         UserLocation,
 
         @SerialName("speed")
-        @SerialDescription("aircraft speed.")
         Velocity,
 
         @SerialName("distance")
-        @SerialDescription("aircraft distance from user.")
+        @SerialDescription("distance from user")
         Distance,
     }
 
