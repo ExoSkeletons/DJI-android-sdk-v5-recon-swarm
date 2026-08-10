@@ -26,6 +26,7 @@ import dji.sampleV5.aircraft.databinding.FragVocomVoiceControlBinding
 import dji.sampleV5.aircraft.databinding.ItemResolverBinding
 import dji.sampleV5.aircraft.models.VirtualStickVM
 import dji.sampleV5.aircraft.util.ToastUtils
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.util.Locale
 
@@ -111,7 +112,7 @@ class VoiceControlFragment : Fragment() {
             controllerVM.controller,
             userVM.metrics,
         )
-        lifecycleScope.launch { // todo: init in vm
+        lifecycleScope.launch(Dispatchers.Default) { // todo: init in vm
             ToastUtils.showShortToast("AI is Loading...")
             actionResolver.init("qwen2.5-coder-1.5b-instruct-q4_0.gguf")
             ToastUtils.showShortToast("AI is Loaded!")
