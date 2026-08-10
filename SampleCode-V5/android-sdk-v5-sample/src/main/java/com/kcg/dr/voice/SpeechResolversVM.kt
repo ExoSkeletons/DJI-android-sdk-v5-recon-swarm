@@ -123,6 +123,7 @@ class SpeechResolversVM(
                 }
 
                 playSfx(SFXManager.SFX.NOTIFY_TECHNICAL)
+                speak(lr.getString(R.string.error_speech_unrecognised), locale = locale)
                 _resolutionName.postValue(lr.getString(R.string.error_speech_unrecognised))
             }
         }
