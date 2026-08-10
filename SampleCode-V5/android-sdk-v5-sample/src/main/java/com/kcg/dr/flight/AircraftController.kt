@@ -8,11 +8,12 @@ import com.kcg.dr.api.Responses.toJson
 import com.kcg.dr.utils.CoroutineUtils
 import com.kcg.dr.utils.DJIErrorException
 import com.kcg.dr.utils.LocationUtils
+import com.kcg.dr.utils.LocationUtils.RelativeDirection
+import com.kcg.dr.utils.LocationUtils.RelativeDirection.*
 import com.kcg.dr.utils.LocationUtils.bearingTo
 import com.kcg.dr.utils.LocationUtils.distanceTo
 import com.kcg.dr.utils.LocationUtils.translate
 import com.kcg.dr.utils.as2D
-import com.kcg.dr.utils.asXYZ
 import com.kcg.dr.utils.atAlt
 import com.kcg.dr.utils.div
 import com.kcg.dr.utils.dt
@@ -668,8 +669,8 @@ open class AircraftController(
         }
     }
 
-    suspend fun flyBySticks(
-        direction: LocationUtils.RelativeDirection, distance: Double,
+    suspend fun flyBy(
+        direction: RelativeDirection, distance: Double,
         velocity: Double = 0.5,
         coordinateSystem: FlightCoordinateSystem = FlightCoordinateSystem.BODY,
         callback: CommonCallbacks.CompletionCallback = DEFAULT_CALLBACK
@@ -696,12 +697,9 @@ open class AircraftController(
             this.coordinateSystem = coordinateSystem
 
             when (direction) {
-                LocationUtils.RelativeDirection.FORWARD -> roll = v
-                LocationUtils.RelativeDirection.BACKWARD -> roll = v
-                LocationUtils.RelativeDirection.RIGHT -> pitch = v
-                LocationUtils.RelativeDirection.LEFT -> pitch = v
-                LocationUtils.RelativeDirection.UP -> verticalThrottle = v
-                LocationUtils.RelativeDirection.DOWN -> verticalThrottle = v
+                FORWARD, BACKWARD -> roll = v
+                RIGHT, LEFT -> pitch = v
+                UP, DOWN -> verticalThrottle = v
             }
         }
 
