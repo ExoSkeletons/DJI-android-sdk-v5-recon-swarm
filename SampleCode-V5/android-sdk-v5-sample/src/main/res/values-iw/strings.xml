@@ -101,7 +101,7 @@
     <string name="obstacle_detected_msg_dist">%1$s %4$s %3$s במרחק %2$d מטר</string>
     <string name="obstacle_detected_msg">%1$s %4$s %3$s</string>
 
-    <string name="report_fmt_battery">סוללה ב- %d %</string>
+    <string name="report_fmt_battery">סוללה ב- %d אחוז</string>
     <string name="location_unknown">מיקום לא ידוע</string>
     <string name="report_fmt_location_aircraft">אני ב- %f, lon: %f alt: %.2f</string>
     <string name="report_fmt_location_device">אתה ב- lat: %f, lon: %f</string>
