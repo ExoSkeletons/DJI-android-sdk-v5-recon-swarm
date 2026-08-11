@@ -11,7 +11,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 @SerialName("wave")
-@SerialDescription("Demo function to Wave the camera in a cute way")
+@SerialDescription("Greet user by Waving camera. Used if user says hi")
 data class Wave(val count: Int = 2) : Action {
     override suspend fun act(aircraft: AircraftController, user: UserMetrics?) =
         aircraft.wave(count)

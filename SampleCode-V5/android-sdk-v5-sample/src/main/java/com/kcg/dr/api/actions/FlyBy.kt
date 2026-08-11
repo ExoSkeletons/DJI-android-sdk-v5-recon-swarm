@@ -12,7 +12,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 @SerialName("fly_by")
-@SerialDescription("Moves aircraft relative to it's current position (m).")
+@SerialDescription("Moves aircraft relative to it's current position (m). At least one direction must be non zero.")
 data class FlyBy(
     @property:SerialDescription("x+ is forward")
     val dx: Double = 0.0,
