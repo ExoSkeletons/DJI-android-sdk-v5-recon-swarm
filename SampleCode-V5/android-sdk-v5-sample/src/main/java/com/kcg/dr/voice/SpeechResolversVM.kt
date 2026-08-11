@@ -22,6 +22,7 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.kcg.dr.utils.LocaleUtils.getLocalizedResources
+import com.kcg.dr.utils.ResourcesManager
 import com.kcg.dr.utils.SFXManager
 import com.kcg.dr.utils.SFXManager.playSfx
 import com.kcg.dr.utils.ServiceUtils
@@ -118,6 +119,14 @@ class SpeechResolversVM(
 
     init {
         speechRecognizer.setRecognitionListener(object : RecognitionListener {
+            override fun onLanguageDetection(results: Bundle) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    val lang = results.getString(SpeechRecognizer.DETECTED_LANGUAGE)
+                    Log.i(TAG, "onLanguageDetection: $lang")
+                    // todo: post lang to vm live data (stt lang, tts lang)
+                }
+            }
+
             override fun onReadyForSpeech(params: Bundle?) {
                 Log.d(TAG, "onReadyForSpeech")
             }
@@ -129,6 +138,8 @@ class SpeechResolversVM(
 
             override fun onRmsChanged(rmsdB: Float) {}
             override fun onBufferReceived(buffer: ByteArray?) {}
+            override fun onEvent(eventType: Int, params: Bundle?) {}
+
             override fun onEndOfSpeech() {
                 Log.d(TAG, "onEndOfSpeech")
                 _isListening.value = false
@@ -160,8 +171,6 @@ class SpeechResolversVM(
                     _partialSpeech.value = it
                 }
             }
-
-            override fun onEvent(eventType: Int, params: Bundle?) {}
         })
 
         with(getApplication<Application>().applicationContext) {
@@ -173,13 +182,13 @@ class SpeechResolversVM(
         viewModelScope.launch {
             AudioControlService.mediaButtonPresses.collectLatest {
                 Log.i(TAG, "media button collected")
-                toggleListening()
+                toggleListening(ResourcesManager.locale)
             }
         }
     }
 
     private suspend fun checkAvailable(lang: String): Boolean {
-        Log.i(TAG, "checkAndDownloadModel: locale=$lang")
+        Log.i(TAG, "checkAndDownloadModel: recogniser=$speechRecognizer, lang=$lang")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE, lang)
@@ -257,16 +266,17 @@ class SpeechResolversVM(
         return@withContext false
     }
 
-    fun toggleListening(locale: Locale = Locale.getDefault()) =
+    fun toggleListening(locale: Locale) =
         if (_isListening.value == true) stopListening()
         else startListening(locale)
 
     private fun startListening(locale: Locale) {
-        Log.d(TAG, "startListening: locale=$locale")
+        val lang = locale.toLanguageTag()
+        Log.d(TAG, "startListening: lang=$lang")
         viewModelScope.launch {
-            if (!checkAvailable(locale.language)) {
-                ToastUtils.showToast("Language ${locale.toLanguageTag()} not available")
-                downloadModel(locale.language)
+            if (!checkAvailable(lang)) {
+                ToastUtils.showToast("Language $lang not available")
+                downloadModel(lang)
                 return@launch
             }
             playSfx(SFXManager.SFX.NOTIFY_INFO)
@@ -285,14 +295,13 @@ class SpeechResolversVM(
                     )
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE, locale.toLanguageTag())
                     putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-                    putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 1000L)
                     putExtra(
                         RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS,
-                        1500L
+                        700L
                     )
                     putExtra(
                         RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS,
-                        1500L
+                        1000L
                     )
                 })
         }

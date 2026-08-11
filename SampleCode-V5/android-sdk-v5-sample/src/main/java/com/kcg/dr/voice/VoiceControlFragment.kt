@@ -63,7 +63,7 @@ class VoiceControlFragment : Fragment() {
         },
         { SpeechResolversVM.Factory }
     )
-    private val locale = ResourcesManager.locale
+    private val locale get() = ResourcesManager.locale
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -71,6 +71,7 @@ class VoiceControlFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragVocomVoiceControlBinding.inflate(inflater, container, false)
+        ResourcesManager.setLocale(requireContext(), Locale("he", "IL"))
         return binding.root
     }
 
