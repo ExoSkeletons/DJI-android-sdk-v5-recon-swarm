@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.speech.ModelDownloadListener
 import android.speech.RecognitionListener
 import android.speech.RecognitionSupport
 import android.speech.RecognitionSupportCallback
@@ -26,13 +27,18 @@ import com.kcg.dr.utils.SFXManager.playSfx
 import com.kcg.dr.utils.ServiceUtils
 import com.kcg.dr.utils.TTSManager.speak
 import dji.sampleV5.aircraft.R
+import dji.sampleV5.aircraft.util.ToastUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import java.io.Closeable
 import java.text.ParseException
 import java.util.Locale
+import kotlin.coroutines.resume
+
+private const val TAG = "SpeechResolversVM"
 
 class SpeechResolversVM(
     application: Application,
@@ -89,55 +95,57 @@ class SpeechResolversVM(
 
     private val speechRecognizer = SpeechRecognizer.createSpeechRecognizer(application)
 
+    private fun Int.toRecognitionErrorString(): String {
+        return when (this) {
+            SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "ERROR_NETWORK_TIMEOUT"
+            SpeechRecognizer.ERROR_NETWORK -> "ERROR_NETWORK"
+            SpeechRecognizer.ERROR_AUDIO -> "ERROR_AUDIO"
+            SpeechRecognizer.ERROR_SERVER -> "ERROR_SERVER"
+            SpeechRecognizer.ERROR_CLIENT -> "ERROR_CLIENT"
+            SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "ERROR_SPEECH_TIMEOUT"
+            SpeechRecognizer.ERROR_NO_MATCH -> "ERROR_NO_MATCH"
+            SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "ERROR_RECOGNIZER_BUSY"
+            SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "ERROR_INSUFFICIENT_PERMISSIONS"
+            SpeechRecognizer.ERROR_TOO_MANY_REQUESTS -> "ERROR_TOO_MANY_REQUESTS"
+            SpeechRecognizer.ERROR_SERVER_DISCONNECTED -> "ERROR_SERVER_DISCONNECTED"
+            SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED -> "ERROR_LANGUAGE_NOT_SUPPORTED"
+            SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE -> "ERROR_LANGUAGE_UNAVAILABLE"
+            SpeechRecognizer.ERROR_CANNOT_CHECK_SUPPORT -> "ERROR_CANNOT_CHECK_SUPPORT"
+            SpeechRecognizer.ERROR_CANNOT_LISTEN_TO_DOWNLOAD_EVENTS -> "ERROR_CANNOT_LISTEN_TO_DOWNLOAD_EVENTS"
+            else -> "UNKNOWN_ERROR"
+        }
+    }
+
     init {
         speechRecognizer.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) {
-                Log.d("SpeechResolversVM", "onReadyForSpeech")
+                Log.d(TAG, "onReadyForSpeech")
             }
 
             override fun onBeginningOfSpeech() {
-                Log.d("SpeechResolversVM", "onBeginningOfSpeech")
+                Log.d(TAG, "onBeginningOfSpeech")
                 _partialSpeech.value = ""
             }
 
             override fun onRmsChanged(rmsdB: Float) {}
             override fun onBufferReceived(buffer: ByteArray?) {}
             override fun onEndOfSpeech() {
-                Log.d("SpeechResolversVM", "onEndOfSpeech")
+                Log.d(TAG, "onEndOfSpeech")
                 _isListening.value = false
                 playSfx(SFXManager.SFX.ACTION_CONFIRM)
             }
 
             override fun onError(error: Int) {
                 _isListening.value = false
-                val errorText = with(getApplication<Application>().applicationContext) {
-                    when (error) {
-                        SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "ERROR_NETWORK_TIMEOUT"
-                        SpeechRecognizer.ERROR_NETWORK -> getString(R.string.app_network_error)
-                        SpeechRecognizer.ERROR_AUDIO -> "ERROR_AUDIO"
-                        SpeechRecognizer.ERROR_SERVER -> "ERROR_SERVER"
-                        SpeechRecognizer.ERROR_CLIENT -> "ERROR_CLIENT"
-                        SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> null
-                        SpeechRecognizer.ERROR_NO_MATCH -> getString(R.string.error_speech_unrecognised)
-                        SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "ERROR_RECOGNIZER_BUSY"
-                        SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "ERROR_INSUFFICIENT_PERMISSIONS"
-                        SpeechRecognizer.ERROR_TOO_MANY_REQUESTS -> "ERROR_TOO_MANY_REQUESTS"
-                        SpeechRecognizer.ERROR_SERVER_DISCONNECTED -> "ERROR_SERVER_DISCONNECTED"
-                        SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED -> "ERROR_LANGUAGE_NOT_SUPPORTED"
-                        SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE -> "ERROR_LANGUAGE_UNAVAILABLE"
-                        SpeechRecognizer.ERROR_CANNOT_CHECK_SUPPORT -> "ERROR_CANNOT_CHECK_SUPPORT"
-                        SpeechRecognizer.ERROR_CANNOT_LISTEN_TO_DOWNLOAD_EVENTS -> "ERROR_CANNOT_LISTEN_TO_DOWNLOAD_EVENTS"
-                        else -> null
-                    }?: ""
-                }
+                val errorText = error.toRecognitionErrorString()
                 _speech.value = errorText
-                Log.e("SpeechResolversVM", "Speech recognition error: $errorText")
+                Log.e(TAG, "Speech recognition error: $errorText")
                 playSfx(SFXManager.SFX.NOTIFY_TECHNICAL)
             }
 
             override fun onResults(results: Bundle?) {
                 val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                Log.d("SpeechResolversVM", "onResults: $matches")
+                Log.d(TAG, "onResults: $matches")
                 matches?.firstOrNull()?.let {
                     processSpeech(it)
                 }
@@ -146,7 +154,7 @@ class SpeechResolversVM(
             override fun onPartialResults(partialResults: Bundle?) {
                 val matches =
                     partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                Log.d("SpeechResolversVM", "onPartialResults: $matches")
+                Log.d(TAG, "onPartialResults: $matches")
                 matches?.firstOrNull()?.let {
                     _speech.value = it
                     _partialSpeech.value = it
@@ -164,10 +172,89 @@ class SpeechResolversVM(
         }
         viewModelScope.launch {
             AudioControlService.mediaButtonPresses.collectLatest {
-                Log.i("SpeechResolversVM", "media button collected")
-                _triggerListening.emit(Unit)
+                Log.i(TAG, "media button collected")
+                toggleListening()
             }
         }
+    }
+
+    private suspend fun checkAvailable(lang: String): Boolean {
+        Log.i(TAG, "checkAndDownloadModel: locale=$lang")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, lang)
+                putExtra(
+                    RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                    RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+                )
+            }
+            return suspendCancellableCoroutine { cont ->
+                speechRecognizer.checkRecognitionSupport(
+                    intent,
+                    getApplication<Application>().mainExecutor,
+                    object : RecognitionSupportCallback {
+                        override fun onSupportResult(support: RecognitionSupport) {
+                            Log.d(TAG, "installed: ${support.installedOnDeviceLanguages}")
+                            Log.d(TAG, "pending: ${support.pendingOnDeviceLanguages}")
+                            Log.d(TAG, "supported: ${support.supportedOnDeviceLanguages}")
+                            Log.d(TAG, "online: ${support.onlineLanguages}")
+
+                            val isInstalled = support
+                                .installedOnDeviceLanguages
+                                .contains(lang)
+
+                            Log.d(TAG, "Recognition support for $lang: installed=$isInstalled")
+                            if (cont.isActive) cont.resume(isInstalled)
+                        }
+
+                        override fun onError(error: Int) {
+                            Log.e(
+                                TAG,
+                                "Error checking recognition support: " +
+                                        error.toRecognitionErrorString()
+                            )
+                            if (cont.isActive)
+                                if (error == SpeechRecognizer.ERROR_CANNOT_CHECK_SUPPORT)
+                                    cont.resume(true)
+                                else
+                                    cont.resume(false)
+                        }
+                    }
+                )
+            }
+        }
+        return true // no way to check support on older versions, assume exists
+    }
+
+    private suspend fun downloadModel(lang: String): Boolean = withContext(Dispatchers.IO) {
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, lang)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            Log.i(TAG, "Triggering model download for $lang")
+            return@withContext suspendCancellableCoroutine { cont ->
+                speechRecognizer.triggerModelDownload(
+                    intent,
+                    getApplication<Application>().mainExecutor,
+                    object : ModelDownloadListener {
+                        override fun onProgress(p0: Int) {}
+
+                        override fun onSuccess() {
+                            Log.i(TAG, "Download onSuccess")
+                            cont.resume(true)
+                        }
+
+                        override fun onScheduled() {}
+
+                        override fun onError(error: Int) {
+                            Log.w(TAG, "Download onError: ${error.toRecognitionErrorString()}")
+                            cont.resume(false)
+                        }
+                    }
+                )
+            }
+        }
+        return@withContext false
     }
 
     fun toggleListening(locale: Locale = Locale.getDefault()) =
@@ -175,30 +262,40 @@ class SpeechResolversVM(
         else startListening(locale)
 
     private fun startListening(locale: Locale) {
-        val languageTag = if (locale.language == "he") "iw-IL" else locale.toLanguageTag()
-        Log.d("SpeechResolversVM", "startListening: locale=$locale, using tag=$languageTag")
-        playSfx(SFXManager.SFX.NOTIFY_INFO)
-        _isListening.value = true
-        speechRecognizer.startListening(
-            Intent(
-                RecognizerIntent.ACTION_RECOGNIZE_SPEECH
-            ).apply {
-                putExtra(
-                    RecognizerIntent.EXTRA_CALLING_PACKAGE,
-                    getApplication<Application>().packageName
-                )
-                putExtra(
-                    RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                    RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
-                )
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE, languageTag)
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, languageTag)
-                putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, true)
-                putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 1000L)
-                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
-                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
-            })
+        Log.d(TAG, "startListening: locale=$locale")
+        viewModelScope.launch {
+            if (!checkAvailable(locale.language)) {
+                ToastUtils.showToast("Language ${locale.toLanguageTag()} not available")
+                downloadModel(locale.language)
+                return@launch
+            }
+            playSfx(SFXManager.SFX.NOTIFY_INFO)
+            _isListening.value = true
+            speechRecognizer.startListening(
+                Intent(
+                    RecognizerIntent.ACTION_RECOGNIZE_SPEECH
+                ).apply {
+                    putExtra(
+                        RecognizerIntent.EXTRA_CALLING_PACKAGE,
+                        getApplication<Application>().packageName
+                    )
+                    putExtra(
+                        RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                        RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+                    )
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE, locale.toLanguageTag())
+                    putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+                    putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 1000L)
+                    putExtra(
+                        RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS,
+                        1500L
+                    )
+                    putExtra(
+                        RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS,
+                        1500L
+                    )
+                })
+        }
     }
 
     private fun stopListening() {
