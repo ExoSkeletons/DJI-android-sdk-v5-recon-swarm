@@ -1,6 +1,8 @@
 package com.kcg.dr.voice
 
 import android.app.Application
+import android.content.Intent
+import android.util.Log
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.lifecycle.AndroidViewModel
@@ -14,9 +16,13 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.kcg.dr.utils.LocaleUtils.getLocalizedResources
 import com.kcg.dr.utils.SFXManager
 import com.kcg.dr.utils.SFXManager.playSfx
+import com.kcg.dr.utils.ServiceUtils
 import com.kcg.dr.utils.TTSManager.speak
 import dji.sampleV5.aircraft.R
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.Closeable
@@ -70,6 +76,24 @@ class SpeechResolversVM(
 
     private val _uiStates = MutableLiveData<List<ResolverViewState>>(buildUiStates())
     val uiStates: LiveData<List<ResolverViewState>> = _uiStates
+
+    private val _triggerListening = MutableSharedFlow<Unit>()
+    val triggerListening = _triggerListening.asSharedFlow()
+
+    init {
+        with(getApplication<Application>().applicationContext) {
+            ServiceUtils.startService(
+                this,
+                Intent(this, AudioControlService::class.java)
+            )
+        }
+        viewModelScope.launch {
+            AudioControlService.mediaButtonPresses.collectLatest {
+                Log.i("SpeechResolversVM", "media button collected")
+                _triggerListening.emit(Unit)
+            }
+        }
+    }
 
     fun processSpeech(spokenText: String, locale: Locale? = null) {
         spokenText.let { s ->
@@ -141,6 +165,10 @@ class SpeechResolversVM(
 
     override fun onCleared() {
         super.onCleared()
+        ServiceUtils.stopService(
+            getApplication<Application>().applicationContext,
+            AudioControlService::class.java
+        )
         resolvers.keys.forEach {
             if (it is Closeable)
                 it.close()

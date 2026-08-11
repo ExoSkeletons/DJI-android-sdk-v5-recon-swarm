@@ -134,6 +134,7 @@ dependencies {
     implementation "com.alphacephei:vosk-android:0.3.75"
 
     implementation 'com.llama.cpp.android:lib:1.0.0'
+    implementation 'com.google.mlkit:translate:17.0.3'
 
     implementation 'com.google.android.gms:play-services-location:21.3.0'
     implementation 'com.google.android.material:material:1.12.0'

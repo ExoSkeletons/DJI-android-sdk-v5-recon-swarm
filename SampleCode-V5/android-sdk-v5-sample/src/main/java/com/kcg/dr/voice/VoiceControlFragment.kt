@@ -19,6 +19,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.kcg.dr.flight.AircraftControlVM
 import com.kcg.dr.location.UserVM
+import com.kcg.dr.utils.CoroutineUtils.observe
 import com.kcg.dr.utils.ResourcesManager
 import com.kcg.dr.voice.SpeechResolversVM.ResolverViewState
 import dji.sampleV5.aircraft.R
@@ -126,6 +127,10 @@ class VoiceControlFragment : Fragment() {
         }
 
         binding.btnMic.setOnClickListener { startListening() }
+
+        viewModel.triggerListening.observe(viewLifecycleOwner) {
+            startListening()
+        }
 
         viewModel.speechText.observe(viewLifecycleOwner) {
             binding.speech.text = it
