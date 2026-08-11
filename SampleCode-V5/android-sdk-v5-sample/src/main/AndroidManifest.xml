@@ -87,8 +87,10 @@
             android:name="com.kcg.dr.voice.AudioControlService"
             android:exported="true"
             android:enabled="true"
-            android:foregroundServiceType="mediaPlayback"
-            android:permission="android.permission.RECORD_AUDIO">
+            android:foregroundServiceType="mediaPlayback">
+            <intent-filter>
+                <action android:name="android.intent.action.MEDIA_BUTTON" />
+            </intent-filter>
         </service>
         <receiver android:name="androidx.media.session.MediaButtonReceiver"
             android:exported="true">
