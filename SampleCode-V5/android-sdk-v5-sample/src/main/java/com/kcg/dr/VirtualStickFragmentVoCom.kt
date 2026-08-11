@@ -1,11 +1,8 @@
 package com.kcg.dr
 
-import android.app.Activity
-import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Bundle
-import android.speech.RecognizerIntent
 import android.speech.tts.TextToSpeech
 import android.text.TextUtils
 import android.util.Log
@@ -16,7 +13,6 @@ import android.view.SurfaceView
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.lifecycleScope
@@ -31,24 +27,21 @@ import com.kcg.dr.flight.AircraftControlVM
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.flight.AircraftController.CircleFaceMode
 import com.kcg.dr.location.LiveLocationProvider
-import com.kcg.dr.utils.ResourcesManager
 import com.kcg.dr.location.UserVM
-import com.kcg.dr.utils.CoroutineUtils.observe
 import com.kcg.dr.utils.LocaleUtils.getLocalizedResources
 import com.kcg.dr.utils.LocationUtils
 import com.kcg.dr.utils.LocationUtils.bearingTo
 import com.kcg.dr.utils.LocationUtils.distanceTo
 import com.kcg.dr.utils.LocationUtils.translate
-import com.kcg.dr.utils.SFXManager
-import com.kcg.dr.utils.ServiceUtils
+import com.kcg.dr.utils.ResourcesManager
 import com.kcg.dr.utils.TTSManager.speak
 import com.kcg.dr.utils.as2D
 import com.kcg.dr.utils.asDjiLocation
 import com.kcg.dr.utils.atAlt
-import com.kcg.dr.voice.AudioControlService
 import com.kcg.dr.voice.CommandResolver.Command
 import com.kcg.dr.voice.LlamaActionSequenceResolver
 import com.kcg.dr.voice.RegexCommandResolver
+import com.kcg.dr.voice.SpeechResolversVM
 import com.kcg.dr.waypoints.LocationAdapter
 import com.kcg.dr.waypoints.WaypointRepo
 import dji.sampleV5.aircraft.R
@@ -75,13 +68,11 @@ import dji.v5.manager.datacenter.MediaDataCenter
 import dji.v5.manager.datacenter.livestream.LiveVideoBitrateMode
 import dji.v5.manager.datacenter.livestream.StreamQuality
 import dji.v5.manager.interfaces.ICameraStreamManager
-import dji.v5.ux.remotecontroller.TAG
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 import java.util.Locale
@@ -127,6 +118,23 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         { ApiServerVM.Factory }
     )
     private val deviceVM: UserVM by activityViewModels()
+
+    private val viewModel: SpeechResolversVM by activityViewModels(
+        {
+            MutableCreationExtras(defaultViewModelCreationExtras).apply {
+                set(
+                    SpeechResolversVM.RES_LIST_KEY,
+                    mapOf(
+                        commandResolver to SpeechResolversVM.ResolverItem(
+                            R.string.commands_parser_regex,
+                            R.drawable.ic_gears
+                        ),
+                    )
+                )
+            }
+        },
+        { SpeechResolversVM.Factory }
+    )
 
     private val locale: Locale = ResourcesManager.locale
 
@@ -294,21 +302,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     )
 
 
-    // Speech Recognition
-    // Launcher
-    private val speechRecognizerLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK && result.data != null) {
-            val spokenText = result.data!!
-                .getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
-                ?.get(0)
-
-            if (spokenText != null) onHearText(spokenText)
-            else binding?.sttResult?.text = getString(R.string.error_speech_unrecognised)
-        }
-    }
-
     private var silent = MutableLiveData(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -317,11 +310,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         requireContext().apply {
             // API Server foreground service
             apiServerVM.startService(AircraftController.TAG)
-            // Media Control foreground service
-            ServiceUtils.startService(
-                this,
-                Intent(this, AudioControlService::class.java),
-            )
 
             // Locale
             ResourcesManager.setLocale(this, Locale("he", "IL"))
@@ -355,7 +343,18 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         initRecordingControls()
         recordingVM.cameraIndex.postValue(cameraIndex)
 
-        binding?.btnMic?.setOnClickListener { startListening() }
+        binding?.btnMic?.setOnClickListener { viewModel.toggleListening(locale) }
+
+        viewModel.isListening.observe(viewLifecycleOwner) { listening ->
+            binding?.btnMic?.setImageResource(
+                if (listening) R.drawable.uxsdk_ic_alert_good
+                else R.drawable.ic_mic_white_36dp
+            )
+        }
+
+        viewModel.speech.observe(viewLifecycleOwner) {
+            binding?.sttResult?.text = it
+        }
 
         liveLocation.init(requireContext())
         liveLocation.locationCallback = object : LocationCallback() {
@@ -534,9 +533,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         apiServerVM.tunnelingUrl.observe(viewLifecycleOwner) {
             ToastUtils.showToast("tunneling url: $it")
         }
-        AudioControlService.mediaButtonPresses.observe(viewLifecycleOwner) {
-            startListening()
-        }
     }
 
     override fun onDestroyView() {
@@ -557,10 +553,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     override fun onDestroy() {
         super.onDestroy()
         apiServerVM.stopService()
-        ServiceUtils.stopService(
-            requireContext(),
-            AudioControlService::class.java
-        )
     }
 
     override fun onResume() {
@@ -1141,7 +1133,8 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
         lifecycleScope.launch(Dispatchers.Default) {
             try {
-                actionResolver = LlamaActionSequenceResolver(requireContext(),
+                actionResolver = LlamaActionSequenceResolver(
+                    requireContext(),
                     "qwen2.5-coder-1.5b-instruct-q4_0.gguf",
                     listOf("he"),
                     controller,
@@ -1210,73 +1203,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             }
         }
         return Pair(nameKey, target)
-    }
-
-    private fun startListening() {
-        val maxSilenceDurationMillis = 20000L
-        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(
-                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
-            )
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, locale.toLanguageTag())
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, locale.toLanguageTag())
-            putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, true)
-            putExtra(RecognizerIntent.EXTRA_PROMPT, getString(R.string.speech_prompt_listening))
-            putExtra(
-                RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS,
-                maxSilenceDurationMillis
-            )
-            putExtra(
-                RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS,
-                maxSilenceDurationMillis
-            )
-        }
-
-        try {
-            speechRecognizerLauncher.launch(intent)
-        } catch (_: Exception) {
-            binding?.sttResult?.text = getString(R.string.dji_msdk_error_common_unsupported)
-        }
-    }
-
-    private fun onHearText(spokenText: String) {
-        val rtv = binding?.sttResult
-        val stv = binding?.sttResult
-        val lr = requireContext().getLocalizedResources(locale)
-        val resolver = actionResolver
-
-        lifecycleScope.launch {
-            stv?.text = spokenText
-            rtv?.text = "processing..." // todo: hide/show spinner (observe resolverVm state
-
-            val match = withContext(Dispatchers.Default) {
-                resolver.resolveToExecute(spokenText, locale)
-            }
-
-            if (match == null) {
-                rtv?.text = lr.getString(R.string.error_speech_unrecognised)
-                SFXManager.playSfx(SFXManager.SFX.NOTIFY_TECHNICAL)
-                return@launch
-            }
-
-            val (_, function, desc) = match
-            SFXManager.playSfx(SFXManager.SFX.ACTION_CONFIRM)
-            speak(lr.getString(R.string.commands_response_fmt_accepted) + ". " + desc.response)
-            rtv?.text = desc.name
-
-            launch {
-                runCatching {
-                    withContext(Dispatchers.Default) {
-                        function()
-                    }
-                }.onFailure { e ->
-                    ToastUtils.showToast(e.message ?: e.toString())
-                    Log.e(TAG, "error: ${e.message}", e)
-                    rtv?.text = e.message
-                }
-            }
-        }
     }
 
     private fun enableSimulator() {

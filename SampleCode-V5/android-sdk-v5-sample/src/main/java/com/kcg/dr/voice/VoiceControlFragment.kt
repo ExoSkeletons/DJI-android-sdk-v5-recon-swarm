@@ -1,14 +1,10 @@
 package com.kcg.dr.voice
 
-import android.app.Activity
-import android.content.Intent
 import android.os.Bundle
-import android.speech.RecognizerIntent
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
@@ -19,7 +15,6 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.kcg.dr.flight.AircraftControlVM
 import com.kcg.dr.location.UserVM
-import com.kcg.dr.utils.CoroutineUtils.observe
 import com.kcg.dr.utils.ResourcesManager
 import com.kcg.dr.voice.SpeechResolversVM.ResolverViewState
 import dji.sampleV5.aircraft.R
@@ -70,19 +65,6 @@ class VoiceControlFragment : Fragment() {
     )
     private val locale = ResourcesManager.locale
 
-    private val speechRecognizerLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val spokenText = result.data
-                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
-                ?.firstOrNull()
-
-            spokenText?.let { viewModel.processSpeech(it, locale) }
-        }
-    }
-
-
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -126,14 +108,19 @@ class VoiceControlFragment : Fragment() {
             }
         }
 
-        binding.btnMic.setOnClickListener { startListening() }
+        binding.btnMic.setOnClickListener { viewModel.toggleListening(locale) }
 
-        viewModel.triggerListening.observe(viewLifecycleOwner) {
-            startListening()
+        viewModel.isListening.observe(viewLifecycleOwner) { enabled ->
+            binding.btnMic.setImageResource(
+                if (enabled) R.drawable.uxsdk_ic_customer_loading
+                else R.drawable.ic_mic_white_36dp
+            )
         }
-
-        viewModel.speechText.observe(viewLifecycleOwner) {
+        viewModel.speech.observe(viewLifecycleOwner) {
             binding.speech.text = it
+        }
+        viewModel.partialSpeech.observe(viewLifecycleOwner) {
+            // todo: handle partial results ui
         }
         viewModel.resolutionName.observe(viewLifecycleOwner) {
             binding.sttResult.text = it
@@ -144,25 +131,6 @@ class VoiceControlFragment : Fragment() {
         binding.rvResolvers.adapter = adapter
         viewModel.uiStates.observe(viewLifecycleOwner) { states ->
             adapter.submitList(states)
-        }
-    }
-
-    private fun startListening(locale: Locale = this.locale) {
-        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(
-                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
-            )
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, locale.toLanguageTag())
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, locale.toLanguageTag())
-            putExtra(RecognizerIntent.EXTRA_PROMPT, getString(R.string.speech_prompt_listening))
-        }
-
-        try {
-            speechRecognizerLauncher.launch(intent)
-        } catch (e: Exception) {
-            Log.e("VoiceControlFragment", "Failed to start speech recognition", e)
-            binding.speech.text = getString(R.string.dji_msdk_error_common_unsupported)
         }
     }
 
