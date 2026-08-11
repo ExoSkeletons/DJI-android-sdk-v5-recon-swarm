@@ -1,12 +1,10 @@
 package com.kcg.dr
 
 import android.app.Activity
-import android.app.AlertDialog
 import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Bundle
-import android.provider.Settings
 import android.speech.RecognizerIntent
 import android.speech.tts.TextToSpeech
 import android.text.TextUtils
@@ -18,7 +16,6 @@ import android.view.SurfaceView
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
-import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.MutableLiveData
@@ -1144,8 +1141,13 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
         lifecycleScope.launch(Dispatchers.Default) {
             try {
-                actionResolver = LlamaActionSequenceResolver(requireContext(), controller, deviceVM.metrics)
-                actionResolver.init("qwen2.5-coder-1.5b-instruct-q4_0.gguf")
+                actionResolver = LlamaActionSequenceResolver(requireContext(),
+                    "qwen2.5-coder-1.5b-instruct-q4_0.gguf",
+                    listOf("he"),
+                    controller,
+                    deviceVM.metrics
+                )
+                actionResolver.init()
                 /*    val actions = actionResolver.resolve(
                         """
                         hey drone. take off and fly up 10 meters, spin around slowly, wait a few seconds

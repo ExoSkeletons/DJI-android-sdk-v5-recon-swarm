@@ -109,13 +109,15 @@ class VoiceControlFragment : Fragment() {
         )
         actionResolver = LlamaActionSequenceResolver(
             requireContext(),
+            "qwen2.5-coder-1.5b-instruct-q4_0.gguf",
+            listOf("he"),
             controllerVM.controller,
             userVM.metrics,
         )
         lifecycleScope.launch(Dispatchers.Default) { // todo: init in vm
             ToastUtils.showShortToast("AI is Loading...")
             try {
-                actionResolver.init("qwen2.5-coder-1.5b-instruct-q4_0.gguf")
+                actionResolver.init()
                 ToastUtils.showShortToast("AI is Loaded!")
             } catch (e: Exception) {
                 Log.e("LlamaActionResolver", "error: ${e.message}", e)

@@ -5,15 +5,21 @@ import android.content.res.Resources
 import android.util.Log
 import com.arm.aichat.AiChat
 import com.arm.aichat.InferenceEngine
+import com.google.mlkit.nl.translate.TranslateLanguage
+import com.google.mlkit.nl.translate.Translation
+import com.google.mlkit.nl.translate.Translator
+import com.google.mlkit.nl.translate.TranslatorOptions
 import com.kcg.dr.api.actions.Action
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.location.UserMetrics
 import com.kcg.dr.utils.AssetUtils.getAssetOrExtract
 import com.kcg.dr.utils.LocaleUtils.getLocalizedResources
+import com.kcg.dr.voice.LlamaResolver.LlamaAndroidStage
 import com.kcg.dr.voice.SerialisedResolver.Companion.appendPropertyShortJson
 import com.kcg.dr.voice.SerialisedResolver.Companion.dereference
 import com.kcg.dr.voice.SpeechResolver.Description
 import io.ktor.http.parsing.ParseException
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.schema.generator.json.serialization.SerializationClassJsonSchemaGenerator
 import kotlinx.schema.json.ArrayContainer
 import kotlinx.schema.json.ArrayPropertyDefinition
@@ -32,7 +38,10 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import java.io.Closeable
+import java.io.File
 import java.util.Locale
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 interface SpeechResolver<T> {
     suspend fun resolve(speech: String, locale: Locale = Locale.getDefault()): T?
@@ -61,7 +70,7 @@ interface SpeechExecutor<T, R> : SpeechResolver<T> {
         }
 
     suspend fun resolveAndExecute(speech: String, locale: Locale = Locale.getDefault()): R? =
-        resolve(speech)?.let { execution(it)() }
+        resolve(speech, locale)?.let { execution(it)() }
 }
 
 interface CandidateResolver<C, M> : SpeechResolver<Pair<C, M>> {
@@ -314,11 +323,176 @@ interface SerialisedResolver<T> : SpeechResolver<T> {
     }
 }
 
-abstract class LlamaSerialisedResolver<T>(val context: Context) :
-    SerialisedResolver<T>, Closeable {
-    private val engine: InferenceEngine = AiChat.getInferenceEngine(context)
-    protected abstract val systemPrompt: String
+interface PipelineResolver<T> : SpeechResolver<T>, Closeable {
+    interface Stage : SpeechResolver<String>, Closeable {
+        override fun describe(t: String, locale: Locale): Description = Description(
+            this::class.simpleName.toString(), ""
+        )
+
+        suspend fun init() {}
+
+        override fun close() {}
+    }
+
+    val pipeline: List<Stage>
+
+    override suspend fun resolve(speech: String, locale: Locale): T? {
+        var text = speech
+        pipeline.forEach {
+            text = it.resolve(text, locale) ?: return null
+        }
+        return finalResolve(text, locale)
+    }
+
+    suspend fun finalResolve(speech: String, locale: Locale): T?
+
+    suspend fun init() = pipeline.forEach { it.init() }
+
+    override fun close() = pipeline.forEach { it.close() }
+}
+
+abstract class LlamaResolver<T>(override val pipeline: List<PipelineResolver.Stage>) :
+    PipelineResolver<T>, Closeable {
+    companion object {
+        const val TAG = "LlamaResolver"
+    }
+
+    interface LlamaStage : PipelineResolver.Stage, Closeable {
+        val modelName: String
+        val engine: InferenceEngine
+        val systemPrompt: String
+        suspend fun getModel(modelName: String): File
+
+        override suspend fun init() {
+            Log.d(TAG, "loading model $modelName...")
+            engine.loadModel(getModel(modelName).absolutePath)
+            Log.d(TAG, "model loaded")
+            Log.d(TAG, "setting system prompt...")
+            val t = System.currentTimeMillis()
+            engine.setSystemPrompt(systemPrompt)
+            Log.i(TAG, "system prompt set (took ${(System.currentTimeMillis() - t) / 1000}s)")
+        }
+
+        suspend fun preProcess(speech: String, locale: Locale): String = speech
+        suspend fun postProcess(result: String): String = result
+        suspend fun generateAndCollect(speech: String): String {
+            try {
+                val resultFlow = engine.sendUserPrompt(speech)
+                Log.i(TAG, "collecting result")
+                var result = ""
+                resultFlow.collect {
+                    result += it
+                }
+                return result
+            } catch (e: Exception) {
+                Log.e(TAG, "error in llama generation: ${e.message}", e)
+                return ""
+            }
+        }
+
+        override suspend fun resolve(speech: String, locale: Locale): String {
+            val preProcessed = preProcess(speech, locale)
+            val generated = generateAndCollect(preProcessed)
+            val postProcessed = postProcess(generated)
+            return postProcessed
+        }
+
+        override fun close() = engine.destroy()
+    }
+
+    abstract class LlamaAndroidStage(val context: Context, override val modelName: String) :
+        LlamaStage {
+        override val engine: InferenceEngine = AiChat.getInferenceEngine(context)
+        override suspend fun getModel(modelName: String): File =
+            context.getAssetOrExtract("models/$modelName")
+    }
+}
+
+
+class TranslatorStage(val translatedLanguages: List<String>) :
+    PipelineResolver.Stage, Closeable {
+    companion object {
+        const val TAG = "TranslatorStage"
+    }
+
+    private val translators = mutableMapOf<String, Translator>()
+
+    override suspend fun init() {
+        Log.d(TAG, "building translators... $translatedLanguages")
+        val targetLang = TranslateLanguage.ENGLISH
+        translators.values.forEach { it.close() }
+        translators.clear()
+        translatedLanguages.forEach {
+            if (it == targetLang) return@forEach
+            Log.d(TAG, "building translator $it->$targetLang")
+            Log.d(TAG, "downloading model $it->$targetLang")
+            val options = TranslatorOptions.Builder()
+                .setSourceLanguage(it)
+                .setTargetLanguage(targetLang)
+                .build()
+            val translator = Translation.getClient(options)
+            val t = System.currentTimeMillis()
+            suspendCancellableCoroutine { cont -> // todo: upgrade to await from Google Play coroutines thing
+                translator
+                    .downloadModelIfNeeded()
+                    .addOnSuccessListener {
+                        cont.resume(Unit)
+                    }.addOnFailureListener { e ->
+                        Log.e(TAG, "error downloading model: ${e.message}", e)
+                        cont.resumeWithException(e)
+                    }
+            }
+            Log.d(
+                TAG,
+                "model $it->$targetLang downloaded (took ${(System.currentTimeMillis() - t) / 1000}s)"
+            )
+            translators[it] = translator
+        }
+        Log.d(TAG, "translators built")
+    }
+
+    override suspend fun resolve(speech: String, locale: Locale): String {
+        var text = speech
+        text = text.trim().trimIndent()
+        val lang = TranslateLanguage.fromLanguageTag(locale.language)
+        Log.i(TAG, "lang from locale $locale (${locale.toLanguageTag()}) -> $lang")
+        translators[lang]?.let { tr ->
+            text = suspendCancellableCoroutine { cont ->
+                tr.translate(text)
+                    .addOnSuccessListener {
+                        Log.i(TAG, "translated: $it")
+                        cont.resume(it)
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e(TAG, "error translating: ${e.message}", e)
+                        cont.resume(text) // skip translation if failed
+                    }
+            }
+        }
+        return text
+    }
+
+    override fun close() = translators.values.forEach { it.close() }
+}
+
+abstract class LlamaSerialisedStage(context: Context, modelName: String) :
+    LlamaAndroidStage(context, modelName) {
     protected abstract val schema: String
+    override suspend fun postProcess(result: String): String =
+        SerialisedResolver.findJson(result) ?: result
+}
+
+class LlamaActionSequenceResolver(
+    context: Context,
+    modelName: String,
+    translatedLanguages: List<String>,
+    private val controller: AircraftController,
+    private val device: UserMetrics,
+) :
+    PipelineResolver<List<Action>>,
+    SerialisedResolver<List<Action>>,
+    SpeechExecutor<List<Action>, Unit> {
+    override val serializer: KSerializer<List<Action>> = ListSerializer(Action.serializer())
     override val decoder: Json
         get() = Json {
             ignoreUnknownKeys = true
@@ -331,106 +505,28 @@ abstract class LlamaSerialisedResolver<T>(val context: Context) :
             decodeEnumsCaseInsensitive = true
         }
 
-    suspend fun init(modelName: String) {
-        // todo: move to general init (modelName passed as text in constructor),
-        //  then init in super and use in VM
-        val modelFile = context.getAssetOrExtract("models/$modelName")
-        engine.loadModel(modelFile.absolutePath)
-        Log.d("LlamaActionResolver", "model loaded")
-        Log.d("LlamaActionResolver", "setting system prompt...")
-        val t1 = System.currentTimeMillis()
-        engine.setSystemPrompt(systemPrompt)
-        Log.d(
-            "LlamaActionResolver",
-            "system prompt set (took ${(System.currentTimeMillis() - t1) / 1000}s)"
-        )
-    }
-
-    protected fun preProcess(speech: String): String = speech.trim().trimIndent()
-    protected fun postProcess(result: String): String =
-        SerialisedResolver.findJson(result) ?: result
-
-    private suspend fun generateAndCollect(speech: String): String {
-        try {
-            val resultFlow = engine.sendUserPrompt(speech)
-            Log.i("LlamaActionResolver", "collecting result")
-            var result = ""
-            resultFlow.collect {
-                result += it
+    class ActionSequenceLlamaStage(
+        context: Context, modelName: String
+    ) : LlamaSerialisedStage(context, modelName) {
+        override val schema: String = buildString {
+            val generator = SerializationClassJsonSchemaGenerator(Json.Default)
+            val schema = generator.generateSchema(Action.serializer().descriptor)
+            val defs = schema.defs ?: emptyMap()
+            schema.oneOf?.forEach { definition ->
+                val aDef = dereference(definition, defs)
+                appendPropertyShortJson(
+                    aDef, defs,
+                    ((aDef as? ObjectPropertyDefinition)
+                        ?.properties?.get("type")
+                            as? StringPropertyDefinition)
+                        ?.constValue.toString().removeSurrounding("\"")
+                )
+                appendLine()
             }
-            return result
-        } catch (e: Exception) {
-            Log.e("LlamaActionResolver", "error in llama generation: ${e.message}", e)
-            return ""
         }
-    }
 
-    override suspend fun resolve(speech: String, locale: Locale): T? {
-        val preProcessedSpeech = preProcess(speech)
-        val t0 = System.currentTimeMillis()
-        Log.d("LlamaSerialisedResolver", "generating")
-        val result = generateAndCollect(preProcessedSpeech)
-        Log.d(
-            "LlamaSerialisedResolver",
-            "generation took: ${(System.currentTimeMillis() - t0) / 1000}s"
-        )
-        val processedResult = postProcess(result)
-        Log.d("LlamaSerialisedResolver", "parsed response:\n$processedResult")
-        return super.resolve(processedResult, locale)
-    }
-
-    override fun close() = engine.destroy()
-}
-
-class ActionResolver(
-    private val controller: AircraftController,
-    private val device: UserMetrics,
-) :
-    SerialisedResolver<Action>,
-    SpeechExecutor<Action, Unit> {
-    override val serializer: KSerializer<Action> = Action.serializer()
-    override fun describe(t: Action, locale: Locale): Description = Description(t.description)
-
-    override fun execution(t: Action): suspend () -> Unit = { t.act(controller, device) }
-}
-
-class LlamaActionSequenceResolver(
-    context: Context,
-    private val controller: AircraftController,
-    private val device: UserMetrics,
-) :
-    LlamaSerialisedResolver<List<Action>>(context),
-    SpeechExecutor<List<Action>, Unit> {
-    override val serializer: KSerializer<List<Action>> = ListSerializer(Action.serializer())
-    public override val schema: String = buildString {
-        val generator = SerializationClassJsonSchemaGenerator(Json.Default)
-        val schema = generator.generateSchema(Action.serializer().descriptor)
-        val defs = schema.defs ?: emptyMap()
-        schema.oneOf?.forEach { definition ->
-            val aDef = dereference(definition, defs)
-            appendPropertyShortJson(
-                aDef, defs,
-                ((aDef as? ObjectPropertyDefinition)
-                    ?.properties?.get("type")
-                        as? StringPropertyDefinition)
-                    ?.constValue.toString().removeSurrounding("\"")
-            )
-            appendLine()
-        }
-    }
-
-    override fun describe(t: List<Action>, locale: Locale): Description =
-        Description(t.joinToString(", ") { it.description })
-
-    override fun execution(t: List<Action>): suspend () -> Unit = {
-        controller.safely {
-            for (action in t)
-                action.act(this, device)
-        }
-    }
-
-    override val systemPrompt: String = "" +
-            """
+        override val systemPrompt: String = "" +
+                """
                # Role
     
                You are a speech-to-intent engine.
@@ -450,13 +546,34 @@ class LlamaActionSequenceResolver(
                - If a field is optional and the user did not explicitly or implicitly specify a value, omit the field.
                - Output valid JSON Array only.
             """.trimIndent() +
-            "\n" + "\n" +
-            "# Available Actions\n" +
-            schema + "\n" +
-            "\n" +
-            """
+                "\n" + "\n" +
+                "# Available Actions\n" +
+                schema + "\n" +
+                "\n" +
+                """
                # Output
     
                Return ONLY the JSON array.
             """.trimIndent()
+    }
+
+    val stage1 = TranslatorStage(translatedLanguages)
+    val stage2 = ActionSequenceLlamaStage(context, modelName)
+    override val pipeline: List<PipelineResolver.Stage> = listOf(stage1, stage2)
+
+    override suspend fun resolve(speech: String, locale: Locale): List<Action>? =
+        super<PipelineResolver>.resolve(speech, locale)
+
+    override suspend fun finalResolve(speech: String, locale: Locale): List<Action>? =
+        super<SerialisedResolver>.resolve(speech, locale)
+
+    override fun describe(t: List<Action>, locale: Locale): Description =
+        Description(t.joinToString(", ") { it.description })
+
+    override fun execution(t: List<Action>): suspend () -> Unit = {
+        controller.safely {
+            for (action in t)
+                action.act(this, device)
+        }
+    }
 }
