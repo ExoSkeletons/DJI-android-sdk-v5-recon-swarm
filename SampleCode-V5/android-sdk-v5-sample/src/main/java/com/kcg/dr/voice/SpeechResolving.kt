@@ -112,6 +112,12 @@ abstract class CommandResolver<A, M>(val context: Context) :
         val nameStringId: Int? = null,
         val func: (A) -> Unit = { }
     ) {
+        companion object {
+            val respFmtSimpleId get() = R.string.commands_response_fmt_simple
+            val respFmtExId get() = R.string.commands_response_fmt_executing
+            val respFmtGoId get() = R.string.commands_response_fmt_going
+        }
+
         fun prompt(resources: Resources): String = resources.getString(promptRegexStringId)
 
         fun name(resources: Resources): String =

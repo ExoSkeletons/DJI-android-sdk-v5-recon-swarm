@@ -23,22 +23,26 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.Priority
 import com.kcg.dr.api.ApiServerVM
 import com.kcg.dr.api.KeyActivator
+import com.kcg.dr.api.actions.FlyToMe
+import com.kcg.dr.api.actions.FollowMe
+import com.kcg.dr.api.actions.TrackMe
 import com.kcg.dr.flight.AircraftControlVM
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.flight.AircraftController.CircleFaceMode
 import com.kcg.dr.location.LiveLocationProvider
 import com.kcg.dr.location.UserVM
 import com.kcg.dr.utils.LocaleUtils.getLocalizedResources
-import com.kcg.dr.utils.LocationUtils
 import com.kcg.dr.utils.LocationUtils.bearingTo
 import com.kcg.dr.utils.LocationUtils.distanceTo
-import com.kcg.dr.utils.LocationUtils.translate
 import com.kcg.dr.utils.ResourcesManager
 import com.kcg.dr.utils.TTSManager.speak
 import com.kcg.dr.utils.as2D
 import com.kcg.dr.utils.asDjiLocation
 import com.kcg.dr.utils.atAlt
 import com.kcg.dr.voice.CommandResolver.Command
+import com.kcg.dr.voice.CommandResolver.Command.Companion.respFmtExId
+import com.kcg.dr.voice.CommandResolver.Command.Companion.respFmtGoId
+import com.kcg.dr.voice.CommandResolver.Command.Companion.respFmtSimpleId
 import com.kcg.dr.voice.LlamaActionSequenceResolver
 import com.kcg.dr.voice.RegexCommandResolver
 import com.kcg.dr.voice.SpeechResolversVM
@@ -69,17 +73,13 @@ import dji.v5.manager.datacenter.livestream.LiveVideoBitrateMode
 import dji.v5.manager.datacenter.livestream.StreamQuality
 import dji.v5.manager.interfaces.ICameraStreamManager
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 class VirtualStickFragmentVoCom : DJIFragment() {
@@ -119,7 +119,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     )
     private val deviceVM: UserVM by activityViewModels()
 
-    private val viewModel: SpeechResolversVM by activityViewModels(
+    private val resolversVM: SpeechResolversVM by activityViewModels(
         {
             MutableCreationExtras(defaultViewModelCreationExtras).apply {
                 set(
@@ -302,8 +302,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     )
 
 
-    private var silent = MutableLiveData(false)
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -343,16 +341,16 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         initRecordingControls()
         recordingVM.cameraIndex.postValue(cameraIndex)
 
-        binding?.btnMic?.setOnClickListener { viewModel.toggleListening(locale) }
+        binding?.btnMic?.setOnClickListener { resolversVM.toggleListening(locale) }
 
-        viewModel.isListening.observe(viewLifecycleOwner) { listening ->
+        resolversVM.isListening.observe(viewLifecycleOwner) { listening ->
             binding?.btnMic?.setImageResource(
                 if (listening) R.drawable.uxsdk_ic_alert_good
                 else R.drawable.ic_mic_white_36dp
             )
         }
 
-        viewModel.speech.observe(viewLifecycleOwner) {
+        resolversVM.speech.observe(viewLifecycleOwner) {
             binding?.sttResult?.text = it
         }
 
@@ -457,7 +455,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         binding?.btnFollowCam?.setOnClickListener { track() }
 
         // tts
-        silent.observe(viewLifecycleOwner) {
+        resolversVM.silent.observe(viewLifecycleOwner) {
             binding?.silent?.text = "Silent : " + if (it == true) "ON" else "OFF"
         }
         // demo text speech
@@ -841,10 +839,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     }
 
     private fun initVoiceCommandResolver() {
-        val respFmtSimpleId = R.string.commands_response_fmt_simple
-        val respFmtExId = R.string.commands_response_fmt_executing
-        val respFmtGoId = R.string.commands_response_fmt_going
-
         commandResolver = RegexCommandResolver(requireContext())
         commandResolver.setCommands(
             listOf(
@@ -909,7 +903,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                     controller.fly {
                         pitchCamera(-90.0)
                         ascendBy(3.0, velocity = 2.0)
-                        scanGround(1.0, cfg.scanVelocity, CircleFaceMode.OUTER)
+                        scanGround(1.0, cfg.scanVelocity, CircleFaceMode.OUTWARDS)
                         speakDemo()
                     }
                 },
@@ -973,8 +967,8 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                         selfScanLocation
                     )
                     val scanFaceMode =
-                        if (target == null || target == selfScanLocation) CircleFaceMode.OUTER
-                        else CircleFaceMode.CENTER
+                        if (target == null || target == selfScanLocation) CircleFaceMode.OUTWARDS
+                        else CircleFaceMode.INWARDS
                     ToastUtils.showToast("scanning${target?.let { " " + if (it == selfScanLocation) "you" else "$nameKey:\n$it" } ?: ""}")
 
                     controller.fly {
@@ -1025,7 +1019,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                         flyCircle(
                             r,
                             v,
-                            faceMode = CircleFaceMode.CENTER,
+                            faceMode = CircleFaceMode.INWARDS,
                             clockwise = true,
                             fromCenter = true
                         )
@@ -1033,7 +1027,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                         flyCircle(
                             r,
                             v,
-                            faceMode = CircleFaceMode.CENTER,
+                            faceMode = CircleFaceMode.INWARDS,
                             clockwise = false,
                             fromCenter = true
                         )
@@ -1041,7 +1035,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                         flyCircle(
                             r,
                             v,
-                            faceMode = CircleFaceMode.OUTER,
+                            faceMode = CircleFaceMode.OUTWARDS,
                             clockwise = true,
                             fromCenter = true
                         )
@@ -1049,7 +1043,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                         flyCircle(
                             r,
                             v,
-                            faceMode = CircleFaceMode.OUTER,
+                            faceMode = CircleFaceMode.OUTWARDS,
                             clockwise = false,
                             fromCenter = true
                         )
@@ -1058,7 +1052,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                         flyCircle(
                             r,
                             v,
-                            faceMode = CircleFaceMode.CENTER,
+                            faceMode = CircleFaceMode.INWARDS,
                             clockwise = true,
                             fromCenter = false
                         )
@@ -1066,7 +1060,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                         flyCircle(
                             r,
                             v,
-                            faceMode = CircleFaceMode.CENTER,
+                            faceMode = CircleFaceMode.INWARDS,
                             clockwise = false,
                             fromCenter = false
                         )
@@ -1074,7 +1068,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                         flyCircle(
                             r,
                             v,
-                            faceMode = CircleFaceMode.OUTER,
+                            faceMode = CircleFaceMode.OUTWARDS,
                             clockwise = true,
                             fromCenter = false
                         )
@@ -1082,7 +1076,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                         flyCircle(
                             r,
                             v,
-                            faceMode = CircleFaceMode.OUTER,
+                            faceMode = CircleFaceMode.OUTWARDS,
                             clockwise = false,
                             fromCenter = false
                         )
@@ -1126,7 +1120,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
                 Command(
                     R.string.commands_silence
-                ) { silent.postValue(silent.value != true) },
+                ) { resolversVM.silent.postValue(resolversVM.silent.value != true) },
             )
         )
 
@@ -1242,85 +1236,25 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         })
     }
 
-    private suspend fun awaitDeviceLocation(
-        timeout: Duration = Duration.INFINITE,
-        updateInterval: Duration = 100.milliseconds
-    ) {
-        require(timeout >= updateInterval) { "timeout $timeout to short, must be greater than update interval $updateInterval" }
-
-        Log.d("DeviceLocation", "awaiting location")
-        liveLocation.startRequesting()
-        val res = withTimeoutOrNull(timeout) {
-            while (isActive && deviceVM.location.value == null)
-                delay(updateInterval)
-        }
-        if (res == null) {
-            Log.d("DeviceLocation", "timed out waiting for location")
-            throw IllegalStateException("device location not available")
-        }
-        Log.d("DeviceLocation", "got location")
-    }
-
-
     private fun followMe() = controller.fly {
-        coroutineScope {
-            launch { awaitDeviceLocation() }
-            launch { takeoff() }
-        }
-
-        // If aircraft is far from a perch position, move closer
-        val dl = deviceVM.location.value!!
-        val pl = dl.atAlt(cfg.cruiseHeight)
-        if (abs(
-                ac.location.value?.as2D?.distanceTo(dl.as2D)
-                    ?.minus(cfg.followDistance) ?: 0.0
-            ) > cfg.flyToTolerance
-        ) {
-            ToastUtils.showToast("looking for device")
-            lookAtWithSpin(dl.as2D, dl.altitude)
-            ToastUtils.showToast("moving to perch")
-            flyToSticks(
-                pl.translate(
-                    cfg.followDistance,
-                    LocationUtils.RelativeDirection.BACKWARD,
-                    ac.heading.value
-                ),
-                maxVelocity = cfg.maxVelocity,
-                accelerationDist = cfg.accelerationDist,
-                decelerationDist = cfg.decelerationDist,
-            )
-        }
-
-        // Orbiting pattern
-        perchShoulder(
-            deviceVM.location,
-            cfg.cruiseHeight, cfg.followDistance,
-            followVelocity = cfg.followVelocity,
-            watch12Duration = cfg.watch12Time,
-            watch6Duration = cfg.watch6Time,
-        )
+        FollowMe(
+            cfg.cruiseHeight,
+            cfg.followDistance,
+            cfg.followVelocity,
+            cfg.accelerationDist,
+            cfg.decelerationDist
+        ).act(this, deviceVM.metrics)
     }
 
     private fun toMe() = controller.fly {
-        ToastUtils.showToast("following phone location")
-        coroutineScope {
-            launch { awaitDeviceLocation() }
-            launch { takeoff() }
-        }
-        flyToSticks(
-            deviceVM.location.value!!,
-            maxVelocity = cfg.maxVelocity,
-            accelerationDist = cfg.accelerationDist,
-            decelerationDist = cfg.decelerationDist
-        )
+        FlyToMe(
+            cfg.maxVelocity,
+            cfg.accelerationDist,
+            cfg.decelerationDist
+        ).act(this, deviceVM.metrics)
     }
 
     private fun track() = controller.fly {
-        if (!isFlying()) throw IllegalStateException("aircraft must be flying")
-
-        awaitDeviceLocation()
-        ToastUtils.showToast("camera tracking phone location")
-
-        lookAtAndTrack(deviceVM.location, fovTolerance = 17.0)
+        TrackMe().act(this, deviceVM.metrics)
     }
 }
