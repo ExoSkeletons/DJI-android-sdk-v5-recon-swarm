@@ -579,6 +579,8 @@ open class AircraftController(
     ) = coroutineScope {
         val start = ac.location.value ?: return@coroutineScope
 
+        takeoff()
+
         while (isActive) {
             delay(TRANSMISSION_INTERVAL)
 
@@ -624,6 +626,8 @@ open class AircraftController(
         var start = ac.location.value ?: return@coroutineScope
         var curTarget: LocationCoordinate3D? = target.value
         var targetReached = false
+
+        takeoff()
 
         while (isActive) {
             delay(TRANSMISSION_INTERVAL)
