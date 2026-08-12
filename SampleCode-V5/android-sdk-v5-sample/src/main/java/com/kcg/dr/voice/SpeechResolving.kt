@@ -5,6 +5,7 @@ import android.content.res.Resources
 import android.util.Log
 import com.arm.aichat.AiChat
 import com.arm.aichat.InferenceEngine
+import com.arm.aichat.isModelLoaded
 import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.Translator
@@ -367,6 +368,11 @@ abstract class LlamaResolver<T>(override val pipeline: List<PipelineResolver.Sta
 
         override suspend fun init() {
             Log.d(TAG, "loading model $modelName...")
+            if (engine.state.value.isModelLoaded) {
+                Log.d(TAG, "model already loaded")
+                return
+            }
+
             engine.loadModel(getModel(modelName).absolutePath)
             Log.d(TAG, "model loaded")
             Log.d(TAG, "setting system prompt...")
