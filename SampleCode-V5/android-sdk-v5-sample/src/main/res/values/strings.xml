@@ -523,12 +523,12 @@ More refer to the release notes." </string>
     <string name="commands_response_fmt_going">going %s</string>
 
     <string name="commands_stop">stop|halt|quit|end</string>
-    <string name="commands_takeoff">takeoff|take off|fly|sky|liftoff|wakeup|sunshine|morning</string>
-    <string name="commands_land">land|landing|ground|down|fall|perch|floor|shutdown|shut down|night|off|turn off|sleep|sunset|plan|planned</string>
+    <string name="command_takeoff">takeoff|take off|fly|sky|liftoff|wakeup|sunshine|morning</string>
+    <string name="command_land">land|landing|ground|down|fall|perch|floor|shutdown|shut down|night|off|turn off|sleep|sunset|plan|planned</string>
 
     <string name="commands_return_home">home|safe|house|run|ron|escape|evac|evacuate</string>
-    <string name="commands_follow_target">follow|follow target|follow him|target</string>
-    <string name="commands_follow_me">follow me|me</string>
+    <string name="command_follow_target">follow|follow target|follow him|target</string>
+    <string name="command_follow_me">follow me|me</string>
     <string name="commands_mission_follow_me_name">follow me</string>
     <string name="commands_follow_me_side">sideways|side|crab</string>
     <string name="commands_mission_follow_me_side_name">follow me, low visibility</string>
@@ -536,9 +536,9 @@ More refer to the release notes." </string>
     <string name="commands_scan_paths">scan for alternate paths|scan paths|scan path|paths|path</string>
     <string name="commands_more_info">report|reporting|more info|next info|next report</string>
 
-    <string name="commands_mission_scan">scan(?:\s+(.+))?</string>
+    <string name="command_mission_scan">scan(?:\s+(.+))?</string>
     <string name="commands_mission_scan_name">scan</string>
-    <string name="commands_mission_recon">reconnaissance|recon</string>
+    <string name="command_mission_recon">reconnaissance|recon</string>
     <string name="commands_mission_recon_name">recon</string>
     <string name="commands_mission_target_device">me|self|user|device</string>
 
@@ -552,10 +552,10 @@ More refer to the release notes." </string>
     </array>
 
     <string name="command_hello">hello|hi|heya|hiya|hey|wave</string>
-    <string name="commands_circle">circle|loop|circling|orbit</string>
-    <string name="commands_square">square|patrol|perimeter</string>
-    <string name="commands_cam_fan">fan</string>
-    <string name="commands_spin">spin|((spin|look) around)</string>
+    <string name="command_circle">circle|loop|circling|orbit</string>
+    <string name="command_square">square|patrol|perimeter</string>
+    <string name="command_cam_fan">fan</string>
+    <string name="command_spin">spin|((spin|look) around)</string>
 
     <string name="commands_silence">stealth|quiet|silence|dark</string>
 

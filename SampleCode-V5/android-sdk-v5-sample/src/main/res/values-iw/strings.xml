@@ -17,23 +17,23 @@
     <string name="commands_response_fmt_going">טיסה %s</string>
 
     <string name="commands_stop">עצירה|עצור|חד על|מספיק|חדל|סיום</string>
-    <string name="commands_takeoff">הַמְרָאָה|המראה|עוף|שמיים|תעופה|תמריא|תמריאו|אמרה|בוקר טוב|בוקר|להמריא|תעוף|המרה|רחפן עולה</string>
-    <string name="commands_land">נחיתה|מחיקה|תנחת|נחת|לרדת|לנחות|רצפה|לרצפה|נפילה|לילה טוב|לילה|לנחות|ליפול|פול|לישון|שינה|מחיקה|רחפן יורד|נוחת</string>
+    <string name="command_takeoff">ממריא|הַמְרָאָה|המראה|עוף|שמיים|תעופה|תמריא|תמריאו|אמרה|בוקר טוב|בוקר|להמריא|תעוף|המרה|רחפן עולה</string>
+    <string name="command_land">נחיתה|מחיקה|תנחת|נחת|לרדת|לנחות|רצפה|לרצפה|נפילה|לילה טוב|לילה|לנחות|ליפול|פול|לישון|שינה|מחיקה|רחפן יורד|נוחת</string>
     <string name="commands_return_home">חזרה|הביתה|חזור הביתה|לך הביתה</string>
-    <string name="commands_follow_target">עקוב מטרה|מטרה|מטעה|עקוב אחריו|עקוב אחריה|עקוב אחריהם|צפה</string>
+    <string name="command_follow_target">עקוב מטרה|מטרה|מטעה|עקוב אחריו|עקוב אחריה|עקוב אחריהם|צפה</string>
     <string name="commands_mission_follow_me_name">עקוב אחריי</string>
-    <string name="commands_follow_me">עקוב אחריי|אחריי|עקוב אחרי|אחרי|אלי</string>
+    <string name="command_follow_me">עקוב אחריי|אחריי|עקוב אחרי|אחרי|אלי</string>
     <string name="commands_mission_follow_me_side_name">עקוב אחריי, ראות מוגבלת</string>
     <string name="commands_follow_me_side">עקוב אחריי, ראות מוגבלת|((אחריי|אחרי|אחראי) (צדדי|צד))</string>
     <string name="commands_fly_waypoint">נקודת ציון|נקודת|נון צדיק|צדיק|נ.צ.|נצ|נו|ציון|נקודה</string>
     <string name="commands_scan_paths">איתור שביל עוקף|איתור|שביל|איתור שביל|שבילים|עוקפים|מעקף</string>
     <string name="commands_more_info">ממצאים|ממצאים נוספים|עוד ממצאים|עוד ממצאים|דיווח|אמצעי|נמצאים|ממצאי|מבצעים|דיווחים</string>
 
-    <string name="commands_mission_scan">
+    <string name="command_mission_scan">
         (?:סרוק|סריקה|סריקת|זרוק|סמוק|רוק|צחוק|חוק|ספיקה|סליקה|שריטה)(?:\\s+(.+))?
     </string>
     <string name="commands_mission_scan_name">סריקה</string>
-    <string name="commands_mission_recon">
+    <string name="command_mission_recon">
         (?:חקור|חקירה|חקירת|חכו|אור|קור|חור)(?:\\s+(.+))?
     </string>
     <string name="commands_mission_recon_name">חקירה</string>
@@ -48,19 +48,19 @@
     </array>
 
     <string name="command_hello">שלום|היי|הלו|מה נשמע|מה קורה|אהלן|נפנוף|נפנף</string>
-    <string name="commands_square">ריבוע|קיבוע|ריבוי</string>
-    <string name="commands_circle">עיגול|מעגל|מאגר|עגול</string>
-    <string name="commands_cam_fan">מניפה</string>
-    <string name="commands_spin">סיבוב|תסתובב|תסתובבי|סביב|סביבך</string>
+    <string name="command_square">טיסה בריבוע|ריבוע|קיבוע|ריבוי</string>
+    <string name="command_circle">טיסה במעגל|עיגול|מעגל|מאגר|עגול</string>
+    <string name="command_cam_fan">מניפה</string>
+    <string name="command_spin">מסתובב|סיבוב|תסתובב|תסתובבי|סביב|סביבך</string>
 
     <string name="commands_silence">שקט|השקט|הס|חשאי|חושך|צל|חשאיות</string>
 
-    <string name="command_go_up">למעלה|טיסה למעלה|עלה|לך למעלה|גבוה|עליה</string>
-    <string name="command_go_forward">קדימה|טיסה קדימה|סרוק קדימה|אמא</string>
-    <string name="command_go_down">למטה|טיסה למטה|רד|לך למטה|נמוך|ירידה</string>
-    <string name="command_go_backward">אחורה|טיסה אחורה|לך אחורה|חזור|מאחור</string>
-    <string name="command_go_left">ימינה|טיסה ימינה|לך ימינה|לימין</string>
-    <string name="command_go_right">שמאלה|טיסה שמאלה|לשמאל|לך שמאלה</string>
+    <string name="command_go_up">למעלה|(טיסה|טוס|לך|עלה|עליה|תעלה) (למעלה|גבוה)</string>
+    <string name="command_go_forward">קדימה|(טיסה|טוס|לך|סרוק) (קדימה|אמא)</string>
+    <string name="command_go_down">למטה|(טיסה|טוס|לך|רד|תלך|תרד) (למטה|נמוך)|ירידה</string>
+    <string name="command_go_backward">אחורה|(טיסה|טוס|לך) (אחורה|חזור|מאחור)</string>
+    <string name="command_go_left">ימינה|(טיסה|טוס|לך) (ימינה|לימין)</string>
+    <string name="command_go_right">שמאלה|(טיסה|טוס|לך) (שמאלה|לשמאל|שמאלה)</string>
 
     <string name="commands_parser_title">מזהה פקודות</string>
 
