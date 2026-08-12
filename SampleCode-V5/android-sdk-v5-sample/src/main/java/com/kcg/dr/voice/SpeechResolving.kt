@@ -18,6 +18,7 @@ import com.kcg.dr.voice.LlamaResolver.LlamaAndroidStage
 import com.kcg.dr.voice.SerialisedResolver.Companion.appendPropertyShortJson
 import com.kcg.dr.voice.SerialisedResolver.Companion.dereference
 import com.kcg.dr.voice.SpeechResolver.Description
+import dji.sampleV5.aircraft.R
 import io.ktor.http.parsing.ParseException
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.schema.generator.json.serialization.SerializationClassJsonSchemaGenerator
@@ -410,7 +411,30 @@ abstract class LlamaResolver<T>(override val pipeline: List<PipelineResolver.Sta
 }
 
 
-class TranslatorStage(val translatedLanguages: List<String>) :
+class CommandsRegexCanoniseStage(
+    private val context: Context,
+    private val prompts: Collection<Int>
+) : PipelineResolver.Stage {
+    override suspend fun resolve(speech: String, locale: Locale): String? {
+        val lr = context.getLocalizedResources(locale)
+        var text = speech.trim().trimIndent()
+        Log.i("RegexStage", "canonising: $text")
+        prompts.forEach {
+            val promptsString = lr.getString(it)
+            val canonical = promptsString.split("|").first()
+            val regex = promptsString.toRegex(RegexOption.IGNORE_CASE)
+            text = regex.replace(text, canonical)
+        }
+        Log.i("RegexStage", "canonised: $text")
+        return text
+    }
+
+}
+
+class TranslatorStage(
+    val translatedLanguages: List<String>,
+    val targetLang: String = TranslateLanguage.ENGLISH
+) :
     PipelineResolver.Stage, Closeable {
     companion object {
         const val TAG = "TranslatorStage"
@@ -420,7 +444,6 @@ class TranslatorStage(val translatedLanguages: List<String>) :
 
     override suspend fun init() {
         Log.d(TAG, "building translators... $translatedLanguages")
-        val targetLang = TranslateLanguage.ENGLISH
         translators.values.forEach { it.close() }
         translators.clear()
         translatedLanguages.forEach {
@@ -456,7 +479,7 @@ class TranslatorStage(val translatedLanguages: List<String>) :
         var text = speech
         text = text.trim().trimIndent()
         val lang = TranslateLanguage.fromLanguageTag(locale.language)
-        Log.i(TAG, "lang from locale $locale (${locale.toLanguageTag()}) -> $lang")
+        Log.i(TAG, "lang from $locale (${locale.language}) : $lang -> $targetLang")
         translators[lang]?.let { tr ->
             text = suspendCancellableCoroutine { cont ->
                 tr.translate(text)
@@ -469,7 +492,7 @@ class TranslatorStage(val translatedLanguages: List<String>) :
                         cont.resume(text) // skip translation if failed
                     }
             }
-        }
+        } ?: Log.w(TAG, "no translator for $lang")
         return text
     }
 
@@ -558,9 +581,30 @@ class LlamaActionSequenceResolver(
             """.trimIndent()
     }
 
+    val stage0 = CommandsRegexCanoniseStage(
+        context, setOf(
+            R.string.command_hello,
+            R.string.command_takeoff,
+            R.string.command_land,
+            R.string.command_spin,
+            R.string.command_go_up,
+            R.string.command_go_down,
+            R.string.command_go_forward,
+            R.string.command_go_backward,
+            R.string.command_go_left,
+            R.string.command_go_right,
+            R.string.command_cam_fan,
+            R.string.command_circle,
+            R.string.command_square,
+            R.string.command_follow_me,
+            R.string.command_follow_target,
+            R.string.command_mission_recon,
+            R.string.command_mission_scan,
+        )
+    )
     val stage1 = TranslatorStage(translatedLanguages)
     val stage2 = ActionSequenceLlamaStage(context, modelName)
-    override val pipeline: List<PipelineResolver.Stage> = listOf(stage1, stage2)
+    override val pipeline: List<PipelineResolver.Stage> = listOf(stage0, stage1, stage2)
 
     override suspend fun resolve(speech: String, locale: Locale): List<Action>? =
         super<PipelineResolver>.resolve(speech, locale)
