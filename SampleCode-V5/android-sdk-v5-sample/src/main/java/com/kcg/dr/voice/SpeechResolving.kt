@@ -500,6 +500,7 @@ class TranslatorStage(
             val translator = Translation.getClient(options)
             val t = System.currentTimeMillis()
             suspendCancellableCoroutine { cont -> // todo: upgrade to await from Google Play coroutines thing
+                Log.d(TAG, "downloading model $it->$targetLang")
                 translator
                     .downloadModelIfNeeded()
                     .addOnSuccessListener {
@@ -507,6 +508,9 @@ class TranslatorStage(
                     }.addOnFailureListener { e ->
                         Log.e(TAG, "error downloading model: ${e.message}", e)
                         cont.resumeWithException(e)
+                    }.addOnCanceledListener {
+                        Log.d(TAG, "download cancelled")
+                        cont.resume(Unit)
                     }
             }
             Log.d(
@@ -537,6 +541,7 @@ class TranslatorStage(
             }
         } ?: Log.w(TAG, "no translator for $lang")
         return text
+            .replace(" feet", " meters")
     }
 
     override fun close() = translators.values.forEach { it.close() }
