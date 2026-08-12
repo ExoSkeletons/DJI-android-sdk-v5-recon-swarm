@@ -566,7 +566,7 @@ class LlamaActionSequenceResolver(
                - Use ONLY the available system actions and fields below.
                - Use the EXACT "type" value, field names & enum constants from the schemas.
                - Infer the user's intent and populate schema fields accordingly.
-               - Use schema comments to infer a field's semantics.
+               - Comments in the input Schema hint of each field's semantics. Output needs no comments.
                - If a field is optional and the user did not explicitly or implicitly specify a value, omit the field.
                - Output valid JSON Array only.
             """.trimIndent() +
