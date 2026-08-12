@@ -53,7 +53,7 @@
 
     <string name="command_go_up">למעלה|(טיסה|טוס|לך|עלה|עליה|תעלה) (למעלה|גבוה)</string>
     <string name="command_go_forward">קדימה|(טיסה|טוס|לך|סרוק) (קדימה|אמא)</string>
-    <string name="command_go_down">למטה|(טיסה|טוס|לך|רד|תלך|תרד) (למטה|נמוך)|ירידה</string>
+    <string name="command_go_down">למטה|תרד|למטה|ירידה(טיסה|טוס|לך|רד|תלך|תרד) (למטה|נמוך)</string>
     <string name="command_go_backward">אחורה|(טיסה|טוס|לך) (אחורה|חזור|מאחור)</string>
     <string name="command_go_left">ימינה|(טיסה|טוס|לך) (ימינה|לימין)</string>
     <string name="command_go_right">שמאלה|(טיסה|טוס|לך) (שמאלה|לשמאל|שמאלה)</string>
