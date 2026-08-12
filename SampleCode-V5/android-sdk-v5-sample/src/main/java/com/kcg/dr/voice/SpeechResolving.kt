@@ -438,11 +438,35 @@ class CommandsRegexCanoniseStage(
         val lr = context.getLocalizedResources(locale)
         var text = speech.trim().trimIndent()
         Log.i("RegexStage", "canonising: $text")
-        prompts.forEach {
-            val promptsString = lr.getString(it)
-            val canonical = promptsString.split("|").first()
+        prompts.forEach { promptsId ->
+            val promptsString = lr.getString(promptsId)
+            if (!promptsString.contains("|")) return@forEach
+
+            val canonical = promptsString.split("|").first().trim()
             val regex = promptsString.toRegex(RegexOption.IGNORE_CASE)
-            text = regex.replace(text, canonical)
+            try {
+                text = regex.replace(text) { match ->
+                    if (match.groups.isNotEmpty())
+                        match.groups[1]
+                            // If group 1 exists and isn't the start of the match, it's meant as a parameter (e.g. location)
+                            ?.takeIf { it.range.first > match.range.first }
+                            ?.let { g ->
+                                val prefix =
+                                    match.value.substring(0, g.range.first - match.range.first)
+                                val suffix =
+                                    match.value.substring(g.range.first - match.range.first)
+
+                                val leadingSpace = prefix.takeWhile { it.isWhitespace() }
+                                val trailingSpace = prefix.takeLastWhile { it.isWhitespace() }
+
+                                return@replace leadingSpace + Regex.escapeReplacement(canonical) + trailingSpace + suffix
+                            }
+
+                    Regex.escapeReplacement(canonical)
+                }
+            } catch (e: Exception) {
+                Log.e("RegexCanonise", "Error processing prompt $promptsId: ${e.message}")
+            }
         }
         Log.i("RegexStage", "canonised: $text")
         return text
