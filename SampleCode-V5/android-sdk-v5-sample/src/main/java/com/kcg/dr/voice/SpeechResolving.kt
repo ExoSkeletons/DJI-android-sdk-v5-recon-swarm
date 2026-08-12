@@ -290,6 +290,7 @@ interface SerialisedResolver<T> : SpeechResolver<T> {
             text = text
                 .substringAfterLast("```json")
                 .substringBeforeLast("```")
+                .replace(Regex("//[^\r\n]*"), "")
 
             val start = text.indexOfFirst { it == '{' || it == '[' }
             if (start == -1) return null
