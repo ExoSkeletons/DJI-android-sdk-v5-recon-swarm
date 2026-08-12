@@ -492,7 +492,6 @@ class TranslatorStage(
         translatedLanguages.forEach {
             if (it == targetLang) return@forEach
             Log.d(TAG, "building translator $it->$targetLang")
-            Log.d(TAG, "downloading model $it->$targetLang")
             val options = TranslatorOptions.Builder()
                 .setSourceLanguage(it)
                 .setTargetLanguage(targetLang)
@@ -602,6 +601,8 @@ class LlamaActionSequenceResolver(
                # Role
     
                You are a speech-to-intent engine.
+               
+               The user wants to perform a sequence of one or more actions.
     
                Translate & Convert the user's natural language request into a JSON array of system actions.
     
@@ -613,10 +614,15 @@ class LlamaActionSequenceResolver(
                - Never invent actions or fields. Never rephrase their names.
                - Use ONLY the available system actions and fields below.
                - Use the EXACT "type" value, field names & enum constants from the schemas.
-               - Infer the user's intent and populate schema fields accordingly.
-               - Comments in the input Schema hint of each field's semantics. Output needs no comments.
-               - If a field is optional and the user did not explicitly or implicitly specify a value, omit the field.
                - Output valid JSON Array only.
+              
+              # Semantics
+              
+               - Infer the user's intent and populate schema fields accordingly.
+               - If field is optional and the user did not explicitly or implicitly specify a value, you must omit the field.
+               - Comments in the input Schema provide each field's semantics. Don't output comments.
+               - Grammar in request like "x and y", "x then y", "do x, y" hints at multiple actions.
+                    -- for ex.: "takeoff, fly forward ... then fly upwards ... and then ..." is multiple actions.
             """.trimIndent() +
                 "\n" + "\n" +
                 "# Available Actions\n" +
@@ -629,7 +635,7 @@ class LlamaActionSequenceResolver(
             """.trimIndent()
     }
 
-    val stage0 = CommandsRegexCanoniseStage(
+    val regularisationStage = CommandsRegexCanoniseStage(
         context, setOf(
             R.string.command_hello,
             R.string.command_takeoff,
@@ -650,9 +656,11 @@ class LlamaActionSequenceResolver(
             R.string.command_mission_scan,
         )
     )
-    val stage1 = TranslatorStage(translatedLanguages)
-    val stage2 = ActionSequenceLlamaStage(context, modelName)
-    override val pipeline: List<PipelineResolver.Stage> = listOf(stage0, stage1, stage2)
+    override val pipeline: List<PipelineResolver.Stage> = listOf(
+        regularisationStage,
+        TranslatorStage(translatedLanguages),
+        ActionSequenceLlamaStage(context, modelName),
+    )
 
     override suspend fun resolve(speech: String, locale: Locale): List<Action>? =
         super<PipelineResolver>.resolve(speech, locale)
