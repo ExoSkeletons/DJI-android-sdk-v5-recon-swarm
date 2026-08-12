@@ -80,15 +80,39 @@ class VoiceControlFragment : Fragment() {
 
         ResourcesManager.setLocale(requireContext(), Locale("he", "IL"))
 
+        val controller = controllerVM.controller
         commandResolver = RegexCommandResolver(requireContext())
         commandResolver.setCommands(
             listOf(
-                CommandResolver.Command(
-                    R.string.command_hello,
-                    R.string.commands_response_fmt_simple,
+                Command(R.string.commands_stop) { controller.stop() },
+                Command(R.string.command_takeoff, respFmtSimpleId) { controller.fly { takeoff() } },
+                Command(R.string.command_land, respFmtExId) { controller.fly { land() } },
+                Command(R.string.command_hello, respFmtSimpleId) { controller.fly { wave() } },
+                Command(R.string.commands_silence) { viewModel.silent.postValue(viewModel.silent.value != true) },
+                Command(R.string.commands_info_battery) {
+                    requireContext().speak(
+                        R.string.report_fmt_battery,
+                        controller.ac.batteryPercent.value,
+                        locale = locale,
+                    )
+                },
+
+                Command(
+                    R.string.commands_return_home,
+                    respFmtExId
+                ) { controller.fly { FlyToMe().act(this, userVM.metrics) } },
+                Command(
+                    R.string.command_follow_me,
+                    respFmtExId,
+                    R.string.commands_mission_follow_me_name
                 ) {
-                    ToastUtils.showShortToast("hello!")
-                }
+                    controller.fly {
+                        FollowMe(
+                            cruiseHeight = 7.0,
+                            followDistance = 5.0,
+                        ).act(this, userVM.metrics)
+                    }
+                },
             )
         )
         actionResolver = LlamaActionSequenceResolver(
