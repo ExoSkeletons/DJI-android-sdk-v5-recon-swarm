@@ -154,6 +154,7 @@ class VoiceControlFragment : Fragment() {
             binding.speech.text = it
         }
         viewModel.partialSpeech.observe(viewLifecycleOwner) {
+            binding.speech.text = it
             // todo: handle partial results ui
         }
         viewModel.resolutionName.observe(viewLifecycleOwner) {
