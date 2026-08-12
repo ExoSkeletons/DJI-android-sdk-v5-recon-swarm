@@ -14,7 +14,7 @@ import kotlinx.serialization.Serializable
 @SerialName("fly_circle")
 data class Circle(
     val radius: Double,
-    @property:SerialDescription("0..6 (m/s)")
+    @property:SerialDescription("1..6 (m/s)")
     val velocity: Double,
     @property:SerialDescription("Repeat count")
     val count: Double = 1.0,

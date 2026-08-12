@@ -17,6 +17,7 @@ import kotlin.math.abs
 sealed class FollowMe(
     val cruiseHeight: Double = 15.0,
     val followDistance: Double = 4.0,
+    @property:SerialDescription("1..8 (m/s)")
     val maxVelocity: Double = 8.0,
     val accelerationDist: Double = 2.0,
     val decelerationDist: Double = 4.0,
