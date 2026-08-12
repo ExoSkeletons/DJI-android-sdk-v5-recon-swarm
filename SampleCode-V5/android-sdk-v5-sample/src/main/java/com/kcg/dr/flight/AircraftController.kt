@@ -337,34 +337,34 @@ open class AircraftController(
         runCatching {
             block()
         }.onFailure { e ->
-            Log.w(TAG, "safely onFailure: ${e.toString()}: ${e.message.toString()}")
+            Log.i(TAG, "[${coroutineContext.job}]: safely onFailure: ${e.toString()}: ${e.message.toString()}")
             when (e) {
                 is ControllerOverrideException -> {
-                    Log.w(TAG, "manual override in flight")
+                    Log.w(TAG, "[${coroutineContext.job}]: manual override in flight")
                     brake(true)
                     ac.stop(true)
                     onRCOverride()
                 }
 
                 is CancellationException -> {
-                    Log.w(TAG, "cancellation in flight")
+                    Log.w(TAG, "[${coroutineContext.job}]: cancellation in flight")
                     brake()
                 }
 
                 is DJIErrorException -> {
                     val error = e.error
-                    Log.w(TAG, "${error.errorType()} error in flight: ${error.toJson()}", e)
+                    Log.w(TAG, "[${coroutineContext.job}]: ${error.errorType()} error in flight: ${error.toJson()}", e)
                     brake(true)
                 }
 
                 else -> {
-                    Log.w(TAG, "exception in flight: ${e.toString()}: ${e.message.toString()}", e)
+                    Log.w(TAG, "[${coroutineContext.job}]: exception in flight: ${e.toString()}: ${e.message.toString()}", e)
                     brake(true)
                 }
             }
             throw e
         }.onSuccess {
-            Log.d(TAG, "safely onSuccess")
+            Log.d(TAG, "[${coroutineContext.job}]: safely onSuccess")
             if (isActive) brake()
         }
     }
@@ -376,29 +376,29 @@ open class AircraftController(
         val prevFlight = flightJob
         prevFlight?.let {
             if (it.isActive) {
-                Log.w(TAG, "Previous flight $it is still active.")
+                Log.w(TAG, "Previous flight [$it] is still active.")
                 Log.d(TAG, "Cancelling previous flight scope...")
                 it.cancel(CancellationException("New flight wants to start"))
             }
         }
         flightJob = scope.launch {
             val job = this.coroutineContext.job
-            Log.d(TAG, "Launch new flight scope")
+            Log.d(TAG, "Launched new flight scope $this, job is [$job]")
             prevFlight?.let {
-                Log.i(TAG, "Joining previous flight...")
+                Log.i(TAG, "[${job}]: Joining previous flight [$it]...")
                 // Wait for the previous flight to actually finish,
                 // after inner cancellation
                 it.join()
-                Log.i(TAG, "Joining previous flight... prev finished")
+                Log.i(TAG, "[${job}]: Joined previous flight. prev [$it] finished")
             }
             try {
-                Log.d(TAG, "flight mission started (in flight job)")
+                Log.d(TAG, "flight mission started (in flight job [$job])")
                 runCatching {
                     safely(onRCOverride) { block() }
                 }.onFailure { e ->
                     if (e is CancellationException) throw e
                 }
-                Log.d(TAG, "flight mission success")
+                Log.i(TAG, "[$job]: flight mission success")
             } finally {
                 if (flightJob === job)
                     flightJob = null
@@ -485,7 +485,7 @@ open class AircraftController(
             }
 
             collectJob.cancelAndJoin()
-            Log.d(TAG, "flight param transmission job cancelled")
+            Log.w(TAG, "flight param transmission job cancelled")
         }
     }
 
@@ -577,7 +577,12 @@ open class AircraftController(
         decelerationDist: Double = 5.0,
         approachTolerance: Double = 1.0,
     ) = coroutineScope {
-        val start = ac.location.value ?: return@coroutineScope
+        val start = ac.location.value ?: run {
+            Log.d(TAG, "flyTo gps fail - aircraft location is null")
+            return@coroutineScope
+        }
+
+        Log.d(TAG, "flying to gps $target")
 
         takeoff()
 
@@ -623,9 +628,14 @@ open class AircraftController(
         approachTolerance: Double = 2.0,
         escapeTolerance: Double = 1.0
     ) = coroutineScope {
-        var start = ac.location.value ?: return@coroutineScope
+        var start = ac.location.value ?: run {
+            Log.d(TAG, "followSticks fail - aircraft location is null")
+            return@coroutineScope
+        }
         var curTarget: LocationCoordinate3D? = target.value
         var targetReached = false
+
+        Log.i(TAG, "followSticks $curTarget")
 
         takeoff()
 
@@ -644,9 +654,11 @@ open class AircraftController(
             if (!targetReached && dist3D <= approachTolerance) {
                 targetReached = true
                 start = cur
+                Log.i(TAG, "target reached with tolerance $approachTolerance")
                 targetReachedCallback?.onSuccess(cur)
             }
             if (targetReached && dist3D > approachTolerance + escapeTolerance) {
+                Log.i(TAG, "target escaped tolerance")
                 targetReached = false
             }
 
@@ -784,7 +796,8 @@ open class AircraftController(
         targetToleranceDegrees: Double = 1.0,
         callback: CommonCallbacks.CompletionCallback = DEFAULT_CALLBACK
     ) = coroutineScope {
-        Log.d(TAG, "spinning by $angleDegrees degrees")
+        Log.i(TAG, "spinning by $angleDegrees degrees")
+
         require(velocity > 0) { "velocity must be positive" }
         require(minVelocity >= 0) { "min velocity must be non-negative" }
         require(velocity >= minVelocity) { "min velocity cannot be greater than target velocity" }
@@ -812,7 +825,10 @@ open class AircraftController(
             lastYaw = currentYaw
 
             val remaining = totalAngle - cumulativeYaw
-            if (remaining <= targetToleranceDegrees) break
+            if (remaining <= targetToleranceDegrees) {
+                Log.i(TAG, "spin reached tolerance $targetToleranceDegrees")
+                break
+            }
 
             // Smooth ramping using fixed ramp angle
             val rampAngleDegrees = 20.0
@@ -838,8 +854,10 @@ open class AircraftController(
     enum class CircleFaceMode {
         @SerialDescription("inwards at circle center")
         INWARDS,
+
         @SerialDescription("outwards away from center")
         OUTWARDS,
+
         @SerialDescription("along tangent")
         TANGENT,
         TANGENT_BACK
@@ -1017,7 +1035,10 @@ open class AircraftController(
         fovTolerance: Double = 0.0,
         angleOffset: Double = 0.0,
     ) {
-        val currentLocation = ac.location.value ?: return
+        val currentLocation = ac.location.value ?: run {
+            Log.w(TAG, "lookAtWithSpin: no current location")
+            return
+        }
         val heading = ac.heading.value
         val currentHeight = ac.height.value
 
@@ -1142,6 +1163,7 @@ open class AircraftController(
         escapeTolerance: Double = 0.0,
         block: suspend () -> Unit
     ) = coroutineScope {
+        Log.i(TAG, "whileFollowing")
         CoroutineUtils.whileSuspendedBy({
             followSticks(
                 targetLocation,
@@ -1185,10 +1207,21 @@ open class AircraftController(
         watch12Duration: Duration = Duration.INFINITE,
         watch6Duration: Duration? = null,
     ) = coroutineScope {
+        Log.d(
+            TAG,
+            "perching shoulder of ${targetLocation.value} at $perchHeight m, $perchDistance m away"
+        )
+
         val perchLocation = MediatorLiveData<LocationCoordinate3D>().apply {
             fun update() {
-                val tl = targetLocation.value ?: return
-                val al = ac.location.value ?: return
+                val tl = targetLocation.value ?: run {
+                    Log.w(TAG, "perch target location is null")
+                    return@update
+                }
+                val al = ac.location.value ?: run {
+                    Log.w(TAG, "perch aircraft location is null")
+                    return@update
+                }
 
                 // If live target heading is not specified, simply calc the heading to target (facing away from us).
                 val heading = targetHeading?.value ?: al.as2D.bearingTo(tl.as2D)
