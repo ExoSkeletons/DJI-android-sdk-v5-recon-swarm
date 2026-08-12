@@ -391,12 +391,19 @@ abstract class LlamaResolver<T>(override val pipeline: List<PipelineResolver.Sta
         suspend fun postProcess(result: String): String = result
         suspend fun generateAndCollect(speech: String): String {
             try {
+                val t0 = System.currentTimeMillis()
                 val resultFlow = engine.sendUserPrompt(speech)
                 Log.i(TAG, "collecting result")
                 var result = ""
+                var firstTokenTime = -1L
                 resultFlow.collect {
+                    if (firstTokenTime == -1L) {
+                        firstTokenTime = System.currentTimeMillis()
+                        Log.i(TAG, "Time to first token: ${firstTokenTime - t0}ms")
+                    }
                     result += it
                 }
+                Log.i(TAG, "Total generation time: ${System.currentTimeMillis() - t0}ms")
                 return result
             } catch (e: Exception) {
                 Log.e(TAG, "error in llama generation: ${e.message}", e)
