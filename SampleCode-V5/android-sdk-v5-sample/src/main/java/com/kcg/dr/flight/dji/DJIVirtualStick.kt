@@ -17,15 +17,15 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
 class DJIVirtualStick(private val stickVM: VirtualStickVM) : IVirtualStick {
-    fun isVirtualStickEnabled(): Boolean =
-        stickVM.currentVirtualStickStateInfo.value?.state?.isVirtualStickEnable == true
+    val isVirtualStickEnabled: Boolean
+        get() = stickVM.currentVirtualStickStateInfo.value?.state?.isVirtualStickEnable == true
 
-    fun isVirtualStickAdvancedModeEnabled(): Boolean =
-        stickVM.currentVirtualStickStateInfo.value?.state?.isVirtualStickAdvancedModeEnabled == true
+    val isVirtualStickAdvancedModeEnabled: Boolean
+        get() = stickVM.currentVirtualStickStateInfo.value?.state?.isVirtualStickAdvancedModeEnabled == true
 
-    suspend fun takeStickControl() {
+    suspend fun acquireStickControl() {
         Log.d(TAG, "enabling virtual stick...")
-        if (isVirtualStickEnabled()) {
+        if (isVirtualStickEnabled) {
             Log.d(TAG, "virtual stick already enabled")
             return
         }
@@ -35,25 +35,18 @@ class DJIVirtualStick(private val stickVM: VirtualStickVM) : IVirtualStick {
         Log.d(TAG, "virtual stick enabled")
     }
 
-    suspend fun requireVirtualStick() {
-        if (!isVirtualStickEnabled()) {
-            Log.d(TAG, "virtual stick not enabled")
-            takeStickControl()
-        } else Log.d(TAG, "virtual stick already enabled")
-    }
-
-    suspend fun requireVirtualStickAdvancedMode(
+    suspend fun acquireVirtualStickAdvancedMode(
         onFailure: () -> Unit = { },
-        waitFor: Duration = 200.milliseconds,
+        waitFor: Duration = 300.milliseconds,
     ) {
-        requireVirtualStick()
+        acquireStickControl()
 
-        if (!isVirtualStickAdvancedModeEnabled()) {
+        if (!isVirtualStickAdvancedModeEnabled) {
             Log.d(TAG, "virtual stick advanced mode not enabled")
             Log.d(TAG, "enabling virtual stick advanced mode...")
             stickVM.enableVirtualStickAdvancedMode()
             delay(waitFor) // Give some time for DJI to enable the advanced mode
-            if (!isVirtualStickAdvancedModeEnabled()) {
+            if (!isVirtualStickAdvancedModeEnabled) {
                 Log.d(TAG, "virtual stick advanced mode failed to enable")
                 onFailure()
                 throw IllegalStateException("virtual stick advanced mode failed to enable")
@@ -63,22 +56,22 @@ class DJIVirtualStick(private val stickVM: VirtualStickVM) : IVirtualStick {
     }
 
     override suspend fun takeControl() = ifConnected {
-        requireVirtualStick()
-        requireVirtualStickAdvancedMode()
+        acquireStickControl()
+        acquireVirtualStickAdvancedMode()
     }
 
-    override suspend fun relinquishControl() {
+    override suspend fun relinquishControl() = ifConnected {
         Log.d(TAG, "returning stick control")
         Log.d(TAG, "disabling virtual stick...")
-        if (!isVirtualStickEnabled()) {
+        if (!isVirtualStickEnabled) {
             Log.d(TAG, "virtual stick already disabled")
-            return
+            return@ifConnected
         }
         awaitOrNull { stickVM.disableVirtualStick(it) }
         Log.d(TAG, "virtual stick disabled")
     }
 
-    override val ownsControl: Boolean get() = isVirtualStickEnabled()
+    override val ownsControl: Boolean get() = isVirtualStickEnabled && isVirtualStickAdvancedModeEnabled
 
     override fun setSpeedLevel(speedLevel: Double) = stickVM.setSpeedLevel(speedLevel)
 
