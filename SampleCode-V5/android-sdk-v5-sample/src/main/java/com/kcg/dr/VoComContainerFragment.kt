@@ -44,6 +44,8 @@ class VoComContainerFragment : DJIFragment() {
         }
         locationProvider.startRequesting()
 
+        binding.fpvWidget.updateVideoSource(ComponentIndexType.LEFT_OR_MAIN)
+
         // Start API server
         //apiVM.startService(notificationVM.controllerChannelId)
         // fixme: this causes a start loop? infinite starts?
