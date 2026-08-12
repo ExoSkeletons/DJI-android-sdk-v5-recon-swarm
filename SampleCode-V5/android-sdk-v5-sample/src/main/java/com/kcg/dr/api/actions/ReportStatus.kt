@@ -8,6 +8,7 @@ import com.kcg.dr.location.UserMetrics
 import com.kcg.dr.utils.LocationUtils.distanceTo
 import com.kcg.dr.utils.ResourcesManager
 import com.kcg.dr.utils.TTSManager.speak
+import com.kcg.dr.utils.as2D
 import com.kcg.dr.utils.asXYZ
 import com.kcg.dr.utils.mag
 import dji.sampleV5.aircraft.R
@@ -30,13 +31,13 @@ data class ReportStatus(
         @SerialName("battery")
         Battery,
 
-        @SerialName("location")
-        @SerialDescription("The aircraft/your location, not user's location")
-        Location,
-
         @SerialName("user_location")
-        @SerialDescription("The user's location")
+        @SerialDescription("Pick this if user asks where they are. e.g: \"where am i?\", \"whats my location\"")
         UserLocation,
+
+        @SerialName("aircraft_location")
+        @SerialDescription("Pick only if asked where aircraft is. e.g: \"where are you?\", \"where is aircraft?\"")
+        Location,
 
         @SerialName("speed")
         Velocity,
@@ -55,6 +56,12 @@ data class ReportStatus(
             }
         }
         speak(report, ResourcesManager.locale)
+        if (of.contains(Metric.UserLocation)) {
+            user?.liveLocation?.value?.let {
+                aircraft.lookAtWithSpin(it.as2D, user.humanHeight.value)
+                aircraft.wave()
+            }
+        }
         ToastUtils.showToast(report)
         Log.i("ReportStatus", report)
     }
