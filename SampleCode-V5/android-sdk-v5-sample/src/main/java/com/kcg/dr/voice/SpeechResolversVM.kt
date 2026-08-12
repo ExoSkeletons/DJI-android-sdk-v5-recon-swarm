@@ -149,8 +149,13 @@ class SpeechResolversVM(
             override fun onError(error: Int) {
                 _isListening.value = false
                 val errorText = error.toRecognitionErrorString()
-                _speech.value = errorText
                 Log.e(TAG, "Speech recognition error: $errorText")
+                if (error == SpeechRecognizer.ERROR_NO_MATCH) {
+                    _speech.value = ""
+                    _partialSpeech.value = ""
+                    return
+                }
+                _speech.value = errorText
                 playSfx(SFXManager.SFX.NOTIFY_TECHNICAL)
             }
 
