@@ -1,9 +1,9 @@
 package com.kcg.dr.location
 
-import androidx.lifecycle.LiveData
+import kotlinx.coroutines.flow.StateFlow
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
 
 class UserMetrics(
-    val liveLocation: LiveData<LocationCoordinate3D>,
-    val humanHeight: LiveData<Double>,
+    val liveLocation: StateFlow<LocationCoordinate3D?>,
+    val humanHeight: StateFlow<Double>,
 )

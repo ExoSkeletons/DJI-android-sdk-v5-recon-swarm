@@ -4,13 +4,15 @@ package com.kcg.dr.api.actions
 
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.location.UserMetrics
-import com.kcg.dr.utils.CoroutineUtils.awaitValue
 import com.kcg.dr.utils.LocationUtils
+import com.kcg.dr.utils.LocationUtils.bearingTo
 import com.kcg.dr.utils.LocationUtils.distanceTo
 import com.kcg.dr.utils.LocationUtils.translate
 import com.kcg.dr.utils.as2D
 import com.kcg.dr.utils.atAlt
 import dji.sampleV5.aircraft.util.ToastUtils
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.schema.generator.json.SerialDescription
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.SerialName
@@ -33,28 +35,36 @@ data class FollowMe(
         with(aircraft) {
             // If aircraft is far from a perch position, move closer
             val deviceLocation = user?.liveLocation ?: return
-            val dl = deviceLocation.awaitValue()
+            val dl = deviceLocation.filterNotNull().first()
             val pl = dl.atAlt(cruiseHeight)
+            val currentLoc = ac.location.value ?: return
+
             if (abs(
-                    ac.location.value?.as2D?.distanceTo(dl.as2D)
-                        ?.minus(followDistance) ?: 0.0
+                    currentLoc.as2D.distanceTo(dl.as2D)
+                        .minus(followDistance)
                 ) > flyToTolerance
             ) {
                 ToastUtils.showToast("looking for device")
-                lookAtWithSpin(dl.as2D, dl.altitude)
+                lookAtWithSpin(dl.as2D, user.humanHeight.value)
                 ToastUtils.showToast("moving to perch")
-                flyToSticks(
-                    pl.translate(
-                        followDistance,
-                        LocationUtils.RelativeDirection.BACKWARD,
-                        ac.heading.value
-                    ),
-                    maxVelocity = maxVelocity,
-                    accelerationDist = accelerationDist,
-                    decelerationDist = decelerationDist,
-                )
+
+                val perchHeading = currentLoc.as2D.bearingTo(dl.as2D)
+
+                withEyesOn(deviceLocation) {
+                    flyToSticks(
+                        pl.translate(
+                            followDistance,
+                            LocationUtils.RelativeDirection.BACKWARD,
+                            perchHeading
+                        ),
+                        maxVelocity = maxVelocity,
+                        accelerationDist = accelerationDist,
+                        decelerationDist = decelerationDist,
+                    )
+                }
             }
 
+            ToastUtils.showToast("following you")
             // Orbiting pattern
             perchShoulder(
                 deviceLocation,

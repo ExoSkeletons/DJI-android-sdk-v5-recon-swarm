@@ -19,7 +19,7 @@ data class TrackMe(
     override suspend fun act(aircraft: AircraftController, user: UserMetrics?) {
         user?.let {
             ToastUtils.showToast("camera tracking phone location")
-            aircraft.lookAtAndTrack(it.liveLocation, fovTolerance)
+            aircraft.lookAtAndTrack(it.liveLocation, fovTolerance = fovTolerance)
         } ?: throw IllegalStateException("Missing device location")
     }
 }

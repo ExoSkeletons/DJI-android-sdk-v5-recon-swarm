@@ -74,6 +74,7 @@ import dji.v5.manager.datacenter.livestream.StreamQuality
 import dji.v5.manager.interfaces.ICameraStreamManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import java.util.Locale
@@ -359,7 +360,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
             override fun onLocationResult(locationResult: LocationResult) {
                 for (location in locationResult.locations) {
                     // update device location
-                    deviceVM.location.postValue(location.asDjiLocation().apply {
+                    deviceVM.location.tryEmit(location.asDjiLocation().apply {
                         // DJI Aircraft measures alt from ground level, not sea level.
                         altitude = cfg.humanHeight
                     })
@@ -704,7 +705,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                     lookAtWithSpin(loc.as2D, cfg.humanHeight)
                 }
             },
-            deviceVM.location, controllerVM.aircraftLocation
+            deviceVM.locationLiveData, controllerVM.aircraftLocation
         )
         binding?.rvWaypointLocations?.layoutManager = LinearLayoutManager(requireContext())
         binding?.rvWaypointLocations?.adapter = waypointAdapter
@@ -977,7 +978,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                         if (target != null) {
                             // fly to location
                             withEyesOn(
-                                MutableLiveData(target.atAlt(cfg.humanHeight))
+                                MutableStateFlow(target.atAlt(cfg.humanHeight))
                             ) {
                                 // fly to location
                                 flyToSticks(

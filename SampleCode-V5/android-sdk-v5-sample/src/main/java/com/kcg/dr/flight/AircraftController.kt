@@ -1,9 +1,6 @@
 package com.kcg.dr.flight
 
 import android.util.Log
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MediatorLiveData
-import androidx.lifecycle.Observer
 import com.kcg.dr.api.Responses.toJson
 import com.kcg.dr.utils.CoroutineUtils
 import com.kcg.dr.utils.DJIErrorException
@@ -48,8 +45,11 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
@@ -222,7 +222,8 @@ open class AircraftController(
          * Sending freq. range per docs is 10-22hz iirc.
          **/
         private const val TRANSMISSION_FREQUENCY_HZ = 18L
-        private const val TRANSMISSION_INTERVAL = (1000.0 / TRANSMISSION_FREQUENCY_HZ).toLong()
+        private val TRANSMISSION_INTERVAL =
+            (1000.0 / TRANSMISSION_FREQUENCY_HZ).toLong().milliseconds
 
         private const val RC_OVERRIDE_THRESHOLD = 30
 
@@ -337,7 +338,10 @@ open class AircraftController(
         runCatching {
             block()
         }.onFailure { e ->
-            Log.i(TAG, "[${coroutineContext.job}]: safely onFailure: ${e.toString()}: ${e.message.toString()}")
+            Log.i(
+                TAG,
+                "[${coroutineContext.job}]: safely onFailure: ${e.toString()}: ${e.message.toString()}"
+            )
             when (e) {
                 is ControllerOverrideException -> {
                     Log.w(TAG, "[${coroutineContext.job}]: manual override in flight")
@@ -353,12 +357,20 @@ open class AircraftController(
 
                 is DJIErrorException -> {
                     val error = e.error
-                    Log.w(TAG, "[${coroutineContext.job}]: ${error.errorType()} error in flight: ${error.toJson()}", e)
+                    Log.w(
+                        TAG,
+                        "[${coroutineContext.job}]: ${error.errorType()} error in flight: ${error.toJson()}",
+                        e
+                    )
                     brake(true)
                 }
 
                 else -> {
-                    Log.w(TAG, "[${coroutineContext.job}]: exception in flight: ${e.toString()}: ${e.message.toString()}", e)
+                    Log.w(
+                        TAG,
+                        "[${coroutineContext.job}]: exception in flight: ${e.toString()}: ${e.message.toString()}",
+                        e
+                    )
                     brake(true)
                 }
             }
@@ -508,7 +520,8 @@ open class AircraftController(
         duration: Duration,
         flightControlParam: FlightParam
     ) {
-        val iterations = ((duration.inWholeMilliseconds) / TRANSMISSION_INTERVAL).toInt()
+        val iterations =
+            ((duration.inWholeMilliseconds) / TRANSMISSION_INTERVAL.inWholeMilliseconds).toInt()
 
         repeat(iterations) {
             if (!currentCoroutineContext().isActive) return@repeat
@@ -539,7 +552,7 @@ open class AircraftController(
             if (distToTarget < decelerationDist)
                 distToTarget / decelerationDist
             else 1.0
-        } else 0.0
+        } else 1.0
 
         val accelFactor = if (accelerationDist > 0) {
             if (distFromStart < accelerationDist)
@@ -620,7 +633,7 @@ open class AircraftController(
     }
 
     suspend fun followSticks(
-        target: LiveData<LocationCoordinate3D>,
+        target: Flow<LocationCoordinate3D?>,
         targetReachedCallback: CommonCallbacks.CompletionCallbackWithParam<LocationCoordinate3D>? = null,
         maxVelocity: Double = 1.0,
         accelerationDist: Double = 2.0,
@@ -632,10 +645,12 @@ open class AircraftController(
             Log.d(TAG, "followSticks fail - aircraft location is null")
             return@coroutineScope
         }
-        var curTarget: LocationCoordinate3D? = target.value
+        var curTarget: LocationCoordinate3D? = null
         var targetReached = false
 
-        Log.i(TAG, "followSticks $curTarget")
+        launch {
+            target.collect { curTarget = it }
+        }
 
         takeoff()
 
@@ -646,10 +661,10 @@ open class AircraftController(
             val curYaw = ac.attitude.value.yaw ?: continue
 
             // Adjust to live target
-            curTarget = target.value ?: curTarget ?: continue
+            val targetVal = curTarget ?: continue
 
             // Distance check (3D)
-            val dist3D = cur.distanceTo(curTarget)
+            val dist3D = cur.distanceTo(targetVal)
             // Range check
             if (!targetReached && dist3D <= approachTolerance) {
                 targetReached = true
@@ -669,7 +684,7 @@ open class AircraftController(
             val (vx, vy, vz) = smoothVelocity(
                 start,
                 cur,
-                curTarget,
+                targetVal,
                 curYaw,
                 maxVelocity,
                 accelerationDist = accelerationDist,
@@ -890,7 +905,7 @@ open class AircraftController(
             yaw = (velocity / radius).toDegrees() * rotationSign
         }
 
-        val posDelay = 1000L
+        val posDelay = 1000.milliseconds
         if (fromCenter) {
             // fly out from center
             if (faceMode == CircleFaceMode.INWARDS)
@@ -988,7 +1003,7 @@ open class AircraftController(
     ) = coroutineScope {
         var xyz0 = XYZ()
         var t = 0.0
-        val dt = TRANSMISSION_INTERVAL.milliseconds.toDouble(DurationUnit.SECONDS)
+        val dt = TRANSMISSION_INTERVAL.toDouble(DurationUnit.SECONDS)
 
         takeoff()
 
@@ -1059,12 +1074,17 @@ open class AircraftController(
     }
 
     suspend fun lookAtAndTrack(
-        liveTarget: LiveData<LocationCoordinate3D>,
+        liveTarget: Flow<LocationCoordinate3D?>,
         maxVelocity: Double = 70.0,
         fovTolerance: Double = 1.0,
         angleOffset: Double = 0.0,
         gimbalUpdateInterval: Duration = 1.seconds,
     ) = coroutineScope {
+        var curTarget: LocationCoordinate3D? = null
+        launch {
+            liveTarget.collect { curTarget = it }
+        }
+
         launch {
             var currentAngVelocity = 0.0
             while (isActive) {
@@ -1072,7 +1092,7 @@ open class AircraftController(
 
                 val curLoc = ac.location.value ?: continue
                 val curAtt = ac.attitude.value
-                val targetLoc = liveTarget.value ?: continue
+                val targetLoc = curTarget ?: continue
 
                 val bearingTo = curLoc.as2D.bearingTo(targetLoc.as2D)
                 val targetYaw = (bearingTo + angleOffset).wrap180()
@@ -1097,7 +1117,7 @@ open class AircraftController(
                 delay(gimbalUpdateInterval)
 
                 val cur = ac.location.value ?: continue
-                val target = liveTarget.value ?: continue
+                val target = curTarget ?: continue
                 val height = ac.height.value
 
                 val dist2D = cur.as2D.distanceTo(target.as2D)
@@ -1112,7 +1132,7 @@ open class AircraftController(
         Log.d(TAG, "waving")
         require(waves > 0) { "wave count must be positive" }
         val t = 0.2
-        val tm = (t * 1000).toLong()
+        val tm = t.seconds
         val rollAngle = 10.0
         val waveAngle = 40.0
 
@@ -1123,7 +1143,7 @@ open class AircraftController(
         camGim.roll(-rollAngle * 2, t / 2, GimbalAngleRotationMode.RELATIVE_ANGLE)
         delay(tm)
 
-        delay(400)
+        delay(0.4.seconds)
 
         repeat(waves) {
             camGim.pitch(-waveAngle, t)
@@ -1135,26 +1155,25 @@ open class AircraftController(
         camGim.roll(rollAngle, t / 2, GimbalAngleRotationMode.RELATIVE_ANGLE)
         delay(tm)
 
-        delay(100)
+        delay(0.1.seconds)
 
         camGim.resetAngle()
     }
 
     suspend fun gimbalFan() = coroutineScope {
-        val scanDuration = 3.0
-        val scanDurationMs = (scanDuration * 1000).toLong()
+        val scanDuration = 3.0.seconds
         camGim.pitch(0.0, 0.5)
-        delay(1000)
-        camGim.pitch(-90.0, scanDuration)
-        delay(scanDurationMs)
-        delay(500)
-        camGim.pitch(0.0, scanDuration)
-        delay(scanDurationMs)
+        delay(1.seconds)
+        camGim.pitch(-90.0, scanDuration.toDouble(DurationUnit.MILLISECONDS))
+        delay(scanDuration)
+        delay(0.5.seconds)
+        camGim.pitch(0.0, scanDuration.toDouble(DurationUnit.MILLISECONDS))
+        delay(scanDuration)
     }
 
 
     suspend fun whileFollowing(
-        targetLocation: LiveData<LocationCoordinate3D>,
+        targetLocation: Flow<LocationCoordinate3D?>,
         targetReachedCallback: CommonCallbacks.CompletionCallbackWithParam<LocationCoordinate3D>? = null,
         maxVelocity: Double = 1.0,
         accelerationDist: Double = 2.0,
@@ -1178,7 +1197,7 @@ open class AircraftController(
     }
 
     suspend fun withEyesOn(
-        deviceLocation: LiveData<LocationCoordinate3D>,
+        deviceLocation: Flow<LocationCoordinate3D?>,
         spinVelocity: Double = 100.0,
         fovTolerance: Double = 0.0,
         angleOffset: Double = 0.0,
@@ -1199,11 +1218,11 @@ open class AircraftController(
 
 
     suspend fun perchShoulder(
-        targetLocation: LiveData<LocationCoordinate3D>,
+        targetLocation: StateFlow<LocationCoordinate3D?>,
         perchHeight: Double,
         perchDistance: Double,
         followVelocity: Double,
-        targetHeading: LiveData<Double>? = null,
+        targetHeading: StateFlow<Double>? = null,
         watch12Duration: Duration = Duration.INFINITE,
         watch6Duration: Duration? = null,
     ) = coroutineScope {
@@ -1212,62 +1231,47 @@ open class AircraftController(
             "perching shoulder of ${targetLocation.value} at $perchHeight m, $perchDistance m away"
         )
 
-        val perchLocation = MediatorLiveData<LocationCoordinate3D>().apply {
-            fun update() {
-                val tl = targetLocation.value ?: run {
-                    Log.w(TAG, "perch target location is null")
-                    return@update
-                }
-                val al = ac.location.value ?: run {
-                    Log.w(TAG, "perch aircraft location is null")
-                    return@update
-                }
+        val perchLocation = combine(
+            targetLocation,
+            ac.location,
+            targetHeading ?: MutableStateFlow(null)
+        ) { tl, al, th ->
+            if (tl == null || al == null) return@combine null
 
-                // If live target heading is not specified, simply calc the heading to target (facing away from us).
-                val heading = targetHeading?.value ?: al.as2D.bearingTo(tl.as2D)
+            // If live target heading is not specified, calc the heading to target (facing away from us).
+            val heading = th ?: al.as2D.bearingTo(tl.as2D)
 
-                // Adjust perch location to target location moved "back" (towards aircraft) by perch distance.
-                value = tl.translate(
-                    perchDistance,
-                    BACKWARD,
-                    heading
-                ).atAlt(perchHeight)
-            }
-
-            addSource(targetLocation) { update() }
-            targetHeading?.let { addSource(it) { update() } }
-            update()
+            // Adjust perch location to target location moved "back" (towards aircraft) by perch distance.
+            tl.translate(
+                perchDistance,
+                BACKWARD,
+                heading
+            ).atAlt(perchHeight)
         }
-        val obs = Observer<LocationCoordinate3D> {}
-        perchLocation.observeForever(obs)
 
         takeoff()
 
-        try {
-            whileFollowing(perchLocation, maxVelocity = followVelocity) {
-                while (isActive) {
-                    ToastUtils.showToast("watching 12\n(${watch12Duration})")
-                    withTimeoutOrNull(watch12Duration) {
-                        lookAtAndTrack(targetLocation)
-                    }
-                    brakeFor(1.seconds)
-                    watch6Duration?.let {
-                        ToastUtils.showToast("watching 6\n(${watch6Duration})")
-                        spinBy(180.0, velocity = 140.0)
-                        delay(it)
-                        /*withTimeoutOrNull(it) {
-                            lookAtAndTrack(targetLocation, angleOffset = 180.0)
-                        }*/
-                    }
+        whileFollowing(perchLocation, maxVelocity = followVelocity) {
+            while (isActive) {
+                ToastUtils.showToast("watching 12\n(${watch12Duration})")
+                withTimeoutOrNull(watch12Duration) {
+                    lookAtAndTrack(targetLocation)
+                }
+                brakeFor(1.seconds)
+                watch6Duration?.let {
+                    ToastUtils.showToast("watching 6\n(${watch6Duration})")
+                    spinBy(180.0, velocity = 140.0)
+                    delay(it)
+                    /*withTimeoutOrNull(it) {
+                        lookAtAndTrack(targetLocation, angleOffset = 180.0)
+                    }*/
                 }
             }
-        } finally {
-            perchLocation.removeObserver(obs)
         }
     }
 
     suspend fun trailShoulder(
-        targetLocation: LiveData<LocationCoordinate3D>,
+        targetLocation: Flow<LocationCoordinate3D?>,
         perchHeight: Double,
         tailDistance: Double,
         faceTarget: Boolean = true,
@@ -1280,11 +1284,16 @@ open class AircraftController(
         require(maxVelocity > 0) { "maxVelocity must be positive" }
         require(approachTolerance > 0 && verticalTolerance > 0) { "tolerances must be positive" }
 
+        var curTarget: LocationCoordinate3D? = null
+        launch {
+            targetLocation.collect { curTarget = it }
+        }
+
         takeoff()
 
         while (isActive) {
             delay(TRANSMISSION_INTERVAL)
-            val target = targetLocation.value ?: continue
+            val target = curTarget ?: continue
             val current = ac.location.value ?: continue
 
             // face target

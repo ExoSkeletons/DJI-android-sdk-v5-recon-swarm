@@ -39,7 +39,7 @@ class VoComContainerFragment : DJIFragment() {
         locationProvider.locationCallback = object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult) {
                 for (location in locationResult.locations)
-                    deviceLocationVM.location.postValue(location.asDjiLocation())
+                    deviceLocationVM.location.tryEmit(location.asDjiLocation())
             }
         }
         locationProvider.startRequesting()

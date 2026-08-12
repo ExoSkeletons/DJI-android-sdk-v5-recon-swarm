@@ -95,6 +95,13 @@ class VoiceControlFragment : Fragment() {
                 Command(R.string.commands_stop) { controller.stop() },
                 Command(R.string.command_takeoff, respFmtSimpleId) { controller.fly { takeoff() } },
                 Command(R.string.command_land, respFmtExId) { controller.fly { land() } },
+                Command(R.string.command_spin, respFmtSimpleId) { controller.fly { spinBy(360.0) } },
+                Command(R.string.command_mission_recon, respFmtExId) { controller.fly {
+                    val h0 = controller.ac.height.value
+                    ascendTo(3.0)
+                    scanGround(2.0, 1.0)
+                    ascendTo(h0)
+                } },
                 Command(R.string.command_hello, respFmtSimpleId) { controller.fly { wave() } },
                 Command(R.string.commands_silence) { viewModel.silent.postValue(viewModel.silent.value != true) },
                 Command(R.string.commands_info_battery) {
@@ -161,7 +168,7 @@ class VoiceControlFragment : Fragment() {
             binding.sttResult.text = it
         }
 
-        val adapter = ResolverAdapter { viewModel.toggleResolver(it) }
+        val adapter = ResolverAdapter()
         binding.rvResolvers.layoutManager = LinearLayoutManager(requireContext())
         binding.rvResolvers.adapter = adapter
         viewModel.uiStates.observe(viewLifecycleOwner) { states ->
@@ -174,7 +181,7 @@ class VoiceControlFragment : Fragment() {
         _binding = null
     }
 
-    class ResolverAdapter(private val onToggle: (SpeechExecutor<*, *>) -> Unit) : ListAdapter<
+    class ResolverAdapter : ListAdapter<
             ResolverViewState,
             ResolverAdapter.ViewHolder>(
         DiffCallback
@@ -185,7 +192,6 @@ class VoiceControlFragment : Fragment() {
                 parent,
                 false
             ),
-            onToggle
         )
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) =
@@ -193,7 +199,6 @@ class VoiceControlFragment : Fragment() {
 
         class ViewHolder(
             private val binding: ItemResolverBinding,
-            private val onToggle: (SpeechExecutor<*, *>) -> Unit
         ) :
             RecyclerView.ViewHolder(binding.root) {
             fun bind(viewState: ResolverViewState) {
@@ -204,20 +209,14 @@ class VoiceControlFragment : Fragment() {
                 val status = viewState.status
                 val state = status.state
                 val result = status.result
-                val isActive = viewState.isActive
 
                 binding.root.alpha = when {
-                    !isActive -> 0.3f
                     state == SpeechResolversVM.State.ACTIVE || result != null -> 1.0f
-                    else -> 0.6f
-                }
-
-                binding.root.setOnClickListener {
-                    onToggle(viewState.executor)
+                    else -> 0.3f
                 }
 
                 binding.prog.visibility =
-                    if (isActive && state == SpeechResolversVM.State.ACTIVE && result == null)
+                    if (state == SpeechResolversVM.State.ACTIVE && result == null)
                         View.VISIBLE
                     else View.GONE
 

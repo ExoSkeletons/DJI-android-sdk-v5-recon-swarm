@@ -4,9 +4,10 @@ package com.kcg.dr.api.actions
 
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.location.UserMetrics
-import com.kcg.dr.utils.CoroutineUtils.awaitValue
 import com.kcg.dr.utils.as2D
 import dji.sampleV5.aircraft.util.ToastUtils
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.schema.generator.json.SerialDescription
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.SerialName
@@ -25,7 +26,7 @@ data class FlyToMe(
         with(aircraft) {
             user ?: return
 
-            val dl = user.liveLocation.awaitValue()
+            val dl = user.liveLocation.filterNotNull().first()
 
             ToastUtils.showToast("following phone location")
             lookAtWithSpin(dl.as2D, 0.0)
