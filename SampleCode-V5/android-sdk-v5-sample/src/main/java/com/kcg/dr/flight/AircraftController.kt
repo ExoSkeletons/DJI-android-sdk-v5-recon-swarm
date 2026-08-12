@@ -54,6 +54,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.schema.generator.json.SerialDescription
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.coroutines.cancellation.CancellationException
@@ -831,8 +832,11 @@ open class AircraftController(
     @Serializable
     @SerialName("face_mode")
     enum class CircleFaceMode {
-        CENTER,
-        OUTER,
+        @SerialDescription("inwards at circle center")
+        INWARDS,
+        @SerialDescription("outwards away from center")
+        OUTWARDS,
+        @SerialDescription("along tangent")
         TANGENT,
         TANGENT_BACK
     }
@@ -840,7 +844,7 @@ open class AircraftController(
     suspend fun flyCircle(
         radius: Double, velocity: Double, count: Double = 1.0,
         clockwise: Boolean = true,
-        faceMode: CircleFaceMode = CircleFaceMode.CENTER,
+        faceMode: CircleFaceMode = CircleFaceMode.INWARDS,
         fromCenter: Boolean = true,
         callback: CommonCallbacks.CompletionCallback = DEFAULT_CALLBACK
     ) = coroutineScope {
@@ -855,8 +859,8 @@ open class AircraftController(
 
         val circleMotionParam = FlightParam().apply {
             when (faceMode) {
-                CircleFaceMode.CENTER -> pitch = -velocity * rotationSign
-                CircleFaceMode.OUTER -> pitch = velocity * rotationSign
+                CircleFaceMode.INWARDS -> pitch = -velocity * rotationSign
+                CircleFaceMode.OUTWARDS -> pitch = velocity * rotationSign
                 CircleFaceMode.TANGENT -> roll = velocity
                 CircleFaceMode.TANGENT_BACK -> roll = -velocity
             }
@@ -867,7 +871,7 @@ open class AircraftController(
         val posDelay = 1000L
         if (fromCenter) {
             // fly out from center
-            if (faceMode == CircleFaceMode.CENTER)
+            if (faceMode == CircleFaceMode.INWARDS)
                 forwardBy(-radius, velocity)  // go back from center, face is towards center
             else
                 forwardBy(radius, velocity) // go forward from center, face is towards outer
@@ -875,7 +879,7 @@ open class AircraftController(
         }
         val angleCorrection = (
                 when (faceMode) {
-                    CircleFaceMode.CENTER, CircleFaceMode.OUTER -> 0.0 // remain facing forward
+                    CircleFaceMode.INWARDS, CircleFaceMode.OUTWARDS -> 0.0 // remain facing forward
                     CircleFaceMode.TANGENT -> 90.0 * rotationSign // spin to face tangent
                     CircleFaceMode.TANGENT_BACK -> -90.0 * rotationSign // spin to face tangent backwards
                 } + if (!fromCenter) 180.0 else 0.0
@@ -888,7 +892,7 @@ open class AircraftController(
         if (fromCenter) {
             delay(posDelay)
             // return to center
-            if (faceMode == CircleFaceMode.CENTER)
+            if (faceMode == CircleFaceMode.INWARDS)
                 forwardBy(radius, velocity)  // go forward to center, face is towards center
             else
                 forwardBy(-radius, velocity) // go backward to center, face is towards outer
@@ -900,7 +904,7 @@ open class AircraftController(
     suspend fun scanGround(
         scanRadius: Double,
         velocity: Double,
-        faceMode: CircleFaceMode = CircleFaceMode.CENTER,
+        faceMode: CircleFaceMode = CircleFaceMode.INWARDS,
         clockwise: Boolean = true,
         callback: CommonCallbacks.CompletionCallback = DEFAULT_CALLBACK
     ) = coroutineScope {

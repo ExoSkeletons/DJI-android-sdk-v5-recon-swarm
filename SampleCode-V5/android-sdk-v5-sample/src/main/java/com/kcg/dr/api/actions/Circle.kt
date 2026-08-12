@@ -20,7 +20,7 @@ data class Circle(
     val count: Double = 1.0,
     val clockwise: Boolean = true,
     @property:SerialName("facing")
-    val faceMode: CircleFaceMode = CircleFaceMode.CENTER,
+    val faceMode: CircleFaceMode = CircleFaceMode.INWARDS,
 ) : Action {
     override suspend fun act(aircraft: AircraftController, user: UserMetrics?) =
         aircraft.flyCircle(radius, velocity, count, clockwise, faceMode)

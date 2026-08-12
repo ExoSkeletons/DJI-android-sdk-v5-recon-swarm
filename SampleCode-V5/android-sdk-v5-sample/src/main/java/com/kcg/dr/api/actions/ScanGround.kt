@@ -14,13 +14,14 @@ import kotlinx.serialization.Serializable
 @SerialName("scan_ground")
 @SerialDescription("Fly a circle while looking at ground")
 data class ScanGround(
-    val radius: Double,
-    @property:SerialDescription("0..6 (m/s)")
-    val velocity: Double = 4.0,
-    @property:SerialDescription("height to scan from")
+    @property:SerialDescription("height to ascend to and scan at (m)")
     val height: Double? = null,
+    @property:SerialDescription("scan circle radius (m)")
+    val radius: Double = 3.0,
+    @property:SerialDescription("1..6 (m/s)")
+    val velocity: Double = 4.0,
     @property:SerialName("facing")
-    val faceMode: CircleFaceMode = CircleFaceMode.OUTER,
+    val faceMode: CircleFaceMode = CircleFaceMode.OUTWARDS,
     val clockwise: Boolean = true,
 ) : Action {
     override suspend fun act(aircraft: AircraftController, user: UserMetrics?) {
