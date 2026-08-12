@@ -17,7 +17,7 @@
     <string name="commands_response_fmt_going">טיסה %s</string>
 
     <string name="commands_stop">עצירה|עצור|חד על|מספיק|חדל|סיום</string>
-    <string name="command_takeoff">ממריא|הַמְרָאָה|המראה|עוף|שמיים|תעופה|תמריא|תמריאו|אמרה|בוקר טוב|בוקר|להמריא|תעוף|המרה|רחפן עולה</string>
+    <string name="command_takeoff">ממריא|הַמְרָאָה|המראה|עוף|שמיים|תעופה|תמריא|תמריאו|אמרה|בוקר טוב|בוקר|תאמרי|להמריא|תעוף|המרה|רחפן עולה</string>
     <string name="command_land">נחיתה|מחיקה|תנחת|נחת|לרדת|לנחות|רצפה|לרצפה|נפילה|לילה טוב|לילה|לנחות|ליפול|פול|לישון|שינה|תמחק|מחיקה|רחפן יורד|נוחת</string>
     <string name="commands_return_home">חזרה|הביתה|חזור הביתה|לך הביתה</string>
     <string name="command_follow_target">עקוב מטרה|מטרה|מטעה|עקוב אחריו|עקוב אחריה|עקוב אחריהם|צפה</string>
