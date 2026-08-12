@@ -70,6 +70,8 @@ class SpeechResolversVM(
 
     enum class State { IDLE, ACTIVE }
 
+    val silent = MutableLiveData(false)
+
     data class ResolverStatus(
         val state: State = State.IDLE,
         val result: Result<String>? = null
