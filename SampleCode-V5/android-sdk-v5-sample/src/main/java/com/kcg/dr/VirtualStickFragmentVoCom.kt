@@ -849,7 +849,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         commandResolver.setCommands(
             listOf(
                 Command(R.string.commands_stop) { controller.stop() },
-                Command(R.string.commands_takeoff, respFmtSimpleId) {
+                Command(R.string.command_takeoff, respFmtSimpleId) {
                     controller.fly {
                         try {
                             val response = KeyActivator.handleKeyRequest(
@@ -868,19 +868,19 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                         //takeoff()
                     }
                 },
-                Command(R.string.commands_land, respFmtExId) { controller.fly { land() } },
+                Command(R.string.command_land, respFmtExId) { controller.fly { land() } },
 
                 Command(
                     R.string.commands_return_home,
                     respFmtExId
                 ) { toMe() },
                 Command(
-                    R.string.commands_follow_target,
+                    R.string.command_follow_target,
                     respFmtExId
                 ) { track() },
 
                 Command(
-                    R.string.commands_follow_me,
+                    R.string.command_follow_me,
                     respFmtExId,
                     R.string.commands_mission_follow_me_name
                 ) { followMe() },
@@ -914,7 +914,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                     }
                 },
                 Command(
-                    R.string.commands_mission_recon,
+                    R.string.command_mission_recon,
                     respFmtExId,
                     R.string.commands_mission_recon_name
                 ) { match ->
@@ -963,7 +963,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                     }
                 },
                 Command(
-                    R.string.commands_mission_scan,
+                    R.string.command_mission_scan,
                     respFmtExId,
                     R.string.commands_mission_scan_name
                 ) { match ->
@@ -1015,7 +1015,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                     respFmtSimpleId,
                 ) { controller.fly { wave() } },
                 Command(
-                    R.string.commands_circle,
+                    R.string.command_circle,
                     respFmtExId,
                 ) {
                     controller.fly {
@@ -1089,15 +1089,14 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                     }
                 },
                 Command(
-                    R.string.commands_square, respFmtExId,
+                    R.string.command_square, respFmtExId,
                 ) { controller.fly { flySquare(5.0, velocity = 2.5) } },
                 Command(
-                    R.string.commands_cam_fan,
+                    R.string.command_cam_fan,
                     respFmtSimpleId,
                 ) { controller.fly { gimbalFan() } },
                 Command(
-                    R.string.commands_spin,
-                    respFmtExId,
+                    R.string.command_spin, respFmtSimpleId,
                 ) { controller.fly { spinBy(360.0, velocity = 50.0) } },
 
                 Command(

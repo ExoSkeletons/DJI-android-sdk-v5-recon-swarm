@@ -85,7 +85,7 @@ class VoComContainerFragment : DJIFragment() {
                     aircraftControlVM.controller.fly { wave() }
                 },
                 Command(
-                    R.string.commands_spin,
+                    R.string.command_spin,
                 ) {
                     speak("Wheeee Heee eeeeee whhheeee whheee")
                     aircraftControlVM.controller.fly { spinBy(720.0, velocity = 180.0) }
