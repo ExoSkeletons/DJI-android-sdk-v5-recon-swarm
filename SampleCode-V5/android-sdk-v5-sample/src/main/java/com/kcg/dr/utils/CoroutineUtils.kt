@@ -2,6 +2,7 @@ package com.kcg.dr.utils
 
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.kcg.dr.api.Responses.isConnectionError
@@ -17,11 +18,16 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeout
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 object CoroutineUtils {
     class SuspendCancellableTrace : CancellationException()
@@ -42,6 +48,19 @@ object CoroutineUtils {
         suspender: suspend () -> Unit,
         block: suspend () -> Unit
     ) = whileSuspendedBy(listOf(suspender), block)
+
+    suspend fun <T> LiveData<T>.awaitValue(
+        timeout: Duration = Duration.INFINITE,
+        updateInterval: Duration = 100.milliseconds
+    ) : T {
+        require(timeout >= updateInterval) { "timeout $timeout to short, must be greater than update interval $updateInterval" }
+
+        return withTimeout(timeout) {
+            while (isActive && !isInitialized && value == null)
+                delay(updateInterval)
+            value ?: throw CancellationException()
+        }
+    }
 
     @JvmName("awaitCallbackWithParam")
     suspend fun <T> awaitCallback(block: (CommonCallbacks.CompletionCallbackWithParam<T>) -> Unit): T? {
@@ -65,10 +84,19 @@ object CoroutineUtils {
             })
         }
 
+    @JvmName("awaitCallbackOrNullWithParam")
     suspend fun <T> awaitOrNull(block: (CommonCallbacks.CompletionCallbackWithParam<T>) -> Unit): T? =
         awaitCallback<T> { c ->
             block(object : CommonCallbacks.CompletionCallbackWithParam<T> {
                 override fun onSuccess(value: T?) = c.onSuccess(value)
+                override fun onFailure(error: IDJIError) = c.onSuccess(null)
+            })
+        }
+
+    suspend fun awaitOrNull(block: (CommonCallbacks.CompletionCallback) -> Unit) =
+        awaitOrNull<Unit> { c ->
+            block(object : CommonCallbacks.CompletionCallback {
+                override fun onSuccess() = c.onSuccess(Unit)
                 override fun onFailure(error: IDJIError) = c.onSuccess(null)
             })
         }

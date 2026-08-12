@@ -5,6 +5,7 @@ import com.kcg.dr.flight.AircraftController.Companion.TAG
 import com.kcg.dr.flight.AircraftController.FlightParam
 import com.kcg.dr.flight.AircraftController.IVirtualStick
 import com.kcg.dr.utils.CoroutineUtils.awaitCallback
+import com.kcg.dr.utils.CoroutineUtils.awaitOrNull
 import com.kcg.dr.utils.CoroutineUtils.ifConnected
 import dji.sampleV5.aircraft.models.VirtualStickVM
 import dji.sdk.keyvalue.value.flightcontroller.RollPitchControlMode
@@ -73,9 +74,7 @@ class DJIVirtualStick(private val stickVM: VirtualStickVM) : IVirtualStick {
             Log.d(TAG, "virtual stick already disabled")
             return
         }
-        awaitCallback {
-            stickVM.disableVirtualStick(it)
-        }
+        awaitOrNull { stickVM.disableVirtualStick(it) }
         Log.d(TAG, "virtual stick disabled")
     }
 
