@@ -15,6 +15,7 @@ import kotlinx.serialization.Serializable
 @SerialDescription("Fly a circle while looking at ground")
 data class ScanGround(
     val radius: Double,
+    @property:SerialDescription("0..6 (m/s)")
     val velocity: Double = 4.0,
     @property:SerialDescription("height to scan from")
     val height: Double? = null,

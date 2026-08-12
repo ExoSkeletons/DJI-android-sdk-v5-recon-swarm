@@ -7,7 +7,7 @@ import kotlinx.schema.generator.json.SerialDescription
 import kotlinx.serialization.Serializable
 
 @Serializable
-@SerialDescription("Camera tracks the user's location")
+@SerialDescription("Look at and Camera track the user's location")
 sealed class TrackMe(
     val fovTolerance: Double = 17.0
 ) : Action {

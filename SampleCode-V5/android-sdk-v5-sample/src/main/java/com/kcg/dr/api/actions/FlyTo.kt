@@ -18,8 +18,8 @@ data class FlyTo(
     @Serializable(with = LocationCoordinate3DSerializer::class)
     @property:SerialDescription("Destination GPS location (lat/lng/alt)")
     val target: LocationCoordinate3D,
-    @SerialName("(m/s)")
-    val maxVelocity: Double
+    @SerialName("0..10 (m/s)")
+    val maxVelocity: Double = 8.0
 ) : Action {
     override suspend fun act(aircraft: AircraftController, user: UserMetrics?) =
         aircraft.flyToSticks(target, maxVelocity = maxVelocity)

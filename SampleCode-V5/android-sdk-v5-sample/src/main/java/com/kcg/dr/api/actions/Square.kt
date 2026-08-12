@@ -14,6 +14,7 @@ import kotlinx.serialization.Serializable
 data class Square(
     @property:SerialDescription("Side length (m)")
     val side: Double,
+    @property:SerialDescription("0..6 (m/s)")
     val velocity: Double,
     val clockwise: Boolean = true,
 ) : Action {

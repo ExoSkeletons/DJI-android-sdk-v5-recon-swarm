@@ -5,12 +5,14 @@ import com.kcg.dr.location.UserMetrics
 import dji.sampleV5.aircraft.util.ToastUtils
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.schema.generator.json.SerialDescription
 import kotlinx.serialization.Serializable
 
 @Serializable
 sealed class FlyToMe(
-    val maxVelocity: Double = 8.0,
-    val accelerationDist: Double = 2.0,
+    @property:SerialDescription("0..10 (m/s)")
+    val maxVelocity: Double = 7.0,
+    val accelerationDist: Double = 3.0,
     val decelerationDist: Double = 4.0,
 ) : Action {
     override suspend fun act(aircraft: AircraftController, user: UserMetrics?) {

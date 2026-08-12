@@ -12,7 +12,10 @@ import kotlinx.serialization.Serializable
 @Serializable
 @SerialName("gimbal_pitch")
 @SerialDescription("Pitches aircraft camera Gimbal up/down")
-data class GimbalPitch(val angle: Double) : Action {
+data class GimbalPitch(
+    @property:SerialDescription("-90..60 (degrees)")
+    val angle: Double
+) : Action {
     override suspend fun act(aircraft: AircraftController, user: UserMetrics?) =
         aircraft.pitchCamera(angle)
 
