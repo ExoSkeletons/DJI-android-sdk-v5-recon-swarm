@@ -535,6 +535,7 @@ More refer to the release notes." </string>
     <string name="commands_fly_waypoint">goto|go to|waypoint|go to waypoint|waypoint</string>
     <string name="commands_scan_paths">scan for alternate paths|scan paths|scan path|paths|path</string>
     <string name="commands_more_info">report|reporting|more info|next info|next report</string>
+    <string name="commands_info_battery">battery status|battery|battery level</string>
 
     <string name="command_mission_scan">scan(?:\s+(.+))?</string>
     <string name="commands_mission_scan_name">scan</string>

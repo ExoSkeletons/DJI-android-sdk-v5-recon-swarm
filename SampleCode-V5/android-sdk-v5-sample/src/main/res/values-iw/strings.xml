@@ -19,19 +19,20 @@
     <string name="commands_stop">עצירה|עצור|חד על|מספיק|חדל|סיום</string>
     <string name="command_takeoff">ממריא|הַמְרָאָה|המראה|עוף|שמיים|תעופה|תמריא|תמריאו|אמרה|בוקר טוב|בוקר|תאמרי|להמריא|תעוף|המרה|רחפן עולה</string>
     <string name="command_land">נחיתה|מחיקה|תנחת|נחת|לרדת|לנחות|רצפה|לרצפה|נפילה|לילה טוב|לילה|לנחות|ליפול|פול|לישון|שינה|תמחק|מחיקה|רחפן יורד|נוחת</string>
-    <string name="commands_return_home">חזרה|הביתה|חזור הביתה|לך הביתה</string>
-    <string name="command_follow_target">עקוב מטרה|מטרה|מטעה|עקוב אחריו|עקוב אחריה|עקוב אחריהם|צפה</string>
+    <string name="commands_return_home">חזרה הביתה|חזור הביתה|לך הביתה|(חזור|תחזור|בא|תבוא|תגיע) (אליי|אלי|הביתה|לבית)</string>
+    <string name="command_follow_target">עקיבת מטרה|((תעקוב|עוקב|קביעה|עקיבת|עקוב) (מטרה|מטעה|אחריו|אחריה|אחריהם))</string>
     <string name="commands_mission_follow_me_name">עקוב אחריי</string>
-    <string name="command_follow_me">עקוב אחריי|אחריי|עקוב אחרי|אחרי|אלי</string>
+    <string name="command_follow_me">עקוב אחריי|(עקוב|עקיבה|מעקב|תעקוב|תבוא) (אחריי|אחראי|אחרי)</string>
     <string name="commands_mission_follow_me_side_name">עקוב אחריי, ראות מוגבלת</string>
     <string name="commands_follow_me_side">עקוב אחריי, ראות מוגבלת|((אחריי|אחרי|אחראי) (צדדי|צד))</string>
     <string name="commands_fly_waypoint">נקודת ציון|נקודת|נון צדיק|צדיק|נ.צ.|נצ|נו|ציון|נקודה</string>
     <string name="commands_scan_paths">איתור שביל עוקף|איתור|שביל|איתור שביל|שבילים|עוקפים|מעקף</string>
     <string name="commands_more_info">ממצאים|ממצאים נוספים|עוד ממצאים|עוד ממצאים|דיווח|אמצעי|נמצאים|ממצאי|מבצעים|דיווחים</string>
+    <string name="commands_info_battery">מצב סוללה|סוללה|בטריה|בטרייה|חשמל|אחוז</string>
 
-    <string name="command_mission_scan">סריקה|(?:סרוק|סריקה|סריקת|זרוק|סמוק|רוק|צחוק|חוק|ספיקה|סליקה|שריטה)(?:\\s+(.+))?</string>
+    <string name="command_mission_scan">סריקה|(?:סרוק|סריקה|סריקת|תסרוק|זרוק|סמוק|רוק|צחוק|חוק|ספיקה|סליקה|שריטה)(?:\\s+(.+))?</string>
     <string name="commands_mission_scan_name">סריקה</string>
-    <string name="command_mission_recon">חקירה|(?:חקור|חקירה|חקירת|אור|קור)(?:\\s+(.+))?</string>
+    <string name="command_mission_recon">חקירה|(?:חקור|חקירה|תחקור|חקירת|אור|קור)(?:\\s+(.+))?</string>
     <string name="commands_mission_recon_name">חקירה</string>
     <string name="commands_mission_target_device">סייר|סביבי|אותי|מסביבי</string>
     <array name="commands_mission_targets">
@@ -51,12 +52,12 @@
 
     <string name="commands_silence">שקט|השקט|הס|חשאי|חושך|צל|חשאיות</string>
 
-    <string name="command_go_up">למעלה|(טיסה|טוס|לך|עלה|עליה|תעלה) (למעלה|גבוה)</string>
-    <string name="command_go_forward">קדימה|(טיסה|טוס|לך|סרוק) (קדימה|אמא)</string>
-    <string name="command_go_down">למטה|תרד|למטה|ירידה(טיסה|טוס|לך|רד|תלך|תרד) (למטה|נמוך)</string>
-    <string name="command_go_backward">אחורה|(טיסה|טוס|לך) (אחורה|חזור|מאחור)</string>
-    <string name="command_go_left">ימינה|(טיסה|טוס|לך) (ימינה|לימין)</string>
-    <string name="command_go_right">שמאלה|(טיסה|טוס|לך) (שמאלה|לשמאל|שמאלה)</string>
+    <string name="command_go_up">טיסה למעלה|((טיסה|טוס|תלך|לך|איך) למעלה)|(עלה|עליה|תעלה|תענה)</string>
+    <string name="command_go_forward">טיסה קדימה|(טיסה|טוס|תלך|לך|איך|סרוק) (קדימה|אמא)|תתקדם|תתקדמי</string>
+    <string name="command_go_down">טיסה למטה|תרד|תרדי|למטה|ירידה(טיסה|טוס|תלך|לך|איך|רד|תלך|תרד) (למטה|נמוך)</string>
+    <string name="command_go_backward">טיסה אחורה|(טיסה|טוס|תלך|לך|איך) (אחורה|חזור|מאחור)</string>
+    <string name="command_go_left">טיסה ימינה|(טיסה|טוס|תלך|לך|איך) (ימינה|לימין)</string>
+    <string name="command_go_right">טיסה שמאלה|(טיסה|טוס|תלך|לך|איך) (שמאלה|לשמאל|שמאלה)</string>
 
     <string name="commands_parser_title">מזהה פקודות</string>
 
