@@ -9,7 +9,7 @@
         android:id="@+id/fpv_widget"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:visibility="visible"
+        android:visibility="gone"
         app:videoSource="primary"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -46,6 +46,7 @@
             android:name="com.kcg.dr.api.ApiServerFragment"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:visibility="gone"
             tools:layout="@layout/frag_api_server" />
 
         <androidx.fragment.app.FragmentContainerView
@@ -62,6 +63,7 @@
         android:name="com.kcg.dr.waypoints.WaypointsFragment"
         android:layout_width="wrap_content"
         android:layout_height="0dp"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/status"
@@ -72,11 +74,11 @@
         android:id="@+id/voice"
         android:name="com.kcg.dr.voice.VoiceControlFragment"
         android:layout_width="0dp"
-        android:layout_height="0dp"
+        android:layout_height="wrap_content"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="@id/virtual_sticks"
+        app:layout_constraintHeight_min="200dp"
         app:layout_constraintStart_toStartOf="@id/virtual_sticks"
-        app:layout_constraintTop_toTopOf="@id/virtual_sticks"
         tools:layout="@layout/frag_vocom_voice_control" />
 
     <androidx.fragment.app.FragmentContainerView
@@ -97,8 +99,9 @@
         android:name="com.kcg.dr.yerut.OscFragment"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:layout_constraintTop_toBottomOf="@id/controls"
+        android:visibility="gone"
         app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/controls"
         tools:layout="@layout/frag_osc" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
