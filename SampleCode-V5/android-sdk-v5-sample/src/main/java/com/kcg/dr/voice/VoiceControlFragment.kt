@@ -13,9 +13,17 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.kcg.dr.api.actions.FlyToMe
+import com.kcg.dr.api.actions.FollowMe
 import com.kcg.dr.flight.AircraftControlVM
 import com.kcg.dr.location.UserVM
 import com.kcg.dr.utils.ResourcesManager
+import com.kcg.dr.utils.SFXManager
+import com.kcg.dr.utils.SFXManager.playSfx
+import com.kcg.dr.utils.TTSManager.speak
+import com.kcg.dr.voice.CommandResolver.Command
+import com.kcg.dr.voice.CommandResolver.Command.Companion.respFmtExId
+import com.kcg.dr.voice.CommandResolver.Command.Companion.respFmtSimpleId
 import com.kcg.dr.voice.SpeechResolversVM.ResolverViewState
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVocomVoiceControlBinding
@@ -127,6 +135,7 @@ class VoiceControlFragment : Fragment() {
             try {
                 actionResolver.init()
                 ToastUtils.showShortToast("AI is Loaded!")
+                playSfx(SFXManager.SFX.ACTION_CONFIRM)
             } catch (e: Exception) {
                 Log.e("LlamaActionResolver", "error: ${e.message}", e)
                 ToastUtils.showShortToast("AI Failed to Load: ${e.message}")
@@ -151,7 +160,7 @@ class VoiceControlFragment : Fragment() {
             binding.sttResult.text = it
         }
 
-        val adapter = ResolverAdapter()
+        val adapter = ResolverAdapter { viewModel.toggleResolver(it) }
         binding.rvResolvers.layoutManager = LinearLayoutManager(requireContext())
         binding.rvResolvers.adapter = adapter
         viewModel.uiStates.observe(viewLifecycleOwner) { states ->
@@ -164,7 +173,7 @@ class VoiceControlFragment : Fragment() {
         _binding = null
     }
 
-    class ResolverAdapter : ListAdapter<
+    class ResolverAdapter(private val onToggle: (SpeechExecutor<*, *>) -> Unit) : ListAdapter<
             ResolverViewState,
             ResolverAdapter.ViewHolder>(
         DiffCallback
@@ -174,13 +183,17 @@ class VoiceControlFragment : Fragment() {
                 LayoutInflater.from(parent.context),
                 parent,
                 false
-            )
+            ),
+            onToggle
         )
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) =
             holder.bind(getItem(position))
 
-        class ViewHolder(private val binding: ItemResolverBinding) :
+        class ViewHolder(
+            private val binding: ItemResolverBinding,
+            private val onToggle: (SpeechExecutor<*, *>) -> Unit
+        ) :
             RecyclerView.ViewHolder(binding.root) {
             fun bind(viewState: ResolverViewState) {
                 val data = viewState.item
@@ -190,12 +203,20 @@ class VoiceControlFragment : Fragment() {
                 val status = viewState.status
                 val state = status.state
                 val result = status.result
-                binding.root.alpha =
-                    if (state == SpeechResolversVM.State.ACTIVE || result != null) 1.0f
-                    else 0.5f
+                val isActive = viewState.isActive
+
+                binding.root.alpha = when {
+                    !isActive -> 0.3f
+                    state == SpeechResolversVM.State.ACTIVE || result != null -> 1.0f
+                    else -> 0.6f
+                }
+
+                binding.root.setOnClickListener {
+                    onToggle(viewState.executor)
+                }
 
                 binding.prog.visibility =
-                    if (state == SpeechResolversVM.State.ACTIVE && result == null)
+                    if (isActive && state == SpeechResolversVM.State.ACTIVE && result == null)
                         View.VISIBLE
                     else View.GONE
 
