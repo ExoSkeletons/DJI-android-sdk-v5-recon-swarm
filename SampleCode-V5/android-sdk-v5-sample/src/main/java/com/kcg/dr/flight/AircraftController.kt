@@ -394,7 +394,10 @@ open class AircraftController(
             try {
                 Log.d(TAG, "flight mission started (in flight job [$job])")
                 runCatching {
-                    safely(onRCOverride) { block() }
+                    safely(onRCOverride) {
+                        vSticks.takeControl()
+                        block()
+                    }
                 }.onFailure { e ->
                     if (e is CancellationException) throw e
                 }
@@ -498,16 +501,13 @@ open class AircraftController(
         flightParamTransmissionJob = null
     }
 
-    fun sendFlightParam(flightParam: FlightParam) {
-        scope.launch { flightParamFlow.emit(flightParam) }
-    }
+    fun sendFlightParam(flightParam: FlightParam) =
+        flightParamFlow.tryEmit(flightParam)
 
     private suspend fun sendStickParamForDuration(
         duration: Duration,
         flightControlParam: FlightParam
     ) {
-        vSticks.takeControl()
-
         val iterations = ((duration.inWholeMilliseconds) / TRANSMISSION_INTERVAL).toInt()
 
         repeat(iterations) {
