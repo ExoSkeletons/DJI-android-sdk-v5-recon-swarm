@@ -105,13 +105,16 @@ class DJIAircraft : IAircraft {
             areMotorsOn.value = it == true
         }
         FlightControllerKey.KeyAircraftLocation3D.create().listen(this) {
-            location.value = it
+            location.value = it?.apply { altitude = height.value }
         }
         FlightControllerKey.KeyAircraftVelocity.create().listen(this) {
             it?.let { velocity.value = it } ?: Velocity3D()
         }
         FlightControllerKey.KeyAltitude.create().listen(this) {
-            it?.let { height.value = it }
+            it?.let {
+                height.value = it
+                location.value = location.value?.apply { altitude = it }
+            }
         }
         FlightControllerKey.KeyBatteryPowerPercent.create().listen(this) {
             it?.let { batteryPercent.value = it }
