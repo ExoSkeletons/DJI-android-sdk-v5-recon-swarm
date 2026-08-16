@@ -8,6 +8,7 @@ import com.kcg.dr.utils.CoroutineUtils.awaitCallback
 import com.kcg.dr.utils.CoroutineUtils.awaitOrNull
 import com.kcg.dr.utils.CoroutineUtils.ifConnected
 import dji.sampleV5.aircraft.models.VirtualStickVM
+import dji.sdk.keyvalue.value.flightcontroller.FlightCoordinateSystem
 import dji.sdk.keyvalue.value.flightcontroller.RollPitchControlMode
 import dji.sdk.keyvalue.value.flightcontroller.VerticalControlMode
 import dji.sdk.keyvalue.value.flightcontroller.VirtualStickFlightControlParam
@@ -82,17 +83,13 @@ class DJIVirtualStick(private val stickVM: VirtualStickVM) : IVirtualStick {
         stickVM.setRightPosition(horizontal, vertical)
 
     fun FlightParam.build(): VirtualStickFlightControlParam {
-        val mPitch = pitch
-        val mRoll = roll
-        val mYaw = yaw
-        val mVerticalThrottle = verticalThrottle
         return VirtualStickFlightControlParam().apply {
-            pitch = mPitch ?: 0.0
-            roll = mRoll ?: 0.0
-            yaw = mYaw ?: 0.0
-            verticalThrottle = mVerticalThrottle ?: 0.0
+            pitch = vy ?: 0.0
+            roll = vx ?: 0.0
+            yaw = yaw ?: 0.0
+            verticalThrottle = vz ?: 0.0
 
-            rollPitchCoordinateSystem = coordinateSystem
+            rollPitchCoordinateSystem = FlightCoordinateSystem.BODY
 
             rollPitchControlMode = RollPitchControlMode.VELOCITY
             verticalControlMode = VerticalControlMode.VELOCITY
