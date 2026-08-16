@@ -23,6 +23,7 @@
     <string name="command_follow_target">עקיבת מטרה|((תעקוב|עוקב|קביעה|עקיבת|עקוב) (מטרה|מטעה|אחריו|אחריה|אחריהם))</string>
     <string name="commands_mission_follow_me_name">עקוב אחריי</string>
     <string name="command_follow_me">עקוב אחריי|(עקוב|עקיבה|מעקב|תעקוב|תבוא) (אחריי|אחראי|אחרי)</string>
+    <string name="command_look_at_me">תסתכל עליי|(תסתכל (עלי|עליי|עליינו|עלינו))|(שים( עלינו|עלי|עליי)+ עין)</string>
     <string name="commands_mission_follow_me_side_name">עקוב אחריי, ראות מוגבלת</string>
     <string name="commands_follow_me_side">עקוב אחריי, ראות מוגבלת|((אחריי|אחרי|אחראי) (צדדי|צד))</string>
     <string name="commands_fly_waypoint">נקודת ציון|נקודת|נון צדיק|צדיק|נ.צ.|נצ|נו|ציון|נקודה</string>

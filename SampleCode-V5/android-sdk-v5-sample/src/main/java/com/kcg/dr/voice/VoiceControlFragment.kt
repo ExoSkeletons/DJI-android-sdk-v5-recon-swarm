@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.kcg.dr.api.actions.FlyToMe
 import com.kcg.dr.api.actions.FollowMe
+import com.kcg.dr.api.actions.TrackMe
 import com.kcg.dr.flight.AircraftControlVM
 import com.kcg.dr.location.UserVM
 import com.kcg.dr.utils.ResourcesManager
@@ -128,6 +129,10 @@ class VoiceControlFragment : Fragment() {
                         ).act(this, userVM.metrics)
                     }
                 },
+                Command(
+                    R.string.command_look_at_me,
+                    respFmtSimpleId
+                ) { controller.fly { TrackMe().act(this, userVM.metrics) } },
             )
         )
         actionResolver = LlamaActionSequenceResolver(
