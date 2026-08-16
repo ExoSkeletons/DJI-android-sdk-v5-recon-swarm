@@ -97,12 +97,14 @@ class VoiceControlFragment : Fragment() {
                 Command(R.string.command_takeoff, respFmtSimpleId) { controller.fly { takeoff() } },
                 Command(R.string.command_land, respFmtExId) { controller.fly { land() } },
                 Command(R.string.command_spin, respFmtSimpleId) { controller.fly { spinBy(360.0) } },
-                Command(R.string.command_mission_recon, respFmtExId) { controller.fly {
-                    val h0 = controller.ac.height.value
-                    ascendTo(3.0)
-                    scanGround(2.0, 1.0)
-                    ascendTo(h0)
-                } },
+                Command(R.string.command_mission_recon, respFmtExId) {
+                    controller.fly {
+                        val h0 = controller.ac.height.value
+                        ascendTo(3.0)
+                        scanGround(2.0, 1.0)
+                        ascendTo(h0)
+                    }
+                },
                 Command(R.string.command_hello, respFmtSimpleId) { controller.fly { wave() } },
                 Command(R.string.commands_silence) { viewModel.silent.postValue(viewModel.silent.value != true) },
                 Command(R.string.commands_info_battery) {
