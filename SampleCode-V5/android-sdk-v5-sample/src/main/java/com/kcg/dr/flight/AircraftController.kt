@@ -29,7 +29,6 @@ import dji.sdk.keyvalue.value.common.LocationCoordinate2D
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
 import dji.sdk.keyvalue.value.common.Velocity3D
 import dji.sdk.keyvalue.value.common.XYZ
-import dji.sdk.keyvalue.value.flightcontroller.FlightCoordinateSystem
 import dji.sdk.keyvalue.value.gimbal.GimbalAngleRotation
 import dji.sdk.keyvalue.value.gimbal.GimbalAngleRotationMode
 import dji.sdk.keyvalue.value.gimbal.GimbalMode
@@ -55,6 +54,7 @@ import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.schema.generator.json.SerialDescription
+import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.coroutines.cancellation.CancellationException
@@ -252,20 +252,21 @@ open class AircraftController(
     class ControllerOverrideException(message: String = "Manual RC intervention detected") :
         CancellationException(message)
 
+    @OptIn(InternalSerializationApi::class)
+    @Serializable
+    @SerialName("flight_param")
     data class FlightParam(
-        var pitch: Double? = null,
-        var roll: Double? = null,
+        var vy: Double? = null,
+        var vx: Double? = null,
         var yaw: Double? = null,
-        var verticalThrottle: Double? = null,
-
-        var coordinateSystem: FlightCoordinateSystem = FlightCoordinateSystem.BODY,
+        var vz: Double? = null,
     ) {
         override fun toString(): String {
             return "" +
-                    (if (pitch != null) "pitch: $pitch," else "") +
-                    (if (roll != null) " roll: $roll," else "") +
+                    (if (vy != null) "vy: $vy," else "") +
+                    (if (vx != null) " vx: $vx," else "") +
                     (if (yaw != null) " yaw: $yaw," else "") +
-                    (if (verticalThrottle != null) " verticalThrottle: $verticalThrottle" else "")
+                    (if (vz != null) " vz: $vz" else "")
         }
     }
 
@@ -273,12 +274,10 @@ open class AircraftController(
         if (this == null) return other ?: FlightParam()
         if (other == null) return this
         return FlightParam().apply {
-            pitch = other.pitch ?: this.pitch
-            roll = other.roll ?: this.roll
+            vy = other.vy ?: this.vy
+            vx = other.vx ?: this.vx
             yaw = other.yaw ?: this.yaw
-            verticalThrottle = other.verticalThrottle ?: this.verticalThrottle
-
-            coordinateSystem = other.coordinateSystem
+            vz = other.vz ?: this.vz
         }
     }
 
@@ -622,9 +621,9 @@ open class AircraftController(
 
             val convergeParam = FlightParam()
             convergeParam.apply {
-                pitch = vy
-                roll = vx
-                verticalThrottle = vz
+                this.vy = vy
+                this.vx = vx
+                this.vz = vz
             }
             sendFlightParam(convergeParam)
         }
@@ -693,9 +692,9 @@ open class AircraftController(
 
             val convergeParam = FlightParam()
             convergeParam.apply {
-                pitch = vy
-                roll = vx
-                verticalThrottle = vz
+                this.vy = vy
+                this.vx = vx
+                this.vz = vz
             }
             sendFlightParam(convergeParam)
         }
@@ -704,7 +703,6 @@ open class AircraftController(
     suspend fun flyBy(
         direction: RelativeDirection, distance: Double,
         velocity: Double = 0.5,
-        coordinateSystem: FlightCoordinateSystem = FlightCoordinateSystem.BODY,
         callback: CommonCallbacks.CompletionCallback = DEFAULT_CALLBACK
     ) = coroutineScope {
         require(velocity >= 0) { "velocity must be positive" }
@@ -721,17 +719,15 @@ open class AircraftController(
         val v = signDir * signDist * velocity
 
         val flightControlParam = FlightParam().apply {
-            pitch = 0.0
-            roll = 0.0
+            vy = 0.0
+            vx = 0.0
             yaw = 0.0
-            verticalThrottle = 0.0
-
-            this.coordinateSystem = coordinateSystem
+            vz = 0.0
 
             when (direction) {
-                FORWARD, BACKWARD -> roll = v
-                RIGHT, LEFT -> pitch = v
-                UP, DOWN -> verticalThrottle = v
+                FORWARD, BACKWARD -> vx = v
+                RIGHT, LEFT -> vy = v
+                UP, DOWN -> vz = v
             }
         }
 
@@ -758,9 +754,9 @@ open class AircraftController(
         val travelTime = abs(mag / velocity)
         val v = distance.dt(travelTime)
         val flightParam = FlightParam().apply {
-            roll = v.x
-            pitch = v.y
-            verticalThrottle = v.z
+            vx = v.x
+            vy = v.y
+            vz = v.z
         }
         Log.i(TAG, "flying by $distance. $travelTime seconds")
         sendStickParamForDuration(travelTime.seconds, flightParam)
@@ -792,10 +788,10 @@ open class AircraftController(
             if (!goingUp && dy > 0) break
 
             // Send param
-            val verticalParam = FlightParam().apply { verticalThrottle = vy }
+            val verticalParam = FlightParam().apply { vz = vy }
             sendFlightParam(verticalParam)
         }
-        sendFlightParam(FlightParam().apply { verticalThrottle = 0.0 })
+        sendFlightParam(FlightParam().apply { vz = 0.0 })
     }
 
     suspend fun forwardBy(distance: Double, velocity: Double = 1.0) =
@@ -896,10 +892,10 @@ open class AircraftController(
 
         val circleMotionParam = FlightParam().apply {
             when (faceMode) {
-                CircleFaceMode.INWARDS -> pitch = -velocity * rotationSign
-                CircleFaceMode.OUTWARDS -> pitch = velocity * rotationSign
-                CircleFaceMode.TANGENT -> roll = velocity
-                CircleFaceMode.TANGENT_BACK -> roll = -velocity
+                CircleFaceMode.INWARDS -> vy = -velocity * rotationSign
+                CircleFaceMode.OUTWARDS -> vy = velocity * rotationSign
+                CircleFaceMode.TANGENT -> vx = velocity
+                CircleFaceMode.TANGENT_BACK -> vx = -velocity
             }
 
             yaw = (velocity / radius).toDegrees() * rotationSign
@@ -1022,9 +1018,9 @@ open class AircraftController(
             val v = d.dt(dt)
 
             sendFlightParam(FlightParam().apply {
-                roll = v.x
-                pitch = v.y
-                verticalThrottle = v.z
+                vx = v.x
+                vy = v.y
+                vz = v.z
             })
 
             t += dt
@@ -1319,8 +1315,8 @@ open class AircraftController(
                 else (dxy.pow(2) / (abs(dxy) + 1.0)).coerceAtMost(maxVelocity)
 
             val param = FlightParam().apply {
-                roll = vf
-                verticalThrottle = vz
+                vx = vf
+                this.vz = vz
             }
 
             sendFlightParam(param)
