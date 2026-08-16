@@ -1,7 +1,7 @@
 package com.kcg.dr.flight
 
 import android.util.Log
-import com.kcg.dr.api.Responses.toJson
+import com.kcg.dr.api.dto.Responses.toJson
 import com.kcg.dr.utils.CoroutineUtils
 import com.kcg.dr.utils.DJIErrorException
 import com.kcg.dr.utils.LocationUtils
@@ -22,7 +22,6 @@ import com.kcg.dr.utils.toDegrees
 import com.kcg.dr.utils.wrap180
 import dji.sampleV5.aircraft.models.VirtualStickVM.RCStickValue
 import dji.sampleV5.aircraft.util.ToastUtils
-import dji.sdk.keyvalue.key.RemoteControllerKey
 import dji.sdk.keyvalue.value.common.Attitude
 import dji.sdk.keyvalue.value.common.EmptyMsg
 import dji.sdk.keyvalue.value.common.LocationCoordinate2D
@@ -34,8 +33,6 @@ import dji.sdk.keyvalue.value.gimbal.GimbalAngleRotationMode
 import dji.sdk.keyvalue.value.gimbal.GimbalMode
 import dji.v5.common.callback.CommonCallbacks
 import dji.v5.common.error.IDJIError
-import dji.v5.et.create
-import dji.v5.et.listen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -77,6 +74,9 @@ open class AircraftController(
     val rc: IRCState,
     val ac: IAircraft,
     val camGim: IGimbal,
+
+    val cancelFlightOnOverride: Boolean = true,
+    val returnControlPostOverrideAfter: Duration = Duration.INFINITE
 ) {
     interface IVirtualStick {
         suspend fun takeControl()
@@ -215,6 +215,38 @@ open class AircraftController(
         }
     }
 
+    class ControllerOverrideException(message: String = "Manual RC intervention detected") :
+        CancellationException(message)
+
+    @OptIn(InternalSerializationApi::class)
+    @Serializable
+    @SerialName("flight_param")
+    data class FlightParam(
+        var vy: Double? = null,
+        var vx: Double? = null,
+        var yaw: Double? = null,
+        var vz: Double? = null,
+    ) {
+        override fun toString(): String {
+            return "" +
+                    (if (vy != null) "vy: $vy," else "") +
+                    (if (vx != null) " vx: $vx," else "") +
+                    (if (yaw != null) " yaw: $yaw," else "") +
+                    (if (vz != null) " vz: $vz" else "")
+        }
+    }
+
+    operator fun FlightParam?.plus(other: FlightParam?): FlightParam {
+        if (this == null) return other ?: FlightParam()
+        if (other == null) return this
+        return FlightParam().apply {
+            vy = other.vy ?: this.vy
+            vx = other.vx ?: this.vx
+            yaw = other.yaw ?: this.yaw
+            vz = other.vz ?: this.vz
+        }
+    }
+
     companion object {
         const val TAG: String = "AircraftController"
 
@@ -249,37 +281,10 @@ open class AircraftController(
         }
     }
 
-    class ControllerOverrideException(message: String = "Manual RC intervention detected") :
-        CancellationException(message)
-
-    @OptIn(InternalSerializationApi::class)
-    @Serializable
-    @SerialName("flight_param")
-    data class FlightParam(
-        var vy: Double? = null,
-        var vx: Double? = null,
-        var yaw: Double? = null,
-        var vz: Double? = null,
-    ) {
-        override fun toString(): String {
-            return "" +
-                    (if (vy != null) "vy: $vy," else "") +
-                    (if (vx != null) " vx: $vx," else "") +
-                    (if (yaw != null) " yaw: $yaw," else "") +
-                    (if (vz != null) " vz: $vz" else "")
-        }
-    }
-
-    operator fun FlightParam?.plus(other: FlightParam?): FlightParam {
-        if (this == null) return other ?: FlightParam()
-        if (other == null) return this
-        return FlightParam().apply {
-            vy = other.vy ?: this.vy
-            vx = other.vx ?: this.vx
-            yaw = other.yaw ?: this.yaw
-            vz = other.vz ?: this.vz
-        }
-    }
+    private val scope = CoroutineScope(Dispatchers.IO)
+    private var flightJob: Job? = null
+    private var rcConsumeJob: Job? = null
+    private var retakeStickTimerJob: Job? = null
 
     suspend fun init(takeStickControl: Boolean = true) {
         ac.init()
@@ -289,34 +294,17 @@ open class AircraftController(
         if (takeStickControl) vSticks.takeControl()
         startFlightParamTransmission()
 
-        // todo: replace with rc consume
-        listOf(
-            RemoteControllerKey.KeyStickLeftHorizontal,
-            RemoteControllerKey.KeyStickLeftVertical,
-            RemoteControllerKey.KeyStickRightHorizontal,
-            RemoteControllerKey.KeyStickRightVertical
-        ).forEach { stickKey ->
-            stickKey.create().listen(this) { value ->
-                val stickVal = value ?: return@listen
-                if (abs(stickVal) > RC_OVERRIDE_THRESHOLD) {
-                    if (vSticks.ownsControl) {
-                        Log.d(TAG, "RC touched while stick is enabled. disabling.")
-                        scope.launch { vSticks.relinquishControl() }
-                    }
-                    flightJob?.let {
-                        if (it.isActive) {
-                            Log.w(TAG, "RC touched while flight is active. cancelling.")
-                            it.cancel(ControllerOverrideException())
-                        }
-                    }
-                }
-            }
-        }
+        rcConsumeJob = scope.launch { rc.stickValue.collect(::onRCTouched) }
     }
 
     fun destroy() {
         stop(true)
-        stopFlightParamTransmission()
+        Log.d(TAG, "cancelling flight param transmission job")
+        flightParamTransmissionJob?.cancel()
+        Log.d(TAG, "cancelling rc consume job")
+        rcConsumeJob?.cancel()
+        Log.d(TAG, "cancelling retake stick timer job")
+        retakeStickTimerJob?.cancel()
         scope.launch {
             rc.stopListening()
             vSticks.relinquishControl()
@@ -324,11 +312,57 @@ open class AircraftController(
         }
     }
 
+    private fun onRCTouched(value: RCStickValue) {
+        Log.v(TAG, "RC touched: $value")
+
+        val dxl = value.leftHorizontal.toDouble()
+        val dyl = value.leftVertical.toDouble()
+        val dxr = value.rightHorizontal.toDouble()
+        val dyr = value.rightVertical.toDouble()
+
+        val dl = sqrt(dxl * dxl + dyl * dyl)
+        val dr = sqrt(dxr * dxr + dyr * dyr)
+        val deviation = max(dl, dr)
+
+        if (deviation > RC_OVERRIDE_THRESHOLD) {
+            retakeStickTimerJob?.cancel()
+
+            if (vSticks.ownsControl) {
+                Log.d(TAG, "RC touched while vStick is enabled. disabling vStick.")
+                scope.launch { vSticks.relinquishControl() }
+            }
+            if (cancelFlightOnOverride)
+                flightJob?.let {
+                    if (it.isActive) {
+                        Log.w(TAG, "RC touched while flight is active. cancelling.")
+                        it.cancel(ControllerOverrideException())
+                    }
+                }
+        } else {
+            Log.i(TAG, "RC [$value] under threshold (\"neutral\").")
+            if (!vSticks.ownsControl && returnControlPostOverrideAfter != Duration.INFINITE) {
+                Log.d(TAG, "RC neutral and vSticks not enabled.")
+                if (retakeStickTimerJob?.isActive == true) {
+                    Log.i(TAG, "retake sticks timer job is active")
+                    return
+                }
+                retakeStickTimerJob = scope.launch {
+                    Log.i(
+                        TAG,
+                        "retake timer job starting. retaking in (${returnControlPostOverrideAfter})..."
+                    )
+                    delay(returnControlPostOverrideAfter)
+                    if (isActive) {
+                        Log.i(TAG, "retake timer job finished. retaking sticks")
+                        vSticks.takeControl()
+                        retakeStickTimerJob = null
+                    }
+                }
+            }
+        }
+    }
+
     fun isFlying(): Boolean = ac.isFlying.value
-
-
-    private val scope = CoroutineScope(Dispatchers.IO)
-    private var flightJob: Job? = null
 
     suspend fun safely(
         onRCOverride: () -> Unit = {},
@@ -501,15 +535,6 @@ open class AircraftController(
             collectJob.cancelAndJoin()
             Log.w(TAG, "flight param transmission job cancelled")
         }
-    }
-
-    private fun stopFlightParamTransmission() {
-        Log.d(TAG, "cancelling flight param transmission job")
-        flightParamTransmissionJob?.cancel() ?: Log.d(
-            TAG,
-            "no flight param transmission job to cancel"
-        )
-        flightParamTransmissionJob = null
     }
 
     fun sendFlightParam(flightParam: FlightParam) =
