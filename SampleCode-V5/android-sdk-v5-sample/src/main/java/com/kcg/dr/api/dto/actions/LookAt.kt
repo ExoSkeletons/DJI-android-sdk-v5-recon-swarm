@@ -1,6 +1,6 @@
 @file:OptIn(InternalSerializationApi::class)
 
-package com.kcg.dr.api.actions
+package com.kcg.dr.api.dto.actions
 
 import com.kcg.dr.api.SerializerSurrogates.LocationCoordinate2DSerializer
 import com.kcg.dr.flight.AircraftController
@@ -10,6 +10,7 @@ import kotlinx.schema.generator.json.SerialDescription
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+/*
 
 @Serializable
 @SerialName("look_at")
@@ -24,3 +25,4 @@ data class LookAt(
 
     override val description get() = "Look at ${target.toJson()}"
 }
+*/

@@ -1,6 +1,6 @@
 @file:OptIn(InternalSerializationApi::class)
 
-package com.kcg.dr.api.actions
+package com.kcg.dr.api.dto.actions
 
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.location.UserMetrics
@@ -10,13 +10,9 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-@SerialName("spin_by")
-@SerialDescription("Spins aircraft relative to it's current heading.")
-data class SpinBy(
-    val degrees: Double = 360.0,
-) : Action {
+@SerialName("wave")
+@SerialDescription("Greet user by Waving camera. Used if user says hi")
+data class Wave(val count: Int = 2) : Action {
     override suspend fun act(aircraft: AircraftController, user: UserMetrics?) =
-        aircraft.spinBy(degrees)
-
-    override val description = "Spin ${degrees}°"
+        aircraft.wave(count)
 }

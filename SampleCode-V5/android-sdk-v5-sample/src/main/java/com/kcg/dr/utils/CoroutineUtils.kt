@@ -5,7 +5,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import com.kcg.dr.api.Responses.isConnectionError
+import com.kcg.dr.api.dto.Responses.isConnectionError
 import dji.sdk.keyvalue.key.DJIKey
 import dji.sdk.keyvalue.key.FlightControllerKey
 import dji.v5.common.callback.CommonCallbacks

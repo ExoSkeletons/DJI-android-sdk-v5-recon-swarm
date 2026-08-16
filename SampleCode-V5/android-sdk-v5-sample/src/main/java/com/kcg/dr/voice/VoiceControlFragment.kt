@@ -13,9 +13,9 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.kcg.dr.api.actions.FlyToMe
-import com.kcg.dr.api.actions.FollowMe
-import com.kcg.dr.api.actions.TrackMe
+import com.kcg.dr.api.dto.actions.FlyToMe
+import com.kcg.dr.api.dto.actions.FollowMe
+import com.kcg.dr.api.dto.actions.TrackMe
 import com.kcg.dr.flight.AircraftControlVM
 import com.kcg.dr.location.UserVM
 import com.kcg.dr.utils.ResourcesManager

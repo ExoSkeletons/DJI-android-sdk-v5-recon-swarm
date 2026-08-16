@@ -12,10 +12,12 @@
 */
 @file:OptIn(InternalSerializationApi::class)
 
-package com.kcg.dr.api
+package com.kcg.dr.api.dto
 
 import android.util.Log
 import com.google.gson.annotations.SerializedName
+import com.kcg.dr.api.toElement
+import com.kcg.dr.api.toJsonElement
 import com.kcg.dr.utils.CoroutineUtils.actionOrExcept
 import com.kcg.dr.utils.CoroutineUtils.getOrExcept
 import com.kcg.dr.utils.CoroutineUtils.setOrExcept

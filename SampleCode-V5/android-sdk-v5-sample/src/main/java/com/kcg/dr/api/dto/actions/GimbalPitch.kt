@@ -1,6 +1,6 @@
 @file:OptIn(InternalSerializationApi::class)
 
-package com.kcg.dr.api.actions
+package com.kcg.dr.api.dto.actions
 
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.location.UserMetrics
@@ -10,14 +10,14 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-@SerialName("fly_square")
-data class Square(
-    @property:SerialDescription("Side length (m)")
-    val side: Double,
-    @property:SerialDescription("1..6 (m/s)")
-    val velocity: Double,
-    val clockwise: Boolean = true,
+@SerialName("gimbal_pitch")
+@SerialDescription("Pitches aircraft camera Gimbal up/down")
+data class GimbalPitch(
+    @property:SerialDescription("-90..60 (degrees)")
+    val angle: Double
 ) : Action {
     override suspend fun act(aircraft: AircraftController, user: UserMetrics?) =
-        aircraft.flySquare(side, velocity, clockwise)
+        aircraft.pitchCamera(angle)
+
+    override val description = "Pitch Gimbal to ${angle}°"
 }

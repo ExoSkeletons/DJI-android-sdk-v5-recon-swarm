@@ -22,10 +22,10 @@ import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.Priority
 import com.kcg.dr.api.ApiServerVM
-import com.kcg.dr.api.KeyActivator
-import com.kcg.dr.api.actions.FlyToMe
-import com.kcg.dr.api.actions.FollowMe
-import com.kcg.dr.api.actions.TrackMe
+import com.kcg.dr.api.dto.KeyActivator
+import com.kcg.dr.api.dto.actions.FlyToMe
+import com.kcg.dr.api.dto.actions.FollowMe
+import com.kcg.dr.api.dto.actions.TrackMe
 import com.kcg.dr.flight.AircraftControlVM
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.flight.AircraftController.CircleFaceMode

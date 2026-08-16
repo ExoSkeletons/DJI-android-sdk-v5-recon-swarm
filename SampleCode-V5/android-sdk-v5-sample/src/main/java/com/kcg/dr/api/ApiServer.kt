@@ -2,11 +2,15 @@ package com.kcg.dr.api
 
 import android.util.Log
 import androidx.lifecycle.MutableLiveData
-import com.kcg.dr.api.Responses.djiErrorResponse
-import com.kcg.dr.api.Responses.errorResponse
-import com.kcg.dr.api.Responses.exceptResponse
-import com.kcg.dr.api.Responses.nok
-import com.kcg.dr.api.Responses.ok
+import com.kcg.dr.api.dto.FlyRequest
+import com.kcg.dr.api.dto.KeyActivator
+import com.kcg.dr.api.dto.Responses.djiErrorResponse
+import com.kcg.dr.api.dto.Responses.errorResponse
+import com.kcg.dr.api.dto.Responses.exceptResponse
+import com.kcg.dr.api.dto.Responses.nok
+import com.kcg.dr.api.dto.Responses.ok
+import com.kcg.dr.api.dto.Responses.status
+import com.kcg.dr.api.dto.actions.Action
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.location.UserMetrics
 import com.kcg.dr.utils.CoroutineUtils.actionOrExcept
@@ -32,6 +36,7 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.request.httpMethod
+import io.ktor.server.request.receive
 import io.ktor.server.request.receiveText
 import io.ktor.server.request.uri
 import io.ktor.server.response.respond
@@ -52,6 +57,7 @@ import io.ktor.websocket.Frame
 import io.ktor.websocket.close
 import io.ktor.websocket.readText
 import io.ktor.websocket.send
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -68,7 +74,14 @@ class ApiServer {
     private var controller: AircraftController? = null
     private var user: UserMetrics? = null
 
-    val requests = MutableLiveData<List<String>>(emptyList())
+    val requests = MutableSharedFlow<String>(
+        replay = 10,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+    val wsIncoming = MutableSharedFlow<String>(
+        replay = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
 
     val isRunning = MutableLiveData(false)
 
@@ -116,10 +129,11 @@ class ApiServer {
                 }
 
                 intercept(ApplicationCallPipeline.Plugins) {
+                    // log rest requests
                     val log = "${call.request.httpMethod.value} ${call.request.uri}"
-                    requests.postValue(
-                        requests.value?.let { list -> (list + listOf(log)).take(10) } ?: listOf(log)
-                    )
+                    requests.tryEmit(log)
+                    // log ws requests
+                    val wsLog = "${call.request.httpMethod.value} ${call.request.uri}"
 
                     val rcAvailable = RemoteControllerKey.KeyConnection.create().get(false)
                     if (!rcAvailable) {
@@ -144,13 +158,17 @@ class ApiServer {
                 route("/status") { aircraftStatusRoute() }
 
                 route("/c") {
-                    controllerRoute { this@ApiServer.controller to this@ApiServer.user }
+                    controllerRoute(
+                        { this@ApiServer.controller },
+                        { this@ApiServer.user }
+                    )
                     route("/ws") {
                         webSocket("/echo") {
                             send("Echo connected")
                             for (frame in incoming) {
                                 frame as? Frame.Text ?: continue
                                 val receivedText = frame.readText()
+                                wsIncoming.emit(receivedText)
                                 if (Regex("bye|x|stop").matches(receivedText)) {
                                     close(CloseReason(CloseReason.Codes.NORMAL, "Client said BYE"))
                                 } else {
@@ -160,7 +178,7 @@ class ApiServer {
                         }
                         webSocket("/sticks") {
                             send("Connected to sticks websocket")
-                            sticksControlSession()
+                            sticksControlSession(wsIncoming) { this@ApiServer.controller }
                         }
                     }
                 }
@@ -315,7 +333,87 @@ private fun Routing.quickActionsRoute() {
     }
 }
 
-private suspend fun DefaultWebSocketServerSession.sticksControlSession() {
+private fun Route.controllerRoute(
+    controllerProvider: () -> AircraftController?,
+    userProvider: () -> UserMetrics?
+) {
+    lateinit var controller: AircraftController
+    lateinit var user: UserMetrics
+
+    intercept(ApplicationCallPipeline.Plugins) {
+        val cr = controllerProvider()
+        if (cr == null) {
+            call.respond(
+                HttpStatusCode.ServiceUnavailable,
+                "AircraftController not initialized."
+            )
+            finish() // This prevents the actual get/post handlers below from running
+            return@intercept
+        }
+        controller = cr
+
+        val usr = userProvider()
+        if (usr != null)
+            user = usr
+    }
+
+    get("/") { call.respond(status { "controller is ready" }) }
+    /*post("/flyTo") {
+        val request = call.receive<FlyTo>()
+        controller.fly {
+            flyToSticks(
+                target = request.target,
+                maxVelocity = request.maxVelocity
+            )
+        }
+        call.respond(ok {
+            put(
+                FlyTo::class.serializer().descriptor.serialName,
+                request.target.toJson().toJsonElement()
+            )
+        })
+    }*/
+    /*post("/lookAt") {
+        val request = call.receive<LookAt>()
+        controller.fly { lookAtWithSpin(request.target, request.height) }
+        call.respond(ok {
+            put(
+                LookAt::class.serializer().descriptor.serialName,
+                request.target.toJson().toJsonElement()
+            )
+        })
+    }*/
+
+    post("/fly") {
+        val request = call.receive<FlyRequest>()
+        controller.fly {
+            for (action: Action in request.mission)
+                action.act(controller, user)
+        }
+        // respond without waiting for completion
+        call.respond(status { "starting mission" })
+    }
+
+    post("/stop") {
+        controller.stop()
+    }
+    post("/takeoff") {
+        controller.fly { takeoff() }
+    }
+    post("/land") {
+        controller.fly { land() }
+    }
+
+    get("/(wave|hi|hey|hello)".toRegex()) {
+        controller.fly { wave() }
+        call.respond(status { "Hello! o/" })
+    }
+}
+
+private suspend fun DefaultWebSocketServerSession.sticksControlSession(
+    wsIncoming: MutableSharedFlow<String>,
+    controllerProvider: () -> AircraftController?
+) {
     val responseFlow = MutableSharedFlow<JsonObject>()
     val responderJob = launch {
         responseFlow.collect { response ->
@@ -327,11 +425,12 @@ private suspend fun DefaultWebSocketServerSession.sticksControlSession() {
         for (frame in incoming) {
             frame as? Frame.Text ?: continue
             val receivedText = frame.readText()
-            // todo: handle response with stick values dto?
-            val messageResponse = ok {
-                put("message", receivedText)
-            }
-            responseFlow.emit(messageResponse)
+            wsIncoming.emit(receivedText)
+            val sticksRequest = Json.decodeFromString<AircraftController.FlightParam>(receivedText)
+            controllerProvider()?.sendFlightParam(sticksRequest)
+            responseFlow.emit(ok {
+                put("param", sticksRequest.toString())
+            })
         }
     }.onFailure { e ->
         when (e) {

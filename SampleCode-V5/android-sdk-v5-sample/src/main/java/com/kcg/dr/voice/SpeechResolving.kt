@@ -10,7 +10,7 @@ import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.Translator
 import com.google.mlkit.nl.translate.TranslatorOptions
-import com.kcg.dr.api.actions.Action
+import com.kcg.dr.api.dto.actions.Action
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.location.UserMetrics
 import com.kcg.dr.utils.AssetUtils.getAssetOrExtract

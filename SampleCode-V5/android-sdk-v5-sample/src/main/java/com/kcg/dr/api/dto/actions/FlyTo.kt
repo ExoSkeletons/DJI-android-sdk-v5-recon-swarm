@@ -1,6 +1,6 @@
 @file:OptIn(InternalSerializationApi::class)
 
-package com.kcg.dr.api.actions
+package com.kcg.dr.api.dto.actions
 
 import com.kcg.dr.api.SerializerSurrogates.LocationCoordinate3DSerializer
 import com.kcg.dr.flight.AircraftController
@@ -10,6 +10,7 @@ import kotlinx.schema.generator.json.SerialDescription
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+/*
 
 @Serializable
 @SerialName("fly_gps")
@@ -26,3 +27,4 @@ data class FlyTo(
 
     override val description get() = "Fly to ${target.toJson()}"
 }
+*/

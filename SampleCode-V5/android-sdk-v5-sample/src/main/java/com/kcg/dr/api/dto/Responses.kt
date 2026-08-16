@@ -1,4 +1,4 @@
-package com.kcg.dr.api
+package com.kcg.dr.api.dto
 
 import android.util.Log
 import com.kcg.dr.utils.DJIErrorException
