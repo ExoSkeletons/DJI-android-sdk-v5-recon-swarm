@@ -13,7 +13,7 @@ import kotlinx.serialization.Serializable
 @SerialName("spin_by")
 @SerialDescription("Spins aircraft relative to it's current heading.")
 data class SpinBy(
-    val degrees: Double,
+    val degrees: Double = 360.0,
 ) : Action {
     override suspend fun act(aircraft: AircraftController, user: UserMetrics?) =
         aircraft.spinBy(degrees)
