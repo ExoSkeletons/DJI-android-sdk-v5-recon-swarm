@@ -23,7 +23,7 @@ import kotlin.math.abs
 @SerialName("follow_me")
 @SerialDescription("Follow the user from above")
 data class FollowMe(
-    val cruiseHeight: Double = 15.0,
+    val cruiseHeight: Double = 7.0,
     val followDistance: Double = 4.0,
     @property:SerialDescription("1..8 (m/s)")
     val maxVelocity: Double = 8.0,
@@ -44,9 +44,9 @@ data class FollowMe(
                         .minus(followDistance)
                 ) > flyToTolerance
             ) {
-                ToastUtils.showToast("looking for device")
+                ToastUtils.showToast("Looking for you")
                 lookAtWithSpin(dl.as2D, user.humanHeight.value)
-                ToastUtils.showToast("moving to perch")
+                ToastUtils.showToast("Moving to Perch")
 
                 val perchHeading = currentLoc.as2D.bearingTo(dl.as2D)
 
@@ -64,7 +64,7 @@ data class FollowMe(
                 }
             }
 
-            ToastUtils.showToast("following you")
+            ToastUtils.showToast("Following you")
             // Orbiting pattern
             perchShoulder(
                 deviceLocation,
