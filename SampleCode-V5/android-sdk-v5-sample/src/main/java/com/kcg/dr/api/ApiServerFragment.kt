@@ -76,10 +76,15 @@ class ApiServerFragment : Fragment() {
         viewModel.tunnelingUrl.observe(viewLifecycleOwner) {
             binding.tvTunnelingUrl.text = it
         }
-        viewModel.serverLogs.observe(viewLifecycleOwner) { logs ->
+        viewModel.serverLogs.observe(viewLifecycleOwner) { latest ->
             binding.tvLogs.text =
-                if (logs.isEmpty()) "Waiting for requests..."
-                else logs.joinToString("\n")
+                if (latest?.isEmpty() ?: true) "Waiting for requests..."
+                else latest
+        }
+        viewModel.wsLogs.observe(viewLifecycleOwner) { latest ->
+            binding.tvLogsWs.text =
+                if (latest?.isEmpty() ?: true) "Waiting for WS frames..."
+                else latest
         }
     }
 

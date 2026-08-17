@@ -9,6 +9,7 @@ import android.os.IBinder
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
+import androidx.lifecycle.asLiveData
 import androidx.lifecycle.switchMap
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
@@ -18,6 +19,8 @@ import com.kcg.dr.api.Tunneling.Cloudflared
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.location.UserMetrics
 import com.kcg.dr.utils.ServiceUtils
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.launch
 
 class ApiServerVM(
@@ -44,19 +47,28 @@ class ApiServerVM(
 
     val isServiceRunning = MutableLiveData(false)
     val isServiceBound = MutableLiveData(false)
-    val tunnelingUrl = MutableLiveData<String>(null)
+    val tunnelingUrl = MutableLiveData<String?>(null)
 
     private val server = MutableLiveData<ApiServer?>()
 
     val isServerRunning = server.switchMap {
         it?.isRunning ?: MutableLiveData(false)
     }
-    val serverLogs = server.switchMap {
-        it?.requests ?: MutableLiveData(emptyList())
+
+    val serverLogs = server.switchMap { s ->
+        s?.requests?.scan(emptyList<String>()) { acc, value ->
+            (acc + value).takeLast(10)
+        }?.map { it.joinToString("\n") }?.asLiveData() ?: MutableLiveData()
+    }
+
+    val wsLogs = server.switchMap { s ->
+        s?.wsIncoming?.scan(emptyList<String>()) { acc, value ->
+            (acc + value).takeLast(2)
+        }?.map { it.joinToString("\n") }?.asLiveData() ?: MutableLiveData()
     }
 
 
-    private val connection = object : ServiceConnection {
+    private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             val binder = service as? ApiServerService.ApiServerBinder
 
@@ -77,7 +89,7 @@ class ApiServerVM(
         val context = application.applicationContext
         val intent = Intent(context, ApiServerService::class.java)
         try {
-            context.bindService(intent, connection, Context.BIND_AUTO_CREATE)
+            context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -92,12 +104,8 @@ class ApiServerVM(
                 putExtra(EXTRA_HOST, host)
                 putExtra(EXTRA_PORT, port)
             },
-            connection = connection
+            connection = serviceConnection
         )
-        viewModelScope.launch {
-            val urls = Cloudflared.startTunneling(context = context, port = port)
-            tunnelingUrl.value = urls.firstOrNull()
-        }
     }
 
     fun stopService() {
@@ -105,11 +113,28 @@ class ApiServerVM(
         ServiceUtils.stopService(
             context,
             ApiServerService::class.java,
-            connection = connection
+            connection = serviceConnection
         )
         // stop tunneling
         isServiceBound.value = false
         isServiceRunning.value = false
+    }
+
+    fun startTunneling(port: Int = 8080) {
+        viewModelScope.launch {
+            val urls = Cloudflared.startTunneling(
+                context = getApplication<Application>().applicationContext,
+                port = port
+            )
+            tunnelingUrl.value = urls.firstOrNull()
+        }
+    }
+
+    fun stopTunneling() {
+        viewModelScope.launch {
+            Cloudflared.stopTunneling()
+            tunnelingUrl.value = null
+        }
     }
 
     override fun onCleared() {
@@ -117,7 +142,7 @@ class ApiServerVM(
         // stopService()
         if (isServiceBound.value == true) {
             try {
-                getApplication<Application>().unbindService(connection)
+                getApplication<Application>().unbindService(serviceConnection)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
