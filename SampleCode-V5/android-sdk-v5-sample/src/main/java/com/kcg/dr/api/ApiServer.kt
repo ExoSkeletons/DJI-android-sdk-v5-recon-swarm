@@ -59,6 +59,7 @@ import io.ktor.websocket.readText
 import io.ktor.websocket.send
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -79,7 +80,7 @@ class ApiServer {
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
     val wsIncoming = MutableSharedFlow<String>(
-        replay = 1,
+        replay = 2,
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
 
@@ -179,6 +180,21 @@ class ApiServer {
                         webSocket("/sticks") {
                             send("Connected to sticks websocket")
                             sticksControlSession(wsIncoming) { this@ApiServer.controller }
+                        }
+                        webSocket("/telemetry") {
+                            send("Connected to telemetry websocket")
+                            val controller = this@ApiServer.controller
+                            if (controller == null) {
+                                sendSerialized(errorResponse { "No controller" })
+                                close(
+                                    CloseReason(
+                                        CloseReason.Codes.INTERNAL_ERROR,
+                                        "No controller"
+                                    )
+                                )
+                                return@webSocket
+                            }
+                            telemetrySession(controller)
                         }
                     }
                 }
@@ -438,4 +454,29 @@ private suspend fun DefaultWebSocketServerSession.sticksControlSession(
             else -> Log.e(TAG, "WebSocket exception ${closeReason.await()}", e)
         }
     }.also { responderJob.cancel() }
+}
+
+private suspend fun DefaultWebSocketServerSession.telemetrySession(
+    controller: AircraftController
+) {
+    runCatching {
+        combine(
+            controller.ac.location,
+            controller.ac.batteryPercent,
+            controller.ac.velocity,
+        ) { location, battery, velocity ->
+            buildJsonObject {
+                put("location", location?.toJson().toJsonElement())
+                put("battery", battery)
+                put("velocity", velocity.toJson().toJsonElement())
+            }
+        }.collect {
+            sendSerialized(it)
+        }
+    }.onFailure { e ->
+        when (e) {
+            is ClosedChannelException -> Log.i(TAG, "WebSocket closed ${closeReason.await()}")
+            else -> Log.e(TAG, "WebSocket exception ${closeReason.await()}", e)
+        }
+    }
 }
