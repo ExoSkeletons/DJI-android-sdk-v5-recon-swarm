@@ -9,9 +9,6 @@ import androidx.fragment.app.activityViewModels
 import dji.sampleV5.aircraft.databinding.FragVocomCameraControlsBinding
 import dji.sampleV5.aircraft.models.RecordingVM
 import dji.sdk.keyvalue.value.common.ComponentIndexType
-import dji.sdk.keyvalue.value.common.EmptyMsg
-import dji.v5.common.callback.CommonCallbacks
-import dji.v5.common.error.IDJIError
 
 class RecordingControlsFragment : Fragment() {
     private var _binding: FragVocomCameraControlsBinding? = null
@@ -39,15 +36,12 @@ class RecordingControlsFragment : Fragment() {
 
         binding.btnStartRecordVideo.setOnClickListener {
             cameraVM.cameraIndex.postValue(ComponentIndexType.LEFT_OR_MAIN)
-            cameraVM.startRecord(object : CommonCallbacks.CompletionCallbackWithParam<EmptyMsg> {
-                override fun onSuccess(p0: EmptyMsg?) {}
-                override fun onFailure(error: IDJIError) {}
-            })
+            cameraVM.startRecord()
         }
 
         binding.btnStopRecordVideo.setOnClickListener {
             if (cameraVM.isRecording.value == true)
-                cameraVM.stopRecord(null)
+                cameraVM.stopRecord()
         }
 
         cameraVM.isRecording.observe(viewLifecycleOwner) { recording ->

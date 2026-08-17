@@ -1,9 +1,14 @@
 package dji.sampleV5.aircraft.models
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.kcg.dr.utils.CoroutineUtils.actionOrExcept
+import com.kcg.dr.utils.CoroutineUtils.setOrExcept
+import dji.sampleV5.aircraft.util.ToastUtils
 import dji.sdk.keyvalue.key.CameraKey
 import dji.sdk.keyvalue.key.DJIKey
 import dji.sdk.keyvalue.key.DJIKeyInfo
@@ -11,12 +16,10 @@ import dji.sdk.keyvalue.value.camera.CameraMode
 import dji.sdk.keyvalue.value.camera.CameraShootPhotoMode
 import dji.sdk.keyvalue.value.common.ComponentIndexType
 import dji.sdk.keyvalue.value.common.EmptyMsg
-import dji.v5.common.callback.CommonCallbacks.CompletionCallbackWithParam
-import dji.v5.et.action
 import dji.v5.et.cancelListen
 import dji.v5.et.createCamera
 import dji.v5.et.listen
-import dji.v5.et.set
+import kotlinx.coroutines.launch
 
 class RecordingVM : ViewModel() {
     private class CameraKeyObserver<T>(
@@ -58,51 +61,46 @@ class RecordingVM : ViewModel() {
             key.setSource(cameraIndex)
     }
 
-    fun startRecord(callback: CompletionCallbackWithParam<EmptyMsg>? = null) {
+    fun startRecord() {
         val cameraIndex = cameraIndex.value ?: return
-        CameraKey.KeyCameraMode.createCamera(cameraIndex).set(
-            CameraMode.VIDEO_NORMAL,
-            {
-                CameraKey.KeyStartRecord.createCamera(cameraIndex).action(
-                    EmptyMsg(),
-                    { callback?.onSuccess(it) },
-                    { callback?.onFailure(it) }
-                )
-            },
-            { callback?.onFailure(it) }
-        )
+        viewModelScope.launch {
+            runCatching {
+                CameraKey.KeyCameraMode.createCamera(cameraIndex)
+                    .setOrExcept(CameraMode.VIDEO_NORMAL)
+                CameraKey.KeyStartRecord.createCamera(cameraIndex).actionOrExcept(EmptyMsg())
+            }.onFailure {
+                ToastUtils.showToast("start recording failed: ${it.message}")
+                Log.e(TAG, "start recording failed", it)
+            }
+        }
     }
 
-    fun stopRecord(callback: CompletionCallbackWithParam<EmptyMsg>? = null) {
+    fun stopRecord() {
         val cameraIndex = cameraIndex.value ?: return
-        CameraKey.KeyStopRecord.createCamera(cameraIndex).action(
-            EmptyMsg(),
-            { callback?.onSuccess(it) },
-            { callback?.onFailure(it) }
-        )
+        viewModelScope.launch {
+            runCatching {
+                CameraKey.KeyStopRecord.createCamera(cameraIndex).actionOrExcept(EmptyMsg())
+            }.onFailure {
+                ToastUtils.showToast("stop recording failed: ${it.message}")
+                Log.e(TAG, "stop recording failed", it)
+            }
+        }
     }
 
-    fun takePhoto(callback: CompletionCallbackWithParam<EmptyMsg>? = null) {
+    fun takePhoto() {
         val cameraIndex = cameraIndex.value ?: return
-        CameraKey.KeyCameraMode.createCamera(cameraIndex).set(
-            CameraMode.PHOTO_NORMAL,
-            {
-                CameraKey.KeyShootPhotoMode.createCamera(cameraIndex).set(
-                    CameraShootPhotoMode.NORMAL,
-                    {
-                        CameraKey.KeyStartShootPhoto.createCamera(cameraIndex).action(
-                            EmptyMsg(),
-                            {
-                                CameraKey.KeyStopShootPhoto.createCamera(cameraIndex).action()
-                                callback?.onSuccess(it)
-                            },
-                            { callback?.onFailure(it) }
-                        )
-                    },
-                    { callback?.onFailure(it) }
-                )
-            },
-            { callback?.onFailure(it) }
-        )
+        viewModelScope.launch {
+            runCatching {
+                CameraKey.KeyCameraMode.createCamera(cameraIndex)
+                    .setOrExcept(CameraMode.PHOTO_NORMAL)
+                CameraKey.KeyShootPhotoMode.createCamera(cameraIndex)
+                    .setOrExcept(CameraShootPhotoMode.NORMAL)
+                CameraKey.KeyStartShootPhoto.createCamera(cameraIndex).actionOrExcept(EmptyMsg())
+                CameraKey.KeyStopShootPhoto.createCamera(cameraIndex).actionOrExcept(EmptyMsg())
+            }.onFailure {
+                ToastUtils.showToast("take photo failed: ${it.message}")
+                Log.e(TAG, "take photo failed", it)
+            }
+        }
     }
 }
