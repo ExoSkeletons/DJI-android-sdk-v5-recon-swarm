@@ -12,6 +12,8 @@ import com.kcg.dr.api.dto.Responses.ok
 import com.kcg.dr.api.dto.Responses.status
 import com.kcg.dr.api.dto.StreamRequest
 import com.kcg.dr.api.dto.actions.Action
+import com.kcg.dr.api.dto.actions.FlyTo
+import com.kcg.dr.api.dto.actions.LookAt
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.location.UserMetrics
 import com.kcg.dr.utils.CoroutineUtils.actionOrExcept
@@ -373,7 +375,7 @@ private fun Route.controllerRoute(
     }
 
     get("/") { call.respond(status { "controller is ready" }) }
-    /*post("/flyTo") {
+    post("/flyTo") {
         val request = call.receive<FlyTo>()
         controller.fly {
             flyToSticks(
@@ -387,8 +389,8 @@ private fun Route.controllerRoute(
                 request.target.toJson().toJsonElement()
             )
         })
-    }*/
-    /*post("/lookAt") {
+    }
+    post("/lookAt") {
         val request = call.receive<LookAt>()
         controller.fly { lookAtWithSpin(request.target, request.height) }
         call.respond(ok {
@@ -397,7 +399,7 @@ private fun Route.controllerRoute(
                 request.target.toJson().toJsonElement()
             )
         })
-    }*/
+    }
 
     post("/fly") {
         val request = call.receive<FlyRequest>()

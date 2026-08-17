@@ -10,7 +10,6 @@ import kotlinx.schema.generator.json.SerialDescription
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-/*
 
 @Serializable
 @SerialName("fly_gps")
@@ -27,4 +26,3 @@ data class FlyTo(
 
     override val description get() = "Fly to ${target.toJson()}"
 }
-*/

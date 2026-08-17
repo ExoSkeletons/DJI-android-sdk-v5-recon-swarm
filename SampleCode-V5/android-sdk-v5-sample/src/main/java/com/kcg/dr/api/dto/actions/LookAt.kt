@@ -10,7 +10,6 @@ import kotlinx.schema.generator.json.SerialDescription
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-/*
 
 @Serializable
 @SerialName("look_at")
@@ -25,4 +24,3 @@ data class LookAt(
 
     override val description get() = "Look at ${target.toJson()}"
 }
-*/
