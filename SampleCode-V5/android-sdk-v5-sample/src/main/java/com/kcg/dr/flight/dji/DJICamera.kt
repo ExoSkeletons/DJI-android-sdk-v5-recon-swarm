@@ -74,7 +74,8 @@ class DJICamera : ICamera<ComponentIndexType, LiveStreamStatus> {
 
         streamManager.apply {
             liveStreamSettings = settings
-            liveStreamQuality = StreamQuality.ORIGINAL
+            liveStreamQuality = StreamQuality.SD
+            liveStreamScaleType = ICameraStreamManager.ScaleType.FIX_XY
             liveVideoBitrateMode = LiveVideoBitrateMode.AUTO
         }
 
