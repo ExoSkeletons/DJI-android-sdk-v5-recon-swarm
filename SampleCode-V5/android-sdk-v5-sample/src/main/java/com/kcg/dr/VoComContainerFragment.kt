@@ -7,8 +7,10 @@ import android.view.ViewGroup
 import androidx.fragment.app.activityViewModels
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
+import com.kcg.dr.flight.AircraftControlVM
 import com.kcg.dr.location.LiveLocationProvider
 import com.kcg.dr.location.UserVM
+import com.kcg.dr.utils.CoroutineUtils.observe
 import com.kcg.dr.utils.asDjiLocation
 import dji.sampleV5.aircraft.databinding.FragVocomContainerBinding
 import dji.sampleV5.aircraft.pages.DJIFragment
@@ -19,6 +21,7 @@ class VoComContainerFragment : DJIFragment() {
     private val binding get() = _binding!!
 
     private val deviceLocationVM: UserVM by activityViewModels()
+    private val controllerVM: AircraftControlVM by activityViewModels()
     private val locationProvider = LiveLocationProvider(this, 200, 50, 500)
 
 
@@ -45,6 +48,15 @@ class VoComContainerFragment : DJIFragment() {
         locationProvider.startRequesting()
 
         binding.fpvWidget.updateVideoSource(ComponentIndexType.LEFT_OR_MAIN)
+
+        controllerVM.c.vSticks.ownsControl.observe(viewLifecycleOwner) {
+            binding.tvControllerOwner.text =
+                "Control : " +
+                        when (it) {
+                            true -> "Auto"
+                            else -> "Manual"
+                        }
+        }
 
         // Start API server
         //apiVM.startService(notificationVM.controllerChannelId)
