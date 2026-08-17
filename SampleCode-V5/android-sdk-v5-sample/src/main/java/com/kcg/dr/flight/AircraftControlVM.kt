@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import com.kcg.dr.flight.dji.DJIAircraft
+import com.kcg.dr.flight.dji.DJICamera
 import com.kcg.dr.flight.dji.DJIGimbal
 import com.kcg.dr.flight.dji.DJIRCStick
 import com.kcg.dr.flight.dji.DJIVirtualStick
@@ -18,6 +19,7 @@ class AircraftControlVM(
         DJIRCStick(),
         DJIAircraft(),
         DJIGimbal(),
+        DJICamera(),
     ).apply {
         viewModelScope.launch {
             init()

@@ -74,10 +74,21 @@ open class AircraftController(
     val rc: IRCState,
     val ac: IAircraft,
     val camGim: IGimbal,
+    val cam: ICamera,
 
     val cancelFlightOnOverride: Boolean = true,
     val returnControlPostOverrideAfter: Duration = Duration.INFINITE
 ) {
+    interface ICamera {
+        val isStreaming: StateFlow<Boolean>
+
+        suspend fun startStream(url: String)
+        suspend fun stopStream()
+
+        suspend fun init()
+        suspend fun destroy()
+    }
+
     interface IVirtualStick {
         suspend fun takeControl()
 
@@ -294,6 +305,7 @@ open class AircraftController(
         ac.init()
         rc.listen()
         vSticks.listen()
+        cam.init()
         camGim.reset()
 
         if (takeStickControl) vSticks.takeControl()
@@ -314,6 +326,7 @@ open class AircraftController(
             rc.stopListening()
             vSticks.stopListening()
             vSticks.relinquishControl()
+            cam.destroy()
             ac.destroy()
         }
     }
