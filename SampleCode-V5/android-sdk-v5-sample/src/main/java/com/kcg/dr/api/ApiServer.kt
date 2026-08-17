@@ -10,6 +10,7 @@ import com.kcg.dr.api.dto.Responses.exceptResponse
 import com.kcg.dr.api.dto.Responses.nok
 import com.kcg.dr.api.dto.Responses.ok
 import com.kcg.dr.api.dto.Responses.status
+import com.kcg.dr.api.dto.StreamRequest
 import com.kcg.dr.api.dto.actions.Action
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.location.UserMetrics
@@ -133,8 +134,6 @@ class ApiServer {
                     // log rest requests
                     val log = "${call.request.httpMethod.value} ${call.request.uri}"
                     requests.tryEmit(log)
-                    // log ws requests
-                    val wsLog = "${call.request.httpMethod.value} ${call.request.uri}"
 
                     val rcAvailable = RemoteControllerKey.KeyConnection.create().get(false)
                     if (!rcAvailable) {
@@ -326,7 +325,7 @@ private fun Route.aircraftStatusRoute() {
 }
 
 private fun Routing.quickActionsRoute() {
-    get("/fly") {
+    get(Regex("/(fly|takeoff)")) {
         try {
             val isFlying = FlightControllerKey.KeyIsFlying.create().get(false)
             if (isFlying) {
@@ -423,6 +422,31 @@ private fun Route.controllerRoute(
     get("/(wave|hi|hey|hello)".toRegex()) {
         controller.fly { wave() }
         call.respond(status { "Hello! o/" })
+    }
+
+    route("/stream") {
+        post("/start") {
+            val request = call.receive<StreamRequest>()
+            val url = request.rtmpUrl?.trim('"')
+            if (url == null) {
+                call.respond(errorResponse { "rtmp url is required" })
+                return@post
+            }
+            controller.cam.startStream(url)
+            call.respond(ok())
+        }
+        post("/stop") {
+            controller.cam.stopStream()
+            call.respond(ok())
+        }
+        get("/status") {
+            call.respond(ok {
+                put("isStreaming", controller.cam.isStreaming.value)
+                controller.cam.liveStreamStatus.value?.toElement()?.let {
+                    put("status", it)
+                }
+            })
+        }
     }
 }
 

@@ -74,16 +74,19 @@ open class AircraftController(
     val rc: IRCState,
     val ac: IAircraft,
     val camGim: IGimbal,
-    val cam: ICamera,
+    val cam: ICamera<*, *>,
 
     val cancelFlightOnOverride: Boolean = true,
     val returnControlPostOverrideAfter: Duration = Duration.INFINITE
 ) {
-    interface ICamera {
+    interface ICamera<Component, Status> {
         val isStreaming: StateFlow<Boolean>
+        val liveStreamStatus: StateFlow<Status?>
+        val availableCameras: StateFlow<List<Component>>
 
         suspend fun startStream(url: String)
         suspend fun stopStream()
+        suspend fun setCameraIndex(index: Component)
 
         suspend fun init()
         suspend fun destroy()
