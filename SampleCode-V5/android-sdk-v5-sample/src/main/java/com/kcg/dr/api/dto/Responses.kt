@@ -54,8 +54,8 @@ object Responses {
     }
 
     fun exceptResponse(
-        e: Exception,
-        builderAction: JsonObjectBuilder.(Exception) -> Unit = {}
+        e: Throwable,
+        builderAction: JsonObjectBuilder.(Throwable) -> Unit = {}
     ): JsonObject = nok {
         Log.e("Response", "Exception: ${e.message}", e)
         put("ok", false)

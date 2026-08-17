@@ -432,12 +432,25 @@ private fun Route.controllerRoute(
                 call.respond(errorResponse { "rtmp url is required" })
                 return@post
             }
-            controller.cam.startStream(url)
-            call.respond(ok())
+            runCatching {
+                controller.cam.startStream(url)
+                call.respond(ok {
+                    put("message", "Stream started")
+                    put("url", url)
+                })
+            }.onFailure { e ->
+                call.respond(exceptResponse(e))
+            }
         }
         post("/stop") {
-            controller.cam.stopStream()
-            call.respond(ok())
+            runCatching {
+                controller.cam.stopStream()
+                call.respond(ok {
+                    put("message", "Stream stopped")
+                })
+            }.onFailure { e ->
+                call.respond(exceptResponse(e))
+            }
         }
         get("/status") {
             call.respond(ok {
