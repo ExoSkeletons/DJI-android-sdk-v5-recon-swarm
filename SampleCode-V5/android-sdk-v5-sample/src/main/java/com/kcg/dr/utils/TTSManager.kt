@@ -143,5 +143,6 @@ object TTSManager {
             stop()
             shutdown()
         }
+        tts = null
     }
 }
