@@ -23,8 +23,6 @@
         android:label="virtual_stick_vocom_container_page"
         tools:layout="@layout/frag_vocom_container"/>
 
-    <!--
-
     <fragment
         android:id="@+id/virtual_stick_page_vocom_camera"
         android:name="com.kcg.dr.camera.RecordingControlsFragment"
@@ -49,15 +47,18 @@
         android:label="virtual_stick_vocom_waypoints_page"
         tools:layout="@layout/frag_vocom_waypoints"/>
 
-    -->
-
     <fragment
         android:id="@+id/virtual_stick_page_vocom_voice"
         android:name="com.kcg.dr.voice.VoiceControlFragment"
         android:label="virtual_stick_vocom_voice_page"
         tools:layout="@layout/frag_vocom_voice_control"/>
 
-    <!--
+    <fragment
+        android:id="@+id/api_server"
+        android:name="com.kcg.dr.api.ApiServerFragment"
+        android:label="api_server_page"
+        tools:layout="@layout/frag_api_server"/>
+
 
     <fragment
         android:id="@+id/virtual_stick_page_vocom_demo"
@@ -65,7 +66,6 @@
         android:label="virtual_stick_vocom_demo_page"
         tools:layout="@layout/frag_vocom_demo"/>
 
-    -->
 
 
     <fragment

@@ -505,6 +505,7 @@ More refer to the release notes." </string>
     <string name="item_vocom_sticks_title">VoCom Sticks</string>
     <string name="item_vocom_demo_title">VoCom Demo</string>
     <string name="item_vocom_recon_title">VoCom Recon</string>
+    <string name="item_server_api_title">API Server</string>
     <string name="item_vocom_generic_desc">VoCom Refactored Component</string>
 
     <string name="current_locale">Current Locale</string>
