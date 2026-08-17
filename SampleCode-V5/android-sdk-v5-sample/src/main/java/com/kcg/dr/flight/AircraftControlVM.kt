@@ -2,42 +2,19 @@ package com.kcg.dr.flight
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.CreationExtras
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
 import com.kcg.dr.flight.dji.DJIAircraft
 import com.kcg.dr.flight.dji.DJIGimbal
 import com.kcg.dr.flight.dji.DJIRCStick
 import com.kcg.dr.flight.dji.DJIVirtualStick
-import dji.sampleV5.aircraft.models.VirtualStickVM
 import kotlinx.coroutines.launch
 
 class AircraftControlVM(
     application: Application,
-    virtualStickVM: VirtualStickVM,
 ) : AndroidViewModel(application) {
-    companion object {
-        // todo: remove this when we decouple from stickVM
-        val STICK_VM_KEY = object : CreationExtras.Key<VirtualStickVM> {}
-
-        val Factory: ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                AircraftControlVM(
-                    this[APPLICATION_KEY]
-                        ?: throw IllegalArgumentException("Application required"),
-                    this[STICK_VM_KEY]
-                        ?: throw IllegalArgumentException("AircraftController required in CreationExtras")
-                )
-            }
-        }
-    }
-
     val controller: AircraftController = AircraftController(
-        DJIVirtualStick(virtualStickVM),
+        DJIVirtualStick(),
         DJIRCStick(),
         DJIAircraft(),
         DJIGimbal(),

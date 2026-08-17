@@ -8,33 +8,14 @@ import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.viewmodel.MutableCreationExtras
 import com.kcg.dr.flight.AircraftControlVM
 import dji.sampleV5.aircraft.databinding.FragOscBinding
-import dji.sampleV5.aircraft.models.BasicAircraftControlVM
-import dji.sampleV5.aircraft.models.CameraGimbalVM
-import dji.sampleV5.aircraft.models.IntelligentFlightVM
-import dji.sampleV5.aircraft.models.VirtualStickVM
-import dji.sampleV5.aircraft.models.WayPointV3VM
 
 class OscFragment : Fragment() {
     lateinit var binding: FragOscBinding
 
     private val oscVM: OscVm by viewModels()
-
-    private val virtualStickVM: VirtualStickVM by activityViewModels()
-    private val basicAircraftControlVM: BasicAircraftControlVM by activityViewModels()
-    private val cameraGimbalVM: CameraGimbalVM by activityViewModels()
-    private val intelligentFlightVM: IntelligentFlightVM by activityViewModels()
-    private val wayPointV3VM: WayPointV3VM by activityViewModels()
-    private val controllerVM: AircraftControlVM by activityViewModels(
-        {
-            MutableCreationExtras(defaultViewModelCreationExtras).apply {
-                set(AircraftControlVM.STICK_VM_KEY, virtualStickVM)
-            }
-        },
-        { AircraftControlVM.Factory }
-    )
+    private val controllerVM: AircraftControlVM by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,

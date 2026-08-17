@@ -6,7 +6,6 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.viewmodel.MutableCreationExtras
 import com.kcg.dr.location.UserVM
 import com.kcg.dr.utils.CoroutineUtils.observe
 import com.kcg.dr.utils.LocationUtils.bearingTo
@@ -14,20 +13,13 @@ import com.kcg.dr.utils.LocationUtils.distanceTo
 import com.kcg.dr.utils.as2D
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVocomStatusBinding
-import dji.sampleV5.aircraft.models.VirtualStickVM
 import kotlin.math.roundToInt
 
 class StatusFragment : Fragment() {
     private var _binding: FragVocomStatusBinding? = null
     private val binding get() = _binding!!
 
-    private val virtualStickVM: VirtualStickVM by activityViewModels()
-
-    private val aircraftVM: AircraftControlVM by activityViewModels({
-        MutableCreationExtras(defaultViewModelCreationExtras).apply {
-            set(AircraftControlVM.STICK_VM_KEY, virtualStickVM)
-        }
-    }, { AircraftControlVM.Factory })
+    private val aircraftVM: AircraftControlVM by activityViewModels()
     private val deviceLocationVM: UserVM by activityViewModels()
 
     override fun onCreateView(

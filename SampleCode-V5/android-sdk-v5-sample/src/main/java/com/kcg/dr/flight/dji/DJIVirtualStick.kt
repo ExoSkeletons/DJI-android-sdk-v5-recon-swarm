@@ -7,22 +7,59 @@ import com.kcg.dr.flight.AircraftController.IVirtualStick
 import com.kcg.dr.utils.CoroutineUtils.awaitCallback
 import com.kcg.dr.utils.CoroutineUtils.awaitOrNull
 import com.kcg.dr.utils.CoroutineUtils.ifConnected
-import dji.sampleV5.aircraft.models.VirtualStickVM
-import dji.sdk.keyvalue.value.flightcontroller.FlightCoordinateSystem
-import dji.sdk.keyvalue.value.flightcontroller.RollPitchControlMode
-import dji.sdk.keyvalue.value.flightcontroller.VerticalControlMode
-import dji.sdk.keyvalue.value.flightcontroller.VirtualStickFlightControlParam
-import dji.sdk.keyvalue.value.flightcontroller.YawControlMode
+import dji.sdk.keyvalue.value.flightcontroller.*
+import dji.v5.manager.aircraft.virtualstick.VirtualStickManager
+import dji.v5.manager.aircraft.virtualstick.VirtualStickState
+import dji.v5.manager.aircraft.virtualstick.VirtualStickStateListener
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
-class DJIVirtualStick(private val stickVM: VirtualStickVM) : IVirtualStick {
+class DJIVirtualStick : IVirtualStick {
+    private val stickManager get() = VirtualStickManager.getInstance()
+
+    private val _ownsControl = MutableStateFlow(false)
+    override val ownsControl: StateFlow<Boolean> = _ownsControl
+
+    private val _stickState = MutableStateFlow<VirtualStickState?>(null)
+    private val _authorityReason = MutableStateFlow<FlightControlAuthorityChangeReason?>(null)
+
+    private val stateListener = object : VirtualStickStateListener {
+        override fun onVirtualStickStateUpdate(stickState: VirtualStickState) {
+            _stickState.value = stickState
+            updateOwnership()
+        }
+
+        override fun onChangeReasonUpdate(reason: FlightControlAuthorityChangeReason) {
+            _authorityReason.value = reason
+            updateOwnership()
+        }
+    }
+
+    private fun updateOwnership() {
+        val state = _stickState.value ?: return
+        val isEnabled = state.isVirtualStickEnable
+        val isAdvanced = state.isVirtualStickAdvancedModeEnabled
+        val isOwner = state.currentFlightControlAuthorityOwner == FlightControlAuthority.MSDK
+        
+        _ownsControl.value = isEnabled && isAdvanced && isOwner
+    }
+
+    override suspend fun listen() {
+        stickManager.setVirtualStickStateListener(stateListener)
+    }
+
+    override suspend fun stopListening() {
+        stickManager.clearAllVirtualStickStateListener()
+    }
+
     val isVirtualStickEnabled: Boolean
-        get() = stickVM.currentVirtualStickStateInfo.value?.state?.isVirtualStickEnable == true
+        get() = _stickState.value?.isVirtualStickEnable == true
 
     val isVirtualStickAdvancedModeEnabled: Boolean
-        get() = stickVM.currentVirtualStickStateInfo.value?.state?.isVirtualStickAdvancedModeEnabled == true
+        get() = _stickState.value?.isVirtualStickAdvancedModeEnabled == true
 
     suspend fun acquireStickControl() {
         Log.d(TAG, "enabling virtual stick...")
@@ -30,23 +67,21 @@ class DJIVirtualStick(private val stickVM: VirtualStickVM) : IVirtualStick {
             Log.d(TAG, "virtual stick already enabled")
             return
         }
-        awaitCallback {
-            stickVM.enableVirtualStick(it)
-        }
+        awaitCallback { stickManager.enableVirtualStick(it) }
         Log.d(TAG, "virtual stick enabled")
     }
 
     suspend fun acquireVirtualStickAdvancedMode(
-        onFailure: () -> Unit = { },
         waitFor: Duration = 300.milliseconds,
+        onFailure: () -> Unit = { },
     ) {
         acquireStickControl()
 
         if (!isVirtualStickAdvancedModeEnabled) {
             Log.d(TAG, "virtual stick advanced mode not enabled")
             Log.d(TAG, "enabling virtual stick advanced mode...")
-            stickVM.enableVirtualStickAdvancedMode()
-            delay(waitFor) // Give some time for DJI to enable the advanced mode
+            stickManager.setVirtualStickAdvancedModeEnabled(true)
+            delay(waitFor)
             if (!isVirtualStickAdvancedModeEnabled) {
                 Log.d(TAG, "virtual stick advanced mode failed to enable")
                 onFailure()
@@ -68,21 +103,25 @@ class DJIVirtualStick(private val stickVM: VirtualStickVM) : IVirtualStick {
             Log.d(TAG, "virtual stick already disabled")
             return@ifConnected
         }
-        awaitOrNull { stickVM.disableVirtualStick(it) }
+        awaitOrNull { stickManager.disableVirtualStick(it) }
         Log.d(TAG, "virtual stick disabled")
     }
 
-    override val ownsControl: Boolean get() = isVirtualStickEnabled && isVirtualStickAdvancedModeEnabled
+    override fun setSpeedLevel(speedLevel: Double) {
+        stickManager.speedLevel = speedLevel
+    }
 
-    override fun setSpeedLevel(speedLevel: Double) = stickVM.setSpeedLevel(speedLevel)
+    override fun setLeftPosition(horizontal: Int, vertical: Int) {
+        stickManager.leftStick.horizontalPosition = horizontal
+        stickManager.leftStick.verticalPosition = vertical
+    }
 
-    override fun setLeftPosition(horizontal: Int, vertical: Int) =
-        stickVM.setLeftPosition(horizontal, vertical)
+    override fun setRightPosition(horizontal: Int, vertical: Int) {
+        stickManager.rightStick.horizontalPosition = horizontal
+        stickManager.rightStick.verticalPosition = vertical
+    }
 
-    override fun setRightPosition(horizontal: Int, vertical: Int) =
-        stickVM.setRightPosition(horizontal, vertical)
-
-    fun FlightParam.build(): VirtualStickFlightControlParam {
+    private fun FlightParam.build(): VirtualStickFlightControlParam {
         return VirtualStickFlightControlParam().apply {
             pitch = vy ?: 0.0
             roll = vx ?: 0.0
@@ -98,5 +137,5 @@ class DJIVirtualStick(private val stickVM: VirtualStickVM) : IVirtualStick {
     }
 
     override suspend fun sendStickParam(param: FlightParam) =
-        stickVM.sendVirtualStickAdvancedParam(param.build())
+        stickManager.sendVirtualStickAdvancedParam(param.build())
 }

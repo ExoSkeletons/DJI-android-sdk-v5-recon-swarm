@@ -7,7 +7,6 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import dji.sampleV5.aircraft.databinding.FragVocomVirtualStickBinding
-import dji.sampleV5.aircraft.models.VirtualStickVM
 import dji.sampleV5.aircraft.virtualstick.OnScreenJoystick
 import dji.sampleV5.aircraft.virtualstick.OnScreenJoystickListener
 import dji.v5.manager.aircraft.virtualstick.Stick
@@ -17,7 +16,6 @@ class VirtualStickControlsFragment : Fragment() {
     private var _binding: FragVocomVirtualStickBinding? = null
     private val binding get() = _binding!!
 
-    private val virtualStickVM: VirtualStickVM by activityViewModels()
     private val aircraftVM: AircraftControlVM by activityViewModels()
 
     private val deviation: Double = 0.02
@@ -38,7 +36,7 @@ class VirtualStickControlsFragment : Fragment() {
             override fun onTouch(joystick: OnScreenJoystick?, pX: Float, pY: Float) {
                 val px = if (abs(pX) >= deviation) pX else 0f
                 val py = if (abs(pY) >= deviation) pY else 0f
-                virtualStickVM.setLeftPosition(
+                aircraftVM.controller.vSticks.setLeftPosition(
                     (px * Stick.MAX_STICK_POSITION_ABS).toInt(),
                     (py * Stick.MAX_STICK_POSITION_ABS).toInt()
                 )
@@ -52,7 +50,7 @@ class VirtualStickControlsFragment : Fragment() {
             override fun onTouch(joystick: OnScreenJoystick?, pX: Float, pY: Float) {
                 val px = if (abs(pX) >= deviation) pX else 0f
                 val py = if (abs(pY) >= deviation) pY else 0f
-                virtualStickVM.setRightPosition(
+                aircraftVM.controller.vSticks.setRightPosition(
                     (px * Stick.MAX_STICK_POSITION_ABS).toInt(),
                     (py * Stick.MAX_STICK_POSITION_ABS).toInt()
                 )

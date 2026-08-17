@@ -29,6 +29,7 @@ import com.kcg.dr.api.dto.actions.TrackMe
 import com.kcg.dr.flight.AircraftControlVM
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.flight.AircraftController.CircleFaceMode
+import com.kcg.dr.flight.AircraftController.IVirtualStick
 import com.kcg.dr.location.LiveLocationProvider
 import com.kcg.dr.location.UserVM
 import com.kcg.dr.utils.LocaleUtils.getLocalizedResources
@@ -39,6 +40,7 @@ import com.kcg.dr.utils.TTSManager.speak
 import com.kcg.dr.utils.as2D
 import com.kcg.dr.utils.asDjiLocation
 import com.kcg.dr.utils.atAlt
+import com.kcg.dr.utils.CoroutineUtils.observe
 import com.kcg.dr.voice.CommandResolver.Command
 import com.kcg.dr.voice.CommandResolver.Command.Companion.respFmtExId
 import com.kcg.dr.voice.CommandResolver.Command.Companion.respFmtGoId
@@ -54,7 +56,6 @@ import dji.sampleV5.aircraft.models.BasicAircraftControlVM
 import dji.sampleV5.aircraft.models.LiveStreamVM
 import dji.sampleV5.aircraft.models.RecordingVM
 import dji.sampleV5.aircraft.models.SimulatorVM
-import dji.sampleV5.aircraft.models.VirtualStickVM
 import dji.sampleV5.aircraft.pages.DJIFragment
 import dji.sampleV5.aircraft.util.Helper
 import dji.sampleV5.aircraft.util.ToastUtils
@@ -95,30 +96,20 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
     private var binding: FragVirtualStickVocomPageBinding? = null
 
-
     private val basicAircraftControlVM: BasicAircraftControlVM by activityViewModels()
     private val recordingVM: RecordingVM by activityViewModels()
-    private val virtualStickVM: VirtualStickVM by activityViewModels()
     private val simulatorVM: SimulatorVM by activityViewModels()
     private val liveStreamVM: LiveStreamVM by activityViewModels()
-    private val controllerVM: AircraftControlVM by activityViewModels(
-        {
-            MutableCreationExtras(defaultViewModelCreationExtras).apply {
-                set(AircraftControlVM.STICK_VM_KEY, virtualStickVM)
-            }
-        },
-        { AircraftControlVM.Factory }
-    )
+    private val controllerVM: AircraftControlVM by activityViewModels()
+    private val deviceVM: UserVM by activityViewModels()
     private val apiServerVM: ApiServerVM by activityViewModels(
         {
             MutableCreationExtras(defaultViewModelCreationExtras).apply {
                 set(ApiServerVM.CONTROLLER_KEY, controllerVM.controller)
                 set(ApiServerVM.USER_KEY, deviceVM.metrics)
             }
-        },
-        { ApiServerVM.Factory }
+        }
     )
-    private val deviceVM: UserVM by activityViewModels()
 
     private val resolversVM: SpeechResolversVM by activityViewModels(
         {
@@ -421,7 +412,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         binding?.btnSetVirtualStickSpeedLevel?.setOnClickListener {
             val speedLevels = doubleArrayOf(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0)
             initPopupNumberPicker(Helper.makeList(speedLevels)) {
-                virtualStickVM.setSpeedLevel(speedLevels[indexChosen[0]])
+                controller.vSticks.setSpeedLevel(speedLevels[indexChosen[0]])
                 resetIndex()
             }
         }
@@ -487,44 +478,30 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         }
 
         binding?.btnEnableVirtualStick?.setOnClickListener {
-            virtualStickVM.enableVirtualStick(object : CommonCallbacks.CompletionCallback {
-                override fun onSuccess() {
-                    ToastUtils.showToast("snees.")
-                }
-
-                override fun onFailure(error: IDJIError) {
-                    ToastUtils.showToast("snoss.. ${error.errorCode()},${error.innerCode()}")
-                }
-            })
+            lifecycleScope.launch {
+                runCatching { controller.vSticks.takeControl() }
+                    .onSuccess { ToastUtils.showToast("Virtual Stick enabled") }
+                    .onFailure { ToastUtils.showToast("Failed to enable Virtual Stick: ${it.message}") }
+            }
         }
         binding?.btnDisableVirtualStick?.setOnClickListener {
-            virtualStickVM.disableVirtualStick(object : CommonCallbacks.CompletionCallback {
-                override fun onSuccess() {
-                    ToastUtils.showToast("sdos.")
-                }
-
-                override fun onFailure(error: IDJIError) {
-                    ToastUtils.showToast("stass.... ${error}")
-                }
-            })
+            lifecycleScope.launch {
+                runCatching { controller.vSticks.relinquishControl() }
+                    .onSuccess { ToastUtils.showToast("Virtual Stick disabled") }
+                    .onFailure { ToastUtils.showToast("Failed to disable Virtual Stick: ${it.message}") }
+            }
         }
         attachOnScreenSticks(
-            virtualStickVM,
+            controller.vSticks,
             binding?.leftStickView, binding?.rightStickView
         )
-        virtualStickVM.listenRCStick()
-        virtualStickVM.currentVirtualStickStateInfo.observe(viewLifecycleOwner) {
+        controller.vSticks.ownsControl.observe(viewLifecycleOwner) {
             binding?.tvControllerOwner?.text = "Control : " +
-                    when (it?.state?.isVirtualStickEnable) {
+                    when (it) {
                         true -> "Auto"
                         else -> "Manual"
                     }
         }
-        virtualStickVM.currentSpeedLevel.observe(viewLifecycleOwner) { updateVirtualStickInfo() }
-        virtualStickVM.useRcStick.observe(viewLifecycleOwner) { updateVirtualStickInfo() }
-        virtualStickVM.currentVirtualStickStateInfo.observe(viewLifecycleOwner) { updateVirtualStickInfo() }
-        virtualStickVM.stickValue.observe(viewLifecycleOwner) { updateVirtualStickInfo() }
-        virtualStickVM.virtualStickAdvancedParam.observe(viewLifecycleOwner) { updateVirtualStickInfo() }
         simulatorVM.simulatorStateSb.observe(viewLifecycleOwner) {
             binding?.simulatorStateInfoTv?.text = it
         }
@@ -775,36 +752,8 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         )
     }
 
-    private fun updateVirtualStickInfo() {
-        val builder = StringBuilder()
-        builder.append("Spees level:").append(virtualStickVM.currentSpeedLevel.value)
-        builder.append("\n")
-        builder.append("Use rc stick as virtual stick:").append(virtualStickVM.useRcStick.value)
-        builder.append("\n")
-        builder.append("Is virtual stick enable:")
-            .append(virtualStickVM.currentVirtualStickStateInfo.value?.state?.isVirtualStickEnable)
-        builder.append("\n")
-        builder.append("Current control permission owner:")
-            .append(virtualStickVM.currentVirtualStickStateInfo.value?.state?.currentFlightControlAuthorityOwner)
-        builder.append("\n")
-        builder.append("Change reason:")
-            .append(virtualStickVM.currentVirtualStickStateInfo.value?.reason)
-        builder.append("\n")
-        builder.append("Rc stick value:").append(virtualStickVM.stickValue.value?.toString())
-        builder.append("\n")
-        builder.append("Is virtual stick advanced mode enable:")
-            .append(virtualStickVM.currentVirtualStickStateInfo.value?.state?.isVirtualStickAdvancedModeEnabled)
-        builder.append("\n")
-        builder.append("Virtual stick advanced mode param:")
-            .append(virtualStickVM.virtualStickAdvancedParam.value?.toJson())
-        builder.append("\n")
-        mainHandler.post {
-            binding?.virtualStickInfoTv?.text = builder.toString()
-        }
-    }
-
     fun attachOnScreenSticks(
-        stickVM: VirtualStickVM,
+        vSticks: IVirtualStick,
         leftStk: OnScreenJoystick?,
         rightStk: OnScreenJoystick?,
         deviation: Double = 0.02,
@@ -817,7 +766,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                 if (abs(pX) >= deviation) leftPx = pX
                 if (abs(pY) >= deviation) leftPy = pY
 
-                stickVM.setLeftPosition(
+                vSticks.setLeftPosition(
                     (leftPx * Stick.MAX_STICK_POSITION_ABS).toInt(),
                     (leftPy * Stick.MAX_STICK_POSITION_ABS).toInt()
                 )
@@ -831,7 +780,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
                 if (abs(pX) >= deviation) rightPx = pX
                 if (abs(pY) >= deviation) rightPy = pY
 
-                stickVM.setRightPosition(
+                vSticks.setRightPosition(
                     (rightPx * Stick.MAX_STICK_POSITION_ABS).toInt(),
                     (rightPy * Stick.MAX_STICK_POSITION_ABS).toInt()
                 )

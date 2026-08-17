@@ -83,7 +83,11 @@ open class AircraftController(
 
         suspend fun relinquishControl()
 
-        val ownsControl: Boolean
+        val ownsControl: StateFlow<Boolean>
+
+        suspend fun listen()
+
+        suspend fun stopListening()
 
         fun setSpeedLevel(speedLevel: Double)
 
@@ -289,6 +293,7 @@ open class AircraftController(
     suspend fun init(takeStickControl: Boolean = true) {
         ac.init()
         rc.listen()
+        vSticks.listen()
         camGim.reset()
 
         if (takeStickControl) vSticks.takeControl()
@@ -307,6 +312,7 @@ open class AircraftController(
         retakeStickTimerJob?.cancel()
         scope.launch {
             rc.stopListening()
+            vSticks.stopListening()
             vSticks.relinquishControl()
             ac.destroy()
         }
@@ -327,7 +333,7 @@ open class AircraftController(
         if (deviation > RC_OVERRIDE_THRESHOLD) {
             retakeStickTimerJob?.cancel()
 
-            if (vSticks.ownsControl) {
+            if (vSticks.ownsControl.value) {
                 Log.d(TAG, "RC touched while vStick is enabled. disabling vStick.")
                 scope.launch { vSticks.relinquishControl() }
             }
@@ -340,7 +346,7 @@ open class AircraftController(
                 }
         } else {
             Log.i(TAG, "RC [$value] under threshold (\"neutral\").")
-            if (!vSticks.ownsControl && returnControlPostOverrideAfter != Duration.INFINITE) {
+            if (!vSticks.ownsControl.value && returnControlPostOverrideAfter != Duration.INFINITE) {
                 Log.d(TAG, "RC neutral and vSticks not enabled.")
                 if (retakeStickTimerJob?.isActive == true) {
                     Log.i(TAG, "retake sticks timer job is active")

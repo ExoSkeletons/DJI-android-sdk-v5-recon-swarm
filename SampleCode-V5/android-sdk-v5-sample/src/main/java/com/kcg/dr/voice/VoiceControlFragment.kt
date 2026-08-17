@@ -29,7 +29,6 @@ import com.kcg.dr.voice.SpeechResolversVM.ResolverViewState
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVocomVoiceControlBinding
 import dji.sampleV5.aircraft.databinding.ItemResolverBinding
-import dji.sampleV5.aircraft.models.VirtualStickVM
 import dji.sampleV5.aircraft.util.ToastUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -42,15 +41,7 @@ class VoiceControlFragment : Fragment() {
     private lateinit var commandResolver: RegexCommandResolver
     private lateinit var actionResolver: LlamaActionSequenceResolver
 
-    private val stickVM: VirtualStickVM by activityViewModels()
-    private val controllerVM: AircraftControlVM by activityViewModels(
-        {
-            MutableCreationExtras(defaultViewModelCreationExtras).apply {
-                set(AircraftControlVM.STICK_VM_KEY, stickVM)
-            }
-        },
-        { AircraftControlVM.Factory }
-    )
+    private val controllerVM: AircraftControlVM by activityViewModels()
     private val userVM: UserVM by activityViewModels()
     private val viewModel: SpeechResolversVM by activityViewModels(
         {

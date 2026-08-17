@@ -12,22 +12,13 @@ import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.location.UserVM
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragApiServerBinding
-import dji.sampleV5.aircraft.models.VirtualStickVM
 
 class ApiServerFragment : Fragment() {
 
     private var _binding: FragApiServerBinding? = null
     private val binding get() = _binding!!
 
-    private val virtualStickVM: VirtualStickVM by activityViewModels()
-    private val controllerVM: AircraftControlVM by activityViewModels(
-        {
-            MutableCreationExtras(defaultViewModelCreationExtras).apply {
-                set(AircraftControlVM.STICK_VM_KEY, virtualStickVM)
-            }
-        },
-        { AircraftControlVM.Factory }
-    )
+    private val controllerVM: AircraftControlVM by activityViewModels()
     private val userVM: UserVM by activityViewModels()
 
     private val viewModel: ApiServerVM by activityViewModels(
