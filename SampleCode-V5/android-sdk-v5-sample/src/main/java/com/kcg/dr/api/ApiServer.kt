@@ -11,6 +11,7 @@ import com.kcg.dr.api.dto.Responses.nok
 import com.kcg.dr.api.dto.Responses.ok
 import com.kcg.dr.api.dto.Responses.status
 import com.kcg.dr.api.dto.StreamRequest
+import com.kcg.dr.api.dto.TTSRequest
 import com.kcg.dr.api.dto.actions.Action
 import com.kcg.dr.api.dto.actions.FlyTo
 import com.kcg.dr.api.dto.actions.LookAt
@@ -18,6 +19,7 @@ import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.location.UserMetrics
 import com.kcg.dr.utils.CoroutineUtils.actionOrExcept
 import com.kcg.dr.utils.DJIErrorException
+import com.kcg.dr.utils.TTSManager
 import dji.sdk.keyvalue.key.AirLinkKey
 import dji.sdk.keyvalue.key.BatteryKey
 import dji.sdk.keyvalue.key.FlightControllerKey
@@ -70,6 +72,7 @@ import kotlinx.serialization.json.JsonObjectBuilder
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.nio.channels.ClosedChannelException
+import java.util.Locale
 
 private const val TAG = "ApiHttpServer"
 
@@ -158,6 +161,15 @@ class ApiServer {
                 }
 
                 route("/status") { aircraftStatusRoute() }
+
+                post("/tts") {
+                    val request = call.receive<TTSRequest>()
+                    TTSManager.speak(
+                        request.text,
+                        request.country?.let { Locale(request.lang, it) } ?: Locale(request.lang)
+                    )
+                    call.respond(ok())
+                }
 
                 route("/c") {
                     controllerRoute(
