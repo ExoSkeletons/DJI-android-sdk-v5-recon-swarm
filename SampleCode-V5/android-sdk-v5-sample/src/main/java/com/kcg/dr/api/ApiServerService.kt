@@ -17,14 +17,17 @@ private const val TAG = "DroneApiService"
 const val EXTRA_HOST: String = "HOST"
 const val EXTRA_PORT: String = "PORT"
 const val DEFAULT_HOST: String = "0.0.0.0"
-const val DEFAULT_PORT: Int = 8080
+const val DEFAULT_API_PORT: Int = 8080
+const val DEFAULT_STREAM_PORT: Int = 5600
 const val NOTIFICATION_ID = 1304
 
 class ApiServerService : Service() {
     private var server = ApiServer()
+    private var streamServer = VideoTcpServer()
 
     var host: String = DEFAULT_HOST
-    var port: Int = DEFAULT_PORT
+    var apiPort: Int = DEFAULT_API_PORT
+    var streamPort: Int = DEFAULT_STREAM_PORT
 
     inner class ApiServerBinder : Binder() {
         val server: ApiServer get() = this@ApiServerService.server
@@ -36,12 +39,14 @@ class ApiServerService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         host = intent?.getStringExtra(EXTRA_HOST) ?: host
-        port = intent?.getIntExtra(EXTRA_PORT, port) ?: port
+        apiPort = intent?.getIntExtra(EXTRA_PORT, apiPort) ?: apiPort
 
         startAsForeground(NOTIFICATION_ID, createNotification())
 
-        server.start(host = host, port = port)
-        Log.i(TAG, "HTTP server started on port $port")
+        server.start(host = host, port = apiPort)
+        Log.i(TAG, "HTTP server started on port $apiPort")
+        streamServer.start(port = streamPort)
+        Log.i(TAG, "Stream server started on port $apiPort")
 
         return START_STICKY
     }
@@ -49,13 +54,15 @@ class ApiServerService : Service() {
     override fun onDestroy() {
         server.stop()
         Log.i(TAG, "HTTP server stopped")
+        streamServer.stop()
+        Log.i(TAG, "Stream server stopped")
         super.onDestroy()
     }
 
     private fun createNotification(): Notification {
         return NotificationCompat.Builder(this, AircraftController.TAG).apply {
             setContentTitle("Drone API Server")
-            setContentText("$host:$port @ ${NetUtils.getLocalIpAddress() ?: "-"}")
+            setContentText("$host:$apiPort @ ${NetUtils.getLocalIpAddress() ?: "-"}")
             setSmallIcon(R.drawable.aircraft)
             setOngoing(true)
         }.build()
