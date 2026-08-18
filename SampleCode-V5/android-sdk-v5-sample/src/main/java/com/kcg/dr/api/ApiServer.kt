@@ -413,12 +413,15 @@ private fun Route.controllerRoute(
 
     post("/stop") {
         controller.stop()
+        call.respond(status { "stop" })
     }
     post("/takeoff") {
         controller.fly { takeoff() }
+        call.respond(status { "taking off" })
     }
     post("/land") {
         controller.fly { land() }
+        call.respond(status { "landing" })
     }
 
     get("/(wave|hi|hey|hello)".toRegex()) {
