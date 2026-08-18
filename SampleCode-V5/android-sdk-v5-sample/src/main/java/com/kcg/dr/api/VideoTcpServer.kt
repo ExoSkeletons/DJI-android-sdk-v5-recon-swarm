@@ -18,25 +18,35 @@ class VideoTcpServer {
 
     private var serverSocket: ServerSocket? = null
     private val acceptPool = Executors.newSingleThreadExecutor()
-    private val client = AtomicReference<Socket?>(null)
+    private val atmClient = AtomicReference<Socket?>(null)
 
-    private val loggedCodec = AtomicBoolean(false)
+    private val atmLoggedCodec = AtomicBoolean(false)
 
     private val streamListener =
         ICameraStreamManager.ReceiveStreamListener { data, offset, length, info ->
-            // Log the codec once so the Linux side picks h264parse vs h265parse.
-            if (loggedCodec.compareAndSet(false, true))
+            // Log the codec once
+            if (atmLoggedCodec.compareAndSet(false, true))
                 Log.i(TAG, "video codec = ${info.mimeType}")
 
-            val sink = client.get() ?: return@ReceiveStreamListener   // nobody connected yet
+            val client = atmClient.get() ?: return@ReceiveStreamListener // nobody connected yet
+            val out = client.getOutputStream()
             try {
-                sink.getOutputStream().write(data, offset, length)
+                out.write(data, offset, length)
             } catch (e: Exception) {
                 Log.w(TAG, "error writing to client", e)
-                client.compareAndSet(sink, null)
-                runCatching { sink.close() }
+                closeClientAndSet()
             }
         }
+
+    private fun closeClientAndSet(client: Socket? = null) {
+        atmClient.getAndSet(client)?.let {
+            runCatching {
+                it.close()
+                Log.i(TAG, "video client closed: ${it.inetAddress}")
+            }
+        }
+        Log.i(TAG, "video client set: ${client?.inetAddress}")
+    }
 
     fun start(port: Int, cameraIndex: ComponentIndexType = ComponentIndexType.LEFT_OR_MAIN) {
         val server = ServerSocket(port)
@@ -53,8 +63,7 @@ class VideoTcpServer {
                     keepAlive = true
                 }
                 // Replace and close any previous client
-                client.getAndSet(next)?.let { runCatching { it.close() } }
-                Log.i(TAG, "video client updated: ${next.inetAddress}")
+                closeClientAndSet(next)
             }
         }
     }
@@ -62,7 +71,7 @@ class VideoTcpServer {
     fun stop() {
         Log.d(TAG, "video server stopping")
         cameraManager.removeReceiveStreamListener(streamListener)
-        client.getAndSet(null)?.let { runCatching { it.close() } }
+        closeClientAndSet()
         runCatching { serverSocket?.close() }
         serverSocket = null
         acceptPool.shutdownNow()
