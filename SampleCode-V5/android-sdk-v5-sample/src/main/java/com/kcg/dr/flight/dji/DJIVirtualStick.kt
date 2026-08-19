@@ -123,6 +123,8 @@ class DJIVirtualStick : IVirtualStick {
 
     private fun FlightParam.build(): VirtualStickFlightControlParam {
         return VirtualStickFlightControlParam().apply {
+            // Note: we tested and *when in velocity mode* the pitch/roll axes become the axes of motion, not tilt.
+            //  thus x (forward) is pitch and y (left) is roll.
             pitch = vy ?: 0.0
             roll = vx ?: 0.0
             yaw = yaw ?: 0.0
