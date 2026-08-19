@@ -127,7 +127,7 @@ class DJIVirtualStick : IVirtualStick {
             //  thus x (forward) is pitch and y (left) is roll.
             pitch = vy ?: 0.0
             roll = vx ?: 0.0
-            yaw = yaw ?: 0.0
+            yaw = this@build.yaw ?: 0.0
             verticalThrottle = vz ?: 0.0
 
             rollPitchCoordinateSystem = FlightCoordinateSystem.BODY
