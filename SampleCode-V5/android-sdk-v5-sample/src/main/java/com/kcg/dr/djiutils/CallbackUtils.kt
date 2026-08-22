@@ -49,9 +49,6 @@ suspend fun awaitOrNull(block: (CommonCallbacks.CompletionCallback) -> Unit) =
         })
     }
 
-suspend fun await(block: (() -> Unit, ((IDJIError) -> Unit)) -> Unit) =
-    await<Unit> { s, e -> block({ s(Unit) }, e) }
-
 @JvmName("awaitResult")
 suspend fun <R> await(block: (((R) -> Unit), ((IDJIError) -> Unit)) -> Unit): R {
     val trace = SuspendCancellableTrace()
@@ -62,3 +59,19 @@ suspend fun <R> await(block: (((R) -> Unit), ((IDJIError) -> Unit)) -> Unit): R 
         )
     }
 }
+
+suspend fun await(block: (() -> Unit, ((IDJIError) -> Unit)) -> Unit) =
+    await<Unit> { s, e -> block({ s(Unit) }, e) }
+
+@JvmName("awaitResultOrNull")
+suspend fun <R> awaitOrNull(block: ((R) -> Unit, ((IDJIError) -> Unit)) -> Unit): R? {
+    return suspendCancellableCoroutine { cont ->
+        block(
+            { cont.resume(it) },
+            { cont.resume(null) }
+        )
+    }
+}
+
+suspend fun awaitOrNull(block: ((Unit) -> Unit, ((IDJIError) -> Unit)) -> Unit) =
+    awaitOrNull<Unit> { s, e -> block({ s(Unit) }, e) }
