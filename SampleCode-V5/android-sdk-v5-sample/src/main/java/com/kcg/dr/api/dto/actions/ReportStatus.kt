@@ -6,8 +6,8 @@ import android.util.Log
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.location.UserMetrics
 import com.kcg.dr.djiutils.LocationUtils.distanceTo
-import com.kcg.dr.utils.ResourcesManager
-import com.kcg.dr.utils.TTSManager.speak
+import com.kcg.dr.managers.ResourcesManager
+import com.kcg.dr.managers.TTSManager.speak
 import com.kcg.dr.djiutils.as2D
 import com.kcg.dr.djiutils.asXYZ
 import com.kcg.dr.djiutils.mag

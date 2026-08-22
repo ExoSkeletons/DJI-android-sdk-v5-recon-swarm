@@ -23,7 +23,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.lifecycleScope
 import com.kcg.dr.utils.JobRepeater
-import com.kcg.dr.utils.SFXManager
+import com.kcg.dr.managers.SFXManager
 import com.kcg.dr.utils.TCPClient
 import com.kcg.dr.utils.TCPJSONClient
 import dji.sampleV5.aircraft.R

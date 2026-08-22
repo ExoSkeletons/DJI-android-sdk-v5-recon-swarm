@@ -13,8 +13,8 @@ import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.kcg.dr.recognition.ReconTTSFragment
 import com.kcg.dr.utils.LocaleUtils
-import com.kcg.dr.utils.SFXManager
-import com.kcg.dr.utils.TTSManager
+import com.kcg.dr.managers.SFXManager
+import com.kcg.dr.managers.TTSManager
 import com.kcg.dr.utils.setLocale
 import com.kcg.dr.voice.VoiceControlFragment
 import dji.sampleV5.aircraft.R

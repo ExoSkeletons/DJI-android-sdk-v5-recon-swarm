@@ -21,11 +21,11 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.kcg.dr.utils.ResourcesManager
-import com.kcg.dr.utils.SFXManager
-import com.kcg.dr.utils.SFXManager.playSfx
+import com.kcg.dr.managers.ResourcesManager
+import com.kcg.dr.managers.SFXManager
+import com.kcg.dr.managers.SFXManager.playSfx
 import com.kcg.dr.utils.ServiceUtils
-import com.kcg.dr.utils.TTSManager.speak
+import com.kcg.dr.managers.TTSManager.speak
 import com.kcg.dr.utils.getLocalizedResources
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.util.ToastUtils

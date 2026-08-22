@@ -34,8 +34,8 @@ import com.kcg.dr.location.LiveLocationProvider
 import com.kcg.dr.location.UserVM
 import com.kcg.dr.djiutils.LocationUtils.bearingTo
 import com.kcg.dr.djiutils.LocationUtils.distanceTo
-import com.kcg.dr.utils.ResourcesManager
-import com.kcg.dr.utils.TTSManager.speak
+import com.kcg.dr.managers.ResourcesManager
+import com.kcg.dr.managers.TTSManager.speak
 import com.kcg.dr.djiutils.as2D
 import com.kcg.dr.djiutils.asDjiLocation
 import com.kcg.dr.djiutils.atAlt

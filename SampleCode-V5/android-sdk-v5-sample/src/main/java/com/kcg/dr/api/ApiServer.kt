@@ -19,7 +19,7 @@ import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.location.UserMetrics
 import com.kcg.dr.djiutils.actionOrExcept
 import com.kcg.dr.djiutils.DJIErrorException
-import com.kcg.dr.utils.TTSManager
+import com.kcg.dr.managers.TTSManager
 import dji.sdk.keyvalue.key.AirLinkKey
 import dji.sdk.keyvalue.key.BatteryKey
 import dji.sdk.keyvalue.key.FlightControllerKey

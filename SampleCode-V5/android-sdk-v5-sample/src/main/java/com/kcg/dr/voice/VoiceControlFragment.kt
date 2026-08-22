@@ -19,10 +19,10 @@ import com.kcg.dr.api.dto.actions.ScanGround
 import com.kcg.dr.api.dto.actions.TrackMe
 import com.kcg.dr.flight.AircraftControlVM
 import com.kcg.dr.location.UserVM
-import com.kcg.dr.utils.ResourcesManager
-import com.kcg.dr.utils.SFXManager
-import com.kcg.dr.utils.SFXManager.playSfx
-import com.kcg.dr.utils.TTSManager.speak
+import com.kcg.dr.managers.ResourcesManager
+import com.kcg.dr.managers.SFXManager
+import com.kcg.dr.managers.SFXManager.playSfx
+import com.kcg.dr.managers.TTSManager.speak
 import com.kcg.dr.voice.CommandResolver.Command
 import com.kcg.dr.voice.CommandResolver.Command.Companion.respFmtExId
 import com.kcg.dr.voice.CommandResolver.Command.Companion.respFmtSimpleId

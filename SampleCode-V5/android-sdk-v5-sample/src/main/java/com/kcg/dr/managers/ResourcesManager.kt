@@ -1,7 +1,8 @@
-package com.kcg.dr.utils
+package com.kcg.dr.managers
 
 import android.content.Context
 import android.content.res.Resources
+import com.kcg.dr.utils.getLocalizedResources
 import java.util.Locale
 
 object ResourcesManager {

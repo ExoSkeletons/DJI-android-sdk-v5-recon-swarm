@@ -1,4 +1,4 @@
-package com.kcg.dr.utils
+package com.kcg.dr.managers
 
 import android.app.AlertDialog
 import android.content.Context
@@ -10,6 +10,7 @@ import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.MutableLiveData
+import com.kcg.dr.utils.getLocalizedResources
 import dji.sampleV5.aircraft.R
 import java.util.Locale
 
