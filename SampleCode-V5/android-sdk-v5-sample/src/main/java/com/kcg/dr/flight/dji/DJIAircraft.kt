@@ -3,7 +3,7 @@ package com.kcg.dr.flight.dji
 import android.util.Log
 import com.kcg.dr.flight.AircraftController.Companion.TAG
 import com.kcg.dr.flight.AircraftController.IAircraft
-import com.kcg.dr.utils.CoroutineUtils.await
+import com.kcg.dr.utils.await
 import dji.sampleV5.aircraft.util.ToastUtils
 import dji.sdk.keyvalue.key.FlightControllerKey
 import dji.sdk.keyvalue.value.common.Attitude

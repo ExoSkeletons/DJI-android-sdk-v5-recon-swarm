@@ -13,8 +13,8 @@ import com.google.mlkit.nl.translate.TranslatorOptions
 import com.kcg.dr.api.dto.actions.Action
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.location.UserMetrics
-import com.kcg.dr.utils.AssetUtils.getAssetOrExtract
-import com.kcg.dr.utils.LocaleUtils.getLocalizedResources
+import com.kcg.dr.utils.getAssetOrExtract
+import com.kcg.dr.utils.getLocalizedResources
 import com.kcg.dr.voice.LlamaResolver.LlamaAndroidStage
 import com.kcg.dr.voice.SerialisedResolver.Companion.appendPropertyShortJson
 import com.kcg.dr.voice.SerialisedResolver.Companion.dereference

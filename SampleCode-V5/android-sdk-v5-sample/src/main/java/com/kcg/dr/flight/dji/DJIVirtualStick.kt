@@ -4,9 +4,9 @@ import android.util.Log
 import com.kcg.dr.flight.AircraftController.Companion.TAG
 import com.kcg.dr.flight.AircraftController.FlightParam
 import com.kcg.dr.flight.AircraftController.IVirtualStick
-import com.kcg.dr.utils.CoroutineUtils.awaitCallback
-import com.kcg.dr.utils.CoroutineUtils.awaitOrNull
-import com.kcg.dr.utils.CoroutineUtils.ifConnected
+import com.kcg.dr.utils.awaitCallback
+import com.kcg.dr.utils.awaitOrNull
+import com.kcg.dr.utils.ifConnected
 import dji.sdk.keyvalue.value.flightcontroller.*
 import dji.v5.manager.aircraft.virtualstick.VirtualStickManager
 import dji.v5.manager.aircraft.virtualstick.VirtualStickState

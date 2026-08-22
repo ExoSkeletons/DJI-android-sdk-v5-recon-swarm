@@ -17,7 +17,7 @@ import com.kcg.dr.api.dto.actions.FlyTo
 import com.kcg.dr.api.dto.actions.LookAt
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.location.UserMetrics
-import com.kcg.dr.utils.CoroutineUtils.actionOrExcept
+import com.kcg.dr.utils.actionOrExcept
 import com.kcg.dr.utils.DJIErrorException
 import com.kcg.dr.utils.TTSManager
 import dji.sdk.keyvalue.key.AirLinkKey

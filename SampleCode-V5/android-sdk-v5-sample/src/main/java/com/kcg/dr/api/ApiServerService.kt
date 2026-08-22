@@ -8,8 +8,8 @@ import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.kcg.dr.flight.AircraftController
-import com.kcg.dr.utils.NetUtils
-import com.kcg.dr.utils.ServiceUtils.startAsForeground
+import com.kcg.dr.utils.getLocalIpAddress
+import com.kcg.dr.utils.startAsForeground
 import dji.sampleV5.aircraft.R
 
 private const val TAG = "DroneApiService"
@@ -62,7 +62,7 @@ class ApiServerService : Service() {
     private fun createNotification(): Notification {
         return NotificationCompat.Builder(this, AircraftController.TAG).apply {
             setContentTitle("Drone API Server")
-            setContentText("$host:$apiPort @ ${NetUtils.getLocalIpAddress() ?: "-"}")
+            setContentText("$host:$apiPort @ ${getLocalIpAddress() ?: "-"}")
             setSmallIcon(R.drawable.aircraft)
             setOngoing(true)
         }.build()

@@ -10,53 +10,56 @@ import java.util.Locale
 object LocaleUtils {
     const val LANG_KEY = "lang"
     const val COUNTRY_KEY = "country"
+}
 
-    fun Context.getLocalizedResources(locale: Locale): Resources {
-        val context = this
-        val config = Configuration(context.resources.configuration)
-        config.setLocale(locale)
-        config.setLayoutDirection(locale)
-        val localizedContext = context.createConfigurationContext(config)
-        return localizedContext.resources
-    }
+fun Context.getLocalizedResources(locale: Locale): Resources {
+    val context = this
+    val config = Configuration(context.resources.configuration)
+    config.setLocale(locale)
+    config.setLayoutDirection(locale)
+    val localizedContext = context.createConfigurationContext(config)
+    return localizedContext.resources
+}
 
-    fun setLocale(activity: FragmentActivity?, locale: Locale) {
-        Locale.setDefault(locale)
-        if (activity != null) {
-            activity.createConfigurationContext(
-                Configuration(activity.baseContext.resources.configuration)
-                    .apply { setLocale(locale) }
-            )
-            activity.recreate()
-        }
-    }
-
-    fun setLocale(fragment: Fragment, locale: Locale) {
-        if (locale == Locale.getDefault()) return
-
-        val context = fragment.requireContext()
-        Locale.setDefault(locale)
-
-        context.createConfigurationContext(
-            Configuration(context.resources.configuration)
+fun FragmentActivity?.setLocale(locale: Locale) {
+    val activity = this
+    Locale.setDefault(locale)
+    if (activity != null) {
+        activity.createConfigurationContext(
+            Configuration(activity.baseContext.resources.configuration)
                 .apply { setLocale(locale) }
         )
-
-        // Replace the fragment with a fresh instance using the new context
-        val newFragment = fragment::class.java.newInstance()
-
-        fragment.parentFragmentManager.beginTransaction()
-            .replace(fragment.id, newFragment)
-            .commitAllowingStateLoss()
+        activity.recreate()
     }
+}
 
-    fun setLocale(context: Context, locale: Locale): Context {
-        Locale.setDefault(locale)
+fun Fragment.setLocale(locale: Locale) {
+    if (locale == Locale.getDefault()) return
 
-        val config = Configuration(context.resources.configuration)
-        config.setLocale(locale)
-        config.setLayoutDirection(locale)
+    val fragment = this
+    val context = fragment.requireContext()
+    Locale.setDefault(locale)
 
-        return context.createConfigurationContext(config)
-    }
+    context.createConfigurationContext(
+        Configuration(context.resources.configuration)
+            .apply { setLocale(locale) }
+    )
+
+    // Replace the fragment with a fresh instance using the new context
+    val newFragment = fragment::class.java.newInstance()
+
+    fragment.parentFragmentManager.beginTransaction()
+        .replace(fragment.id, newFragment)
+        .commitAllowingStateLoss()
+}
+
+fun Context.setLocale(locale: Locale): Context {
+    val context = this
+    Locale.setDefault(locale)
+
+    val config = Configuration(context.resources.configuration)
+    config.setLocale(locale)
+    config.setLayoutDirection(locale)
+
+    return context.createConfigurationContext(config)
 }

@@ -19,7 +19,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.IntentCompat
 import androidx.media.session.MediaButtonReceiver
 import com.kcg.dr.flight.AircraftController
-import com.kcg.dr.utils.ServiceUtils.startAsForeground
+import com.kcg.dr.utils.startAsForeground
 import dji.sampleV5.aircraft.R
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow

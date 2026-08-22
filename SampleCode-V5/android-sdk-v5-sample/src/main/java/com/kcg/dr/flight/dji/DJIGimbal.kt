@@ -1,8 +1,8 @@
 package com.kcg.dr.flight.dji
 
 import com.kcg.dr.flight.AircraftController.IGimbal
-import com.kcg.dr.utils.CoroutineUtils.await
-import com.kcg.dr.utils.CoroutineUtils.ifConnected
+import com.kcg.dr.utils.await
+import com.kcg.dr.utils.ifConnected
 import dji.sdk.keyvalue.key.GimbalKey
 import dji.sdk.keyvalue.value.common.Attitude
 import dji.sdk.keyvalue.value.common.EmptyMsg

@@ -10,7 +10,7 @@ import com.google.android.gms.location.LocationResult
 import com.kcg.dr.flight.AircraftControlVM
 import com.kcg.dr.location.LiveLocationProvider
 import com.kcg.dr.location.UserVM
-import com.kcg.dr.utils.CoroutineUtils.observe
+import com.kcg.dr.utils.observe
 import com.kcg.dr.utils.asDjiLocation
 import dji.sampleV5.aircraft.databinding.FragVocomContainerBinding
 import dji.sampleV5.aircraft.pages.DJIFragment

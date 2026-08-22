@@ -7,14 +7,13 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.kcg.dr.location.UserVM
-import com.kcg.dr.utils.CoroutineUtils.observe
+import com.kcg.dr.utils.observe
 import com.kcg.dr.utils.LocationUtils.bearingTo
 import com.kcg.dr.utils.LocationUtils.distanceTo
 import com.kcg.dr.utils.as2D
 import com.kcg.dr.utils.atAlt
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVocomStatusBinding
-import dji.sdk.keyvalue.value.common.LocationCoordinate3D
 import kotlin.math.roundToInt
 
 class StatusFragment : Fragment() {

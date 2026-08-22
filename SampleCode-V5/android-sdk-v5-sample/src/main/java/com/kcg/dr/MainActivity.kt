@@ -15,6 +15,7 @@ import com.kcg.dr.recognition.ReconTTSFragment
 import com.kcg.dr.utils.LocaleUtils
 import com.kcg.dr.utils.SFXManager
 import com.kcg.dr.utils.TTSManager
+import com.kcg.dr.utils.setLocale
 import com.kcg.dr.voice.VoiceControlFragment
 import dji.sampleV5.aircraft.R
 import java.util.Locale
@@ -28,7 +29,7 @@ class MainActivity : AppCompatActivity() {
         val langCode = prefs.getString(LocaleUtils.LANG_KEY, "en") ?: "en"
         val countryCode = prefs.getString(LocaleUtils.COUNTRY_KEY, "") ?: ""
         val locale = Locale(langCode, countryCode)
-        val context = LocaleUtils.setLocale(newBase, locale)
+        val context = newBase.setLocale(locale)
         super.attachBaseContext(context)
     }
 

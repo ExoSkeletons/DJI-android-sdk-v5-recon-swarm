@@ -6,7 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
-import com.kcg.dr.utils.LocaleUtils.getLocalizedResources
+import com.kcg.dr.utils.getLocalizedResources
 import dji.sampleV5.aircraft.R
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
 import kotlinx.coroutines.launch

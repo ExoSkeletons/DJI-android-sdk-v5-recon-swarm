@@ -2,7 +2,6 @@ package com.kcg.dr.flight
 
 import android.util.Log
 import com.kcg.dr.api.dto.Responses.toJson
-import com.kcg.dr.utils.CoroutineUtils
 import com.kcg.dr.utils.DJIErrorException
 import com.kcg.dr.utils.LocationUtils
 import com.kcg.dr.utils.LocationUtils.RelativeDirection
@@ -24,6 +23,7 @@ import com.kcg.dr.utils.minus
 import com.kcg.dr.utils.normalizeAngle
 import com.kcg.dr.utils.times
 import com.kcg.dr.utils.toDegrees
+import com.kcg.dr.utils.whileSuspendedBy
 import com.kcg.dr.utils.wrap180
 import dji.sampleV5.aircraft.models.VirtualStickVM.RCStickValue
 import dji.sampleV5.aircraft.util.ToastUtils
@@ -1237,7 +1237,7 @@ open class AircraftController(
         block: suspend () -> Unit
     ) = coroutineScope {
         Log.i(TAG, "whileFollowing")
-        CoroutineUtils.whileSuspendedBy({
+        whileSuspendedBy({
             followSticks(
                 targetLocation,
                 targetReachedCallback,
@@ -1257,7 +1257,7 @@ open class AircraftController(
         angleOffset: Double = 0.0,
         block: suspend () -> Unit
     ) = coroutineScope {
-        CoroutineUtils.whileSuspendedBy(
+        whileSuspendedBy(
             {
                 lookAtAndTrack(
                     deviceLocation,
