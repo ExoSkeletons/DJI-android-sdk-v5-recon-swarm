@@ -41,7 +41,7 @@
             android:name="dji.v5.ux.sample.showcase.defaultlayout.DefaultLayoutActivity"
             android:configChanges="orientation|screenSize"
             android:exported="false"
-            android:screenOrientation="landscape"
+            android:screenOrientation="sensorLandscape"
             android:theme="@style/full_screen_theme" />
 
         <activity
@@ -55,7 +55,7 @@
             android:name=".AircraftTestingToolsActivity"
             android:configChanges="orientation|screenSize"
             android:exported="false"
-            android:screenOrientation="landscape"
+            android:screenOrientation="sensorLandscape"
             android:theme="@style/full_screen_theme"
             android:windowSoftInputMode="adjustPan" />
 
