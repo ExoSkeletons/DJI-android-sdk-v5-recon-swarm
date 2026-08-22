@@ -23,7 +23,6 @@ class CommonFragmentPageInfoFactory : IFragmentPageInfoFactory {
             items.add(FragmentPageItem(R.id.key_live_stream_page, R.string.item_live_stream_title, R.string.item_live_stream_description))
             items.add(FragmentPageItem(R.id.key_login_account_page, R.string.item_login_account_title, R.string.item_login_account_description))
             items.add(FragmentPageItem(R.id.key_log_info_page, R.string.item_log_info_title, R.string.item_log_info_description))
-            items.add(FragmentPageItem(R.id.key_diagnostic_page, R.string.item_diagnostic_title, R.string.item_diagnostic_description))
             items.add(FragmentPageItem(R.id.key_app_silently_upgrade_page, R.string.item_app_silently_upgrade_title, R.string.item_app_silently_upgrade_description))
         }
     }
