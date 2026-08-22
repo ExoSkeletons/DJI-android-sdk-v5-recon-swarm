@@ -1,9 +1,10 @@
 package com.kcg.dr.flight.dji
 
 import android.util.Log
+import com.kcg.dr.djiutils.await
+import com.kcg.dr.djiutils.awaitOrNull
 import com.kcg.dr.flight.AircraftController.Companion.TAG
 import com.kcg.dr.flight.AircraftController.IAircraft
-import com.kcg.dr.djiutils.await
 import dji.sampleV5.aircraft.util.ToastUtils
 import dji.sdk.keyvalue.key.FlightControllerKey
 import dji.sdk.keyvalue.value.common.Attitude
@@ -54,7 +55,18 @@ class DJIAircraft : IAircraft {
             FlightControllerKey.KeyStartAutoLanding.create().action(onSuccess, onFailure)
         }
 
+        var isConfirmNeeded = false
+        var isLandingConfirmed = false
+        FlightControllerKey.KeyIsLandingConfirmationNeeded.create().listen(this) {
+            isConfirmNeeded = it == true
+        }
         while (isActive && (isFlying.value || areMotorsOn.value)) {
+            if (!isLandingConfirmed)
+                if (isConfirmNeeded) {
+                    awaitOrNull { onSuccess: (EmptyMsg) -> Unit, onFailure ->
+                        FlightControllerKey.KeyConfirmLanding.create().action(onSuccess, onFailure)
+                    }?.let { isLandingConfirmed = true }
+                }
             delay(500.milliseconds)
         }
     }
@@ -74,7 +86,10 @@ class DJIAircraft : IAircraft {
 
     val intelFlightInfoListener = object : IntelligentFlightInfoListener {
         override fun onIntelligentFlightInfoUpdate(info: IntelligentFlightInfo) {
-            info.supportedMissions?.let { supportedIntelligentFeatures = it }
+            info.supportedMissions?.let {
+                supportedIntelligentFeatures = it
+                Log.i(TAG, "supported missions: ${it.joinToString(", ")}")
+            }
         }
 
         override fun onIntelligentFlightErrorUpdate(error: IDJIError) {
