@@ -497,7 +497,7 @@ More refer to the release notes." </string>
     <!-- STT commands -->
     <string name="item_vocom_title">Recon Swarm</string>
     <string name="item_vocom_description">Voice Control &amp; Reconnaissance</string>
-    <string name="item_vocom_container_title">Recon Swarm (Fragmented)</string>
+    <string name="item_vocom_container_title">Dashboard</string>
     <string name="item_vocom_camera_title">VoCom Camera</string>
     <string name="item_vocom_status_title">VoCom Status</string>
     <string name="item_vocom_waypoints_title">VoCom Waypoints</string>
