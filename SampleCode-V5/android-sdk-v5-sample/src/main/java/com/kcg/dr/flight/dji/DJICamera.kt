@@ -2,7 +2,7 @@ package com.kcg.dr.flight.dji
 
 import android.util.Log
 import com.kcg.dr.flight.AircraftController.ICamera
-import com.kcg.dr.utils.awaitCallback
+import com.kcg.dr.djiutils.awaitCallback
 import dji.sdk.keyvalue.value.common.ComponentIndexType
 import dji.v5.common.error.IDJIError
 import dji.v5.manager.datacenter.MediaDataCenter
@@ -14,10 +14,8 @@ import dji.v5.manager.datacenter.livestream.LiveVideoBitrateMode
 import dji.v5.manager.datacenter.livestream.StreamQuality
 import dji.v5.manager.datacenter.livestream.settings.RtmpSettings
 import dji.v5.manager.interfaces.ICameraStreamManager
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
 
 class DJICamera : ICamera<ComponentIndexType, LiveStreamStatus> {
     companion object {

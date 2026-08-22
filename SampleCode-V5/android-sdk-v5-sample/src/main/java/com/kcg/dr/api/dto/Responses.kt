@@ -1,7 +1,7 @@
 package com.kcg.dr.api.dto
 
 import android.util.Log
-import com.kcg.dr.utils.DJIErrorException
+import com.kcg.dr.djiutils.DJIErrorException
 import dji.v5.common.error.IDJIError
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonObjectBuilder

@@ -18,9 +18,9 @@ import android.util.Log
 import com.google.gson.annotations.SerializedName
 import com.kcg.dr.api.toElement
 import com.kcg.dr.api.toJsonElement
-import com.kcg.dr.utils.actionOrExcept
-import com.kcg.dr.utils.getOrExcept
-import com.kcg.dr.utils.setOrExcept
+import com.kcg.dr.djiutils.actionOrExcept
+import com.kcg.dr.djiutils.getOrExcept
+import com.kcg.dr.djiutils.setOrExcept
 import dji.sdk.keyvalue.key.DJIActionKeyInfo
 import dji.sdk.keyvalue.key.DJIKey
 import dji.sdk.keyvalue.key.DJIKeyInfo

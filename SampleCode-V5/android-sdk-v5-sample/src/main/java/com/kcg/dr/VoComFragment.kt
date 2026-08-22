@@ -11,7 +11,7 @@ import com.kcg.dr.flight.AircraftControlVM
 import com.kcg.dr.location.LiveLocationProvider
 import com.kcg.dr.location.UserVM
 import com.kcg.dr.utils.observe
-import com.kcg.dr.utils.asDjiLocation
+import com.kcg.dr.djiutils.asDjiLocation
 import dji.sampleV5.aircraft.databinding.FragVocomContainerBinding
 import dji.sampleV5.aircraft.pages.DJIFragment
 import dji.sdk.keyvalue.value.common.ComponentIndexType

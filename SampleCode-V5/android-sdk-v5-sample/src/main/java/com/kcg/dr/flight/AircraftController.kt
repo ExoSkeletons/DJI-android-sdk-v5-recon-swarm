@@ -2,26 +2,27 @@ package com.kcg.dr.flight
 
 import android.util.Log
 import com.kcg.dr.api.dto.Responses.toJson
-import com.kcg.dr.utils.DJIErrorException
-import com.kcg.dr.utils.LocationUtils
-import com.kcg.dr.utils.LocationUtils.RelativeDirection
-import com.kcg.dr.utils.LocationUtils.RelativeDirection.BACKWARD
-import com.kcg.dr.utils.LocationUtils.RelativeDirection.DOWN
-import com.kcg.dr.utils.LocationUtils.RelativeDirection.FORWARD
-import com.kcg.dr.utils.LocationUtils.RelativeDirection.LEFT
-import com.kcg.dr.utils.LocationUtils.RelativeDirection.RIGHT
-import com.kcg.dr.utils.LocationUtils.RelativeDirection.UP
-import com.kcg.dr.utils.LocationUtils.bearingTo
-import com.kcg.dr.utils.LocationUtils.distanceTo
-import com.kcg.dr.utils.LocationUtils.translate
-import com.kcg.dr.utils.as2D
-import com.kcg.dr.utils.atAlt
-import com.kcg.dr.utils.div
-import com.kcg.dr.utils.dt
-import com.kcg.dr.utils.mag
-import com.kcg.dr.utils.minus
+import com.kcg.dr.djiutils.DJIErrorException
+import com.kcg.dr.djiutils.LocationUtils
+import com.kcg.dr.djiutils.LocationUtils.RelativeDirection
+import com.kcg.dr.djiutils.LocationUtils.RelativeDirection.BACKWARD
+import com.kcg.dr.djiutils.LocationUtils.RelativeDirection.DOWN
+import com.kcg.dr.djiutils.LocationUtils.RelativeDirection.FORWARD
+import com.kcg.dr.djiutils.LocationUtils.RelativeDirection.LEFT
+import com.kcg.dr.djiutils.LocationUtils.RelativeDirection.RIGHT
+import com.kcg.dr.djiutils.LocationUtils.RelativeDirection.UP
+import com.kcg.dr.djiutils.LocationUtils.bearingTo
+import com.kcg.dr.djiutils.LocationUtils.distanceTo
+import com.kcg.dr.djiutils.LocationUtils.translate
+import com.kcg.dr.djiutils.LocationUtils.vectorToTarget
+import com.kcg.dr.djiutils.as2D
+import com.kcg.dr.djiutils.atAlt
+import com.kcg.dr.djiutils.div
+import com.kcg.dr.djiutils.dt
+import com.kcg.dr.djiutils.mag
+import com.kcg.dr.djiutils.minus
+import com.kcg.dr.djiutils.times
 import com.kcg.dr.utils.normalizeAngle
-import com.kcg.dr.utils.times
 import com.kcg.dr.utils.toDegrees
 import com.kcg.dr.utils.whileSuspendedBy
 import com.kcg.dr.utils.wrap180
@@ -594,7 +595,7 @@ open class AircraftController(
         require(accelerationDist >= 0) { "accelerationDist must be non-negative" }
         require(decelerationDist >= 0) { "decelerationDist must be non-negative" }
 
-        val (x, y, z) = LocationUtils.vectorToTarget(currentLocation, endLocation, curYaw)
+        val vec = vectorToTarget(currentLocation, endLocation, curYaw)
 
         val distToTarget = currentLocation.distanceTo(endLocation)
         val distFromStart = startLocation.distanceTo(currentLocation)
@@ -618,7 +619,7 @@ open class AircraftController(
         val scaledSpeed = maxVelocity * speedFactor
         val v = scaledSpeed.coerceIn(minVelocity, maxVelocity)
 
-        return Triple(x * v, y * v, z * v)
+        return Triple(vec.x * v, vec.y * v, vec.z * v)
     }
 
     private fun springAngularVelocity(

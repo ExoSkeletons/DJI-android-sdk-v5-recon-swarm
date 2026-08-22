@@ -6,8 +6,8 @@ import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.kcg.dr.utils.actionOrExcept
-import com.kcg.dr.utils.setOrExcept
+import com.kcg.dr.djiutils.actionOrExcept
+import com.kcg.dr.djiutils.setOrExcept
 import dji.sampleV5.aircraft.util.ToastUtils
 import dji.sdk.keyvalue.key.CameraKey
 import dji.sdk.keyvalue.key.DJIKey

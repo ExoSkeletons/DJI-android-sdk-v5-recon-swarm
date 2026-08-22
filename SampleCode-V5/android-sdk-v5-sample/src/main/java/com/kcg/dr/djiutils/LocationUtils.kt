@@ -1,61 +1,19 @@
 @file:OptIn(InternalSerializationApi::class)
 
-package com.kcg.dr.utils
+package com.kcg.dr.djiutils
 
 import android.location.Location
+import com.kcg.dr.utils.mag
+import com.kcg.dr.utils.normalizeAngle
 import dji.sdk.keyvalue.value.common.LocationCoordinate2D
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
-import dji.sdk.keyvalue.value.common.Velocity3D
 import dji.sdk.keyvalue.value.common.XYZ
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlin.math.cos
 import kotlin.math.sin
-import kotlin.math.sqrt
 
-private const val EPS = 1e-6
 private const val EARTH_RADIUS = 6378137.0 // meters
-
-fun Double.normalizeAngle() = ((this % 360) + 360) % 360
-fun Double.wrap180(): Double {
-    var v = this % 360.0
-    if (v > 180) v -= 360
-    if (v < -180) v += 360
-    return v
-}
-
-fun Double.toDegrees(): Double = Math.toDegrees(this)
-fun Double.toRadians(): Double = Math.toRadians(this)
-
-
-operator fun XYZ.plus(other: XYZ): XYZ = XYZ(this.x + other.x, this.y + other.y, this.z + other.z)
-operator fun XYZ.minus(other: XYZ): XYZ = XYZ(this.x - other.x, this.y - other.y, this.z - other.z)
-operator fun XYZ.times(other: XYZ): XYZ = XYZ(this.x * other.x, this.y * other.y, this.z * other.z)
-operator fun XYZ.div(other: XYZ): XYZ = XYZ(this.x / other.x, this.y / other.y, this.z / other.z)
-operator fun XYZ.times(scalar: Double): XYZ = XYZ(this.x * scalar, this.y * scalar, this.z * scalar)
-operator fun XYZ.div(scalar: Double): XYZ = XYZ(this.x / scalar, this.y / scalar, this.z / scalar)
-inline val XYZ.mag get(): Double = sqrt(this.x * this.x + this.y * this.y + this.z * this.z)
-fun XYZ.normalized(eps: Double = EPS): XYZ = if (mag < eps) XYZ(0.0, 0.0, 0.0) else this / this.mag
-fun XYZ.asVector(): Triple<Double, Double, Double> = Triple(this.x, this.y, this.z)
-fun Triple<Double, Double, Double>.asXYZ(): XYZ = XYZ(this.x, this.y, this.z)
-fun Velocity3D.asXYZ(): XYZ = XYZ(this.x, this.y, this.z)
-fun XYZ.dt(t: Double): Velocity3D = Velocity3D(this.x / t, this.y / t, this.z / t)
-
-
-inline val Pair<Double, Double>.x get(): Double = this.first
-inline val Pair<Double, Double>.y get(): Double = this.second
-inline val Pair<Double, Double>.mag get(): Double = sqrt(x * x + y * y)
-fun Pair<Double, Double>.normalized(eps: Double = EPS): Pair<Double, Double> =
-    if (mag < eps) Pair(0.0, 0.0)
-    else Pair(x / mag, y / mag)
-
-inline val Triple<Double, Double, Double>.x get(): Double = this.first
-inline val Triple<Double, Double, Double>.y get(): Double = this.second
-inline val Triple<Double, Double, Double>.z get(): Double = this.third
-inline val Triple<Double, Double, Double>.mag get(): Double = sqrt(x * x + y * y + z * z)
-fun Triple<Double, Double, Double>.normalized(eps: Double = EPS): Triple<Double, Double, Double> =
-    if (mag < eps) Triple(0.0, 0.0, 0.0)
-    else Triple(x / mag, y / mag, z / mag)
 
 
 inline val LocationCoordinate3D.as2D get() = LocationCoordinate2D(this.latitude, this.longitude)
@@ -189,7 +147,7 @@ object LocationUtils {
         cur: LocationCoordinate3D,
         target: LocationCoordinate3D,
         curYaw: Double, // degrees clockwise from North
-    ): Triple<Double, Double, Double> {
+    ): XYZ {
         val dh = cur.as2D.distanceTo(target.as2D)
         val dz = target.altitude - cur.altitude
 
@@ -199,6 +157,6 @@ object LocationUtils {
         val dx = dh * cos(relBearingRad)
         val dy = dh * sin(relBearingRad)
 
-        return Triple(dx, dy, dz).normalized()
+        return XYZ(dx, dy, dz).normalized()
     }
 }

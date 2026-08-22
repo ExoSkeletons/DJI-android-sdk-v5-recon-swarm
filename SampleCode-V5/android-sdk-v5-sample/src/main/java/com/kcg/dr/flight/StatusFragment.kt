@@ -8,10 +8,10 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.kcg.dr.location.UserVM
 import com.kcg.dr.utils.observe
-import com.kcg.dr.utils.LocationUtils.bearingTo
-import com.kcg.dr.utils.LocationUtils.distanceTo
-import com.kcg.dr.utils.as2D
-import com.kcg.dr.utils.atAlt
+import com.kcg.dr.djiutils.LocationUtils.bearingTo
+import com.kcg.dr.djiutils.LocationUtils.distanceTo
+import com.kcg.dr.djiutils.as2D
+import com.kcg.dr.djiutils.atAlt
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVocomStatusBinding
 import kotlin.math.roundToInt

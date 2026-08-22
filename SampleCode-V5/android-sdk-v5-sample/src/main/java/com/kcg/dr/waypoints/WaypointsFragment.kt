@@ -16,10 +16,10 @@ import com.kcg.dr.flight.AircraftControlVM
 import com.kcg.dr.location.LiveLocationProvider
 import com.kcg.dr.location.UserVM
 import com.kcg.dr.utils.observe
-import com.kcg.dr.utils.LocationUtils.distanceTo
+import com.kcg.dr.djiutils.LocationUtils.distanceTo
 import com.kcg.dr.utils.ResourcesManager
-import com.kcg.dr.utils.as2D
-import com.kcg.dr.utils.asDjiLocation
+import com.kcg.dr.djiutils.as2D
+import com.kcg.dr.djiutils.asDjiLocation
 import com.kcg.dr.utils.getLocalizedResources
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVocomWaypointsBinding

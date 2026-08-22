@@ -4,7 +4,7 @@ package com.kcg.dr.api.dto.actions
 
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.location.UserMetrics
-import com.kcg.dr.utils.as2D
+import com.kcg.dr.djiutils.as2D
 import dji.sampleV5.aircraft.util.ToastUtils
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first

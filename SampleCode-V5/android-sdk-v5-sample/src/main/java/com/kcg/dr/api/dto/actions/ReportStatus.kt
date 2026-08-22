@@ -5,12 +5,12 @@ package com.kcg.dr.api.dto.actions
 import android.util.Log
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.location.UserMetrics
-import com.kcg.dr.utils.LocationUtils.distanceTo
+import com.kcg.dr.djiutils.LocationUtils.distanceTo
 import com.kcg.dr.utils.ResourcesManager
 import com.kcg.dr.utils.TTSManager.speak
-import com.kcg.dr.utils.as2D
-import com.kcg.dr.utils.asXYZ
-import com.kcg.dr.utils.mag
+import com.kcg.dr.djiutils.as2D
+import com.kcg.dr.djiutils.asXYZ
+import com.kcg.dr.djiutils.mag
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.util.ToastUtils
 import kotlinx.schema.generator.json.SerialDescription

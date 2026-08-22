@@ -1,6 +1,6 @@
 package com.kcg.dr.location
 
-import com.kcg.dr.utils.atAlt
+import com.kcg.dr.djiutils.atAlt
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
