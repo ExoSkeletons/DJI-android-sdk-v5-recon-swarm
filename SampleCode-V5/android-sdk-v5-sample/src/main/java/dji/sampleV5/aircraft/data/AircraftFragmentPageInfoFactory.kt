@@ -15,7 +15,7 @@ class AircraftFragmentPageInfoFactory : IFragmentPageInfoFactory {
 
     override fun createPageInfo(): FragmentPageItemList {
         return FragmentPageItemList(R.navigation.nav_aircraft).apply {
-            items.add(FragmentPageItem(R.id.virtual_stick_page_vocom, R.string.item_vocom_title, R.string.item_vocom_description))
+            items.add(FragmentPageItem(R.id.virtual_stick_page_vocom, R.string.item_vocom_title, R.string.item_vocom_description, true))
 
             items.add(FragmentPageItem(R.id.virtual_stick_page_vocom_container, R.string.item_vocom_container_title, R.string.item_vocom_description))
             // items.add(FragmentPageItem(R.id.virtual_stick_page_vocom_camera, R.string.item_vocom_camera_title, R.string.item_vocom_generic_desc))
