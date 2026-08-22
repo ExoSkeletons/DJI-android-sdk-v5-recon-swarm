@@ -29,6 +29,7 @@ class AircraftControlVM(
 
     val aircraftLocation = c.ac.location.asLiveData()
     val aircraftHeight = c.ac.height.asLiveData()
+    val aircraftVelocity = c.ac.velocity.asLiveData()
     val batteryPercent = c.ac.batteryPercent.asLiveData()
     val gimbalAttitude = c.camGim.attitude.asLiveData()
     val attitude = c.ac.attitude.asLiveData()

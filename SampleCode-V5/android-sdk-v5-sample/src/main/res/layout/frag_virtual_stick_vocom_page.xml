@@ -387,7 +387,7 @@
                     android:visibility="gone">
 
                     <TextView
-                        android:id="@+id/tvFollowVelocity"
+                        android:id="@+id/tvVelocity"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1" />

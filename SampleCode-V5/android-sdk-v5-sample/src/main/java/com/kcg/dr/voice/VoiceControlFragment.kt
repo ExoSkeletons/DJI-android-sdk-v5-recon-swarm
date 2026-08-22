@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.kcg.dr.api.dto.actions.FlyToMe
 import com.kcg.dr.api.dto.actions.FollowMe
+import com.kcg.dr.api.dto.actions.ScanGround
 import com.kcg.dr.api.dto.actions.TrackMe
 import com.kcg.dr.flight.AircraftControlVM
 import com.kcg.dr.location.UserVM
@@ -87,7 +88,13 @@ class VoiceControlFragment : Fragment() {
                 Command(R.string.commands_stop) { controller.stop() },
                 Command(R.string.command_takeoff, respFmtSimpleId) { controller.fly { takeoff() } },
                 Command(R.string.command_land, respFmtExId) { controller.fly { land() } },
-                Command(R.string.command_spin, respFmtSimpleId) { controller.fly { spinBy(360.0) } },
+                Command(
+                    R.string.command_spin,
+                    respFmtSimpleId
+                ) { controller.fly { spinBy(360.0) } },
+                Command(R.string.command_mission_scan, respFmtExId) {
+                    controller.fly { ScanGround(velocity = 2.0).act(this, userVM.metrics) }
+                },
                 Command(R.string.command_mission_recon, respFmtExId) {
                     controller.fly {
                         val h0 = controller.ac.height.value
@@ -117,7 +124,7 @@ class VoiceControlFragment : Fragment() {
                 ) {
                     controller.fly {
                         FollowMe(
-                            cruiseHeight = 7.0,
+                            cruiseHeight = null,
                             followDistance = 5.0,
                         ).act(this, userVM.metrics)
                     }

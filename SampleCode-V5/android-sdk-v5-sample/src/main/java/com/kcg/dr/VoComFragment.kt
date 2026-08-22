@@ -16,7 +16,7 @@ import dji.sampleV5.aircraft.databinding.FragVocomContainerBinding
 import dji.sampleV5.aircraft.pages.DJIFragment
 import dji.sdk.keyvalue.value.common.ComponentIndexType
 
-class VoComContainerFragment : DJIFragment() {
+class VoComFragment : DJIFragment() {
     private var _binding: FragVocomContainerBinding? = null
     private val binding get() = _binding!!
 

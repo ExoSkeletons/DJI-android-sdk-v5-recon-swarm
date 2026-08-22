@@ -625,25 +625,12 @@ class VirtualStickFragmentVoCom : DJIFragment() {
     private fun initRecordingControls() {
         binding?.btnStartRecordVideo?.setOnClickListener {
             recordingVM.cameraIndex.postValue(cameraIndex)
-            recordingVM.startRecord(object : CommonCallbacks.CompletionCallbackWithParam<EmptyMsg> {
-                override fun onSuccess(p0: EmptyMsg?) =
-                    ToastUtils.showToast("recording start success")
-
-                override fun onFailure(error: IDJIError) =
-                    ToastUtils.showToast("recording start fail: ${error.description()}")
-            })
+            recordingVM.startRecord()
         }
 
         binding?.btnStopRecordVideo?.setOnClickListener {
             if (recordingVM.isRecording.value == true)
-                recordingVM.stopRecord(object :
-                    CommonCallbacks.CompletionCallbackWithParam<EmptyMsg> {
-                    override fun onSuccess(p0: EmptyMsg?) =
-                        ToastUtils.showToast("recording stop success")
-
-                    override fun onFailure(error: IDJIError) =
-                        ToastUtils.showToast("recording stop fail: ${error.description()}")
-                })
+                recordingVM.stopRecord()
         }
 
         recordingVM.isRecording.observe(viewLifecycleOwner) { v ->

@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.asLiveData
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.gms.location.LocationCallback
@@ -94,7 +95,7 @@ class WaypointsFragment : Fragment() {
                     lookAtWithSpin(loc.as2D, 2.0)
                 }
             },
-            userVM.standingLocation, aircraftVM.aircraftLocation
+            userVM.metrics.standingLocation.asLiveData(), aircraftVM.aircraftLocation
         )
 
         binding.rvWaypointLocations.layoutManager = LinearLayoutManager(requireContext())

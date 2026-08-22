@@ -23,8 +23,8 @@ import kotlin.math.abs
 @SerialName("follow_me")
 @SerialDescription("Follow the user from above")
 data class FollowMe(
-    val cruiseHeight: Double = 7.0,
-    val followDistance: Double = 4.0,
+    val cruiseHeight: Double? = 7.0,
+    val followDistance: Double = 3.5,
     @property:SerialDescription("1..8 (m/s)")
     val maxVelocity: Double = 8.0,
     val accelerationDist: Double = 2.0,
@@ -36,7 +36,8 @@ data class FollowMe(
             // If aircraft is far from a perch position, move closer
             val deviceLocation = user?.liveLocation ?: return
             val dl = deviceLocation.filterNotNull().first()
-            val pl = dl.atAlt(cruiseHeight)
+            val ch = cruiseHeight ?: ac.height.value
+            val pl = dl.atAlt(ch)
             val currentLoc = ac.location.value ?: return
 
             if (abs(
@@ -68,7 +69,7 @@ data class FollowMe(
             // Orbiting pattern
             perchShoulder(
                 deviceLocation,
-                cruiseHeight, followDistance,
+                ch, followDistance,
                 followVelocity = maxVelocity,
             )
         }

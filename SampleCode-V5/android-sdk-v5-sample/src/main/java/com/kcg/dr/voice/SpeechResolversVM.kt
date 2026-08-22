@@ -210,10 +210,10 @@ class SpeechResolversVM(
                     getApplication<Application>().mainExecutor,
                     object : RecognitionSupportCallback {
                         override fun onSupportResult(support: RecognitionSupport) {
-                            Log.d(TAG, "installed: ${support.installedOnDeviceLanguages}")
-                            Log.d(TAG, "pending: ${support.pendingOnDeviceLanguages}")
-                            Log.d(TAG, "supported: ${support.supportedOnDeviceLanguages}")
-                            Log.d(TAG, "online: ${support.onlineLanguages}")
+                            Log.i(TAG, "installed: ${support.installedOnDeviceLanguages}")
+                            Log.i(TAG, "pending: ${support.pendingOnDeviceLanguages}")
+                            Log.i(TAG, "supported: ${support.supportedOnDeviceLanguages}")
+                            Log.i(TAG, "online: ${support.onlineLanguages}")
 
                             val isInstalled = support
                                 .installedOnDeviceLanguages

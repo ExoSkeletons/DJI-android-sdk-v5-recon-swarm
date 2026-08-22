@@ -6,7 +6,12 @@ import com.kcg.dr.utils.CoroutineUtils
 import com.kcg.dr.utils.DJIErrorException
 import com.kcg.dr.utils.LocationUtils
 import com.kcg.dr.utils.LocationUtils.RelativeDirection
-import com.kcg.dr.utils.LocationUtils.RelativeDirection.*
+import com.kcg.dr.utils.LocationUtils.RelativeDirection.BACKWARD
+import com.kcg.dr.utils.LocationUtils.RelativeDirection.DOWN
+import com.kcg.dr.utils.LocationUtils.RelativeDirection.FORWARD
+import com.kcg.dr.utils.LocationUtils.RelativeDirection.LEFT
+import com.kcg.dr.utils.LocationUtils.RelativeDirection.RIGHT
+import com.kcg.dr.utils.LocationUtils.RelativeDirection.UP
 import com.kcg.dr.utils.LocationUtils.bearingTo
 import com.kcg.dr.utils.LocationUtils.distanceTo
 import com.kcg.dr.utils.LocationUtils.translate
@@ -361,8 +366,8 @@ open class AircraftController(
                     }
                 }
         } else {
-            Log.i(TAG, "RC [$value] under threshold (\"neutral\").")
             if (!vSticks.ownsControl.value && returnControlPostOverrideAfter != Duration.INFINITE) {
+                Log.i(TAG, "RC [$value] under threshold (\"neutral\").")
                 Log.d(TAG, "RC neutral and vSticks not enabled.")
                 if (retakeStickTimerJob?.isActive == true) {
                     Log.i(TAG, "retake sticks timer job is active")
@@ -935,7 +940,13 @@ open class AircraftController(
         val travelDuration = 2.0 * Math.PI * count * radius / velocity
         val rotationSign = if (clockwise) 1 else -1
 
-        Log.i(TAG, "flying circle for $travelDuration seconds")
+        Log.i(
+            TAG,
+            "flying circle " +
+                    "r=${radius}m v=${velocity}m/s " +
+                    "${if (fromCenter) "fromCenter" else ""} " +
+                    "for ${travelDuration.toInt()}s"
+        )
 
         val circleMotionParam = FlightParam().apply {
             when (faceMode) {

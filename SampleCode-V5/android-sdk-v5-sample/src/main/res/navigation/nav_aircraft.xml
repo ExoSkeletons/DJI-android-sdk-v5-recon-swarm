@@ -19,7 +19,7 @@
 
     <fragment
         android:id="@+id/virtual_stick_page_vocom_container"
-        android:name="com.kcg.dr.VoComContainerFragment"
+        android:name="com.kcg.dr.VoComFragment"
         android:label="virtual_stick_vocom_container_page"
         tools:layout="@layout/frag_vocom_container"/>
 

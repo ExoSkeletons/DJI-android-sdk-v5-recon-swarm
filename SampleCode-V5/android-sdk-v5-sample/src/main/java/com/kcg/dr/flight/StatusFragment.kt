@@ -11,8 +11,10 @@ import com.kcg.dr.utils.CoroutineUtils.observe
 import com.kcg.dr.utils.LocationUtils.bearingTo
 import com.kcg.dr.utils.LocationUtils.distanceTo
 import com.kcg.dr.utils.as2D
+import com.kcg.dr.utils.atAlt
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVocomStatusBinding
+import dji.sdk.keyvalue.value.common.LocationCoordinate3D
 import kotlin.math.roundToInt
 
 class StatusFragment : Fragment() {
@@ -56,6 +58,11 @@ class StatusFragment : Fragment() {
                     )
                 } ?: "-"
             }
+            aircraftVelocity.observe(viewLifecycleOwner) {
+                binding.tvVelocity.text = it?.let {
+                        "x:${it.x} y:${it.y} z:${it.z}"
+                } ?: "-"
+            }
             attitude.observe(viewLifecycleOwner) {
                 binding.tvAttitude.text = it?.toJson()?.toString() ?: "-"
             }
@@ -70,7 +77,7 @@ class StatusFragment : Fragment() {
         // relations between aircraft location and device location
         aircraftVM.apply {
             aircraftLocation.observe(viewLifecycleOwner) { aircraft ->
-                val device = deviceLocationVM.location.value
+                val device = deviceLocationVM.metrics.liveLocation.value?.atAlt(0.0)
 
                 val dist = aircraft?.let { device?.let { aircraft.distanceTo(device) } }
                 val dist2D = aircraft?.let { device?.let { aircraft.as2D.distanceTo(device.as2D) } }

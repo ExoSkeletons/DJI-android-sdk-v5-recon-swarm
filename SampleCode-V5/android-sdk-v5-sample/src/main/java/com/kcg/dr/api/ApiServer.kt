@@ -66,11 +66,13 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonObjectBuilder
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import kotlinx.serialization.serializer
 import java.nio.channels.ClosedChannelException
 import java.util.Locale
 
@@ -396,6 +398,7 @@ private fun Route.controllerRoute(
             )
         }
         call.respond(ok {
+            @OptIn(InternalSerializationApi::class)
             put(
                 FlyTo::class.serializer().descriptor.serialName,
                 request.target.toJson().toJsonElement()
@@ -406,6 +409,7 @@ private fun Route.controllerRoute(
         val request = call.receive<LookAt>()
         controller.fly { lookAtWithSpin(request.target, request.height) }
         call.respond(ok {
+            @OptIn(InternalSerializationApi::class)
             put(
                 LookAt::class.serializer().descriptor.serialName,
                 request.target.toJson().toJsonElement()
