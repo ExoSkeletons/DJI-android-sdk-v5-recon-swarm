@@ -12,6 +12,8 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.util.Locale
 
+private const val TAG = "GroundStationSpeechResolver"
+
 class GroundStationSpeechResolver(
     val address: String,
     val port: Int
@@ -35,15 +37,18 @@ class GroundStationSpeechResolver(
             put("text", t)
         }
 
-        Log.d("GroundStationSpeechResolver", "posting to $address:$port\n$t")
+        Log.d(TAG, "sending to ground station $address:$port\n$t")
+
+        Log.d(TAG, "posting")
         val response = restClient.post("http://$address:$port/input") {
             contentType(ContentType.Application.Json)
             setBody(inputObject)
         }
-        Log.d("GroundStationSpeechResolver", "response: ${response.status}")
-        Log.i("GroundStationSpeechResolver", "$response")
+        Log.d(TAG, "${response.status}")
+        if (response.status.value != 200)
+            Log.i(TAG, "$response")
 
-        Log.d("GroundStationSpeechResolver", "sending via tcp to $address:$port\n$t")
+        Log.d(TAG, "sending via tcp")
         tcpClient.send(inputObject.toString())
     }
 
