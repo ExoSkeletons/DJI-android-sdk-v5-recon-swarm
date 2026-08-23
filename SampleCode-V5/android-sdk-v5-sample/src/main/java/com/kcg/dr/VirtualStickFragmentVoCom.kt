@@ -39,6 +39,7 @@ import com.kcg.dr.location.LiveLocationProvider
 import com.kcg.dr.location.UserVM
 import com.kcg.dr.managers.ResourcesManager
 import com.kcg.dr.managers.TTSManager.speak
+import com.kcg.dr.utils.LocaleUtils
 import com.kcg.dr.utils.getLocalizedResources
 import com.kcg.dr.utils.observe
 import com.kcg.dr.voice.CommandResolver.Command
@@ -128,7 +129,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         { SpeechResolversVM.Factory }
     )
 
-    private val locale: Locale = ResourcesManager.locale
+    private val locale: Locale = LocaleUtils.preferred
 
     private val controller: AircraftController get() = controllerVM.controller
     private lateinit var commandResolver: RegexCommandResolver

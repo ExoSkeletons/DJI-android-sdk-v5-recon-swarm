@@ -14,7 +14,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.kcg.dr.flight.AircraftController
-import com.kcg.dr.managers.ResourcesManager
 import com.kcg.dr.managers.SFXManager
 import com.kcg.dr.managers.TTSManager
 import com.kcg.dr.managers.TTSManager.promptInstallTTSLanguage
@@ -103,7 +102,6 @@ abstract class DJIMainActivity : AppCompatActivity() {
             ToastUtils.showToast("Please install a TTS engine for $locale.")
             promptInstallTTSLanguage(applicationContext)
         }
-        ResourcesManager.init(application)
     }
 
     override fun onRequestPermissionsResult(

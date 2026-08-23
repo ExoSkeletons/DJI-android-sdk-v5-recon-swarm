@@ -19,10 +19,10 @@ import com.kcg.dr.api.dto.actions.ScanGround
 import com.kcg.dr.api.dto.actions.TrackMe
 import com.kcg.dr.flight.AircraftControlVM
 import com.kcg.dr.location.UserVM
-import com.kcg.dr.managers.ResourcesManager
 import com.kcg.dr.managers.SFXManager
 import com.kcg.dr.managers.SFXManager.playSfx
 import com.kcg.dr.managers.TTSManager.speak
+import com.kcg.dr.utils.LocaleUtils
 import com.kcg.dr.voice.CommandResolver.Command
 import com.kcg.dr.voice.CommandResolver.Command.Companion.respFmtExId
 import com.kcg.dr.voice.CommandResolver.Command.Companion.respFmtSimpleId
@@ -33,7 +33,6 @@ import dji.sampleV5.aircraft.databinding.ItemResolverBinding
 import dji.sampleV5.aircraft.util.ToastUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.util.Locale
 
 class VoiceControlFragment : Fragment() {
     private var _binding: FragVocomVoiceControlBinding? = null
@@ -64,7 +63,7 @@ class VoiceControlFragment : Fragment() {
         },
         { SpeechResolversVM.Factory }
     )
-    private val locale get() = ResourcesManager.locale
+    private val locale get() = LocaleUtils.preferred
 
     override fun onCreateView(
         inflater: LayoutInflater,

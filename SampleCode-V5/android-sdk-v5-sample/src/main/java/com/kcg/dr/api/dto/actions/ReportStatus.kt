@@ -11,6 +11,7 @@ import com.kcg.dr.managers.TTSManager.speak
 import com.kcg.dr.djiutils.as2D
 import com.kcg.dr.djiutils.asXYZ
 import com.kcg.dr.djiutils.mag
+import com.kcg.dr.utils.LocaleUtils
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.util.ToastUtils
 import kotlinx.schema.generator.json.SerialDescription
@@ -55,7 +56,7 @@ data class ReportStatus(
                 appendLine()
             }
         }
-        speak(report, ResourcesManager.locale)
+        speak(report, LocaleUtils.preferred)
         if (of.contains(Metric.UserLocation)) {
             user?.liveLocation?.value?.let {
                 aircraft.lookAtWithSpin(it.as2D, user.humanHeight.value)
