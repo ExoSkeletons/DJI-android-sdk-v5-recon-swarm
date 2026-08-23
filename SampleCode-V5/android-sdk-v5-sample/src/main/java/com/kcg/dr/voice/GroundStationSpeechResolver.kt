@@ -1,6 +1,7 @@
 package com.kcg.dr.voice
 
 import android.util.Log
+import com.kcg.dr.utils.TCPClient
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.post
@@ -12,21 +13,38 @@ import kotlinx.serialization.json.put
 import java.util.Locale
 
 class GroundStationSpeechResolver(
-    val url: String,
+    val address: String,
     val port: Int
 ) : SpeechExecutor<String, Unit>, PipelineResolver<String> {
-    private val client = HttpClient(CIO)
+    // rest client
+    private val restClient = HttpClient(CIO)
+    private val tcpClient = TCPClient()
+
+    override suspend fun init() {
+        super.init()
+        tcpClient.connect(address, port)
+    }
+
+    override fun close() {
+        super.close()
+        tcpClient.disconnect()
+    }
 
     override fun execution(t: String): suspend () -> Unit = {
-        Log.d("GroundStationSpeechResolver", "posting to $url:$port\n$t")
-        val response = client.post("http://$url:$port/input") {
+        val inputObject = buildJsonObject {
+            put("text", t)
+        }
+
+        Log.d("GroundStationSpeechResolver", "posting to $address:$port\n$t")
+        val response = restClient.post("http://$address:$port/input") {
             contentType(ContentType.Application.Json)
-            setBody(buildJsonObject {
-                put("text", t)
-            })
+            setBody(inputObject)
         }
         Log.d("GroundStationSpeechResolver", "response: ${response.status}")
         Log.i("GroundStationSpeechResolver", "$response")
+
+        Log.d("GroundStationSpeechResolver", "sending via tcp to $address:$port\n$t")
+        tcpClient.send(inputObject.toString())
     }
 
     // todo: use translation stage in pipelining to pre process speech before sending to ground station
