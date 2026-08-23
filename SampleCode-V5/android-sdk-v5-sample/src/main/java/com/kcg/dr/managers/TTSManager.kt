@@ -94,12 +94,10 @@ object TTSManager {
         text: String,
         locale: Locale? = Locale.getDefault(),
         queueMode: Int = TextToSpeech.QUEUE_ADD,
-        onLangUnavailable: ((TextToSpeech, Locale) -> Unit)? = null
     ) {
         if (text.isNotBlank() && silent.value != true) tts?.apply {
             if (locale != null && isLanguageAvailable(locale) < TextToSpeech.LANG_AVAILABLE) {
                 Log.w(TAG, "Speak called but Language not available: $locale")
-                this@TTSManager.onLangUnavailable?.invoke(this, locale)
                 onLangUnavailable?.invoke(this, locale)
                 return
             }
@@ -116,7 +114,6 @@ object TTSManager {
         vararg formatArgs: Any,
         locale: Locale?,
         queueMode: Int = TextToSpeech.QUEUE_ADD,
-        onLangUnavailable: ((TextToSpeech, Locale) -> Unit)? = null
     ) = speak(
         (locale?.let {
             this.getLocalizedResources(locale)
@@ -124,7 +121,6 @@ object TTSManager {
             .getString(textId, formatArgs),
         locale,
         queueMode,
-        onLangUnavailable
     )
 
     fun Fragment.speak(
@@ -133,9 +129,8 @@ object TTSManager {
         vararg formatArgs: Any,
         locale: Locale?,
         queueMode: Int = TextToSpeech.QUEUE_ADD,
-        onLangUnavailable: ((TextToSpeech, Locale) -> Unit)? = null
     ) = requireContext().speak(
-        textId, formatArgs = formatArgs, locale, queueMode, onLangUnavailable
+        textId, formatArgs = formatArgs, locale, queueMode
     )
 
     fun release() {

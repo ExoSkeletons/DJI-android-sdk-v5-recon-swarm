@@ -17,13 +17,14 @@ import android.widget.EditText
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.widget.SwitchCompat
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.lifecycleScope
-import com.kcg.dr.utils.JobRepeater
 import com.kcg.dr.managers.SFXManager
+import com.kcg.dr.utils.JobRepeater
 import com.kcg.dr.utils.TCPClient
 import com.kcg.dr.utils.TCPJSONClient
 import dji.sampleV5.aircraft.R
@@ -76,18 +77,23 @@ class ReconTTSFragment : Fragment() {
         )
     )
     private val sampleMemory = RecognitionMemory(1.0)
+
     // Obstacle UI
     private lateinit var oTypeSp: Spinner
     private lateinit var directionSp: Spinner
     private lateinit var editTextObjDist: EditText
     private lateinit var motionSw: SwitchCompat
     private lateinit var editText: EditText
+
     // Obstacle info connection client
     private lateinit var client: TCPClient
     private lateinit var tvConnectionInfo: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AppCompatDelegate.getApplicationLocales().get(0)?.let {
+            Locale.setDefault(it)
+        }
         tts = TextToSpeech(requireContext(), onInitListener)
     }
 
@@ -128,7 +134,8 @@ class ReconTTSFragment : Fragment() {
         oTypeSp.adapter = oTypeSpAd
         oTypeSp.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, pos: Int, id: Long) {
-                val selected = RecognitionMemory.RecognitionSample.ObstacleInfo.ObstacleType.values()[pos]
+                val selected =
+                    RecognitionMemory.RecognitionSample.ObstacleInfo.ObstacleType.values()[pos]
                 obstacleInfo.value?.type = selected
             }
 
@@ -144,7 +151,8 @@ class ReconTTSFragment : Fragment() {
         directionSp.adapter = directionSpAd
         directionSp.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, pos: Int, id: Long) {
-                val selected = RecognitionMemory.RecognitionSample.ObstacleInfo.Direction.values()[pos]
+                val selected =
+                    RecognitionMemory.RecognitionSample.ObstacleInfo.Direction.values()[pos]
                 obstacleInfo.value?.direction = selected
             }
 
@@ -195,11 +203,12 @@ class ReconTTSFragment : Fragment() {
 
     private fun speakText(text: String) {
         if (text.isNotBlank() && !silent) {
-            if (tts.isLanguageAvailable(Locale.getDefault()) < TextToSpeech.LANG_AVAILABLE) {
+            val locale = Locale.getDefault()
+            if (tts.isLanguageAvailable(locale) < TextToSpeech.LANG_AVAILABLE) {
                 promptInstallTTSLang()
                 return
             }
-            tts.language = Locale.getDefault()
+            tts.language = locale
             tts.setSpeechRate(1.1f)
             SFXManager.playSfx(SFXManager.SFX.NOTIFY_INFO)
             tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
