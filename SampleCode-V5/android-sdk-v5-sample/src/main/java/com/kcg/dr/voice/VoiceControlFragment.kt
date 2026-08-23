@@ -72,7 +72,7 @@ class VoiceControlFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragVocomVoiceControlBinding.inflate(inflater, container, false)
-        ResourcesManager.setLocale(requireContext(), Locale("he", "IL"))
+        // ResourcesManager.setLocale(requireContext(), Locale("he", "IL"))
         return binding.root
     }
 

@@ -50,8 +50,6 @@ class WaypointsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        ResourcesManager.setLocale(requireContext(), Locale("he", "IL"))
-
         waypointsVM.loadWaypoints()
 
         setupLocationProvider()
