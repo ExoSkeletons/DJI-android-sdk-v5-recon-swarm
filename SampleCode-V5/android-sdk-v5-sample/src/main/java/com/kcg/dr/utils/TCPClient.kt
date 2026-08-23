@@ -9,6 +9,7 @@ import kotlinx.coroutines.launch
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.PrintWriter
+import java.net.InetSocketAddress
 import java.net.Socket
 import java.net.SocketAddress
 
@@ -64,12 +65,12 @@ open class TCPClient(
      *
      * @param serverAddress The Server Address
      */
-    fun connect(
-        serverAddress: SocketAddress
-    ) {
+    fun connect(serverAddress: SocketAddress) {
         userDisconnected = false
         doConnect(serverAddress)
     }
+
+    fun connect(serverAddress: String, port: Int) = connect(InetSocketAddress(serverAddress, port))
 
     private fun doConnect(serverAddress: SocketAddress) {
         connectJob?.cancel()
