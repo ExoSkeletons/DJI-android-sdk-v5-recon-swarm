@@ -79,8 +79,6 @@ class VoiceControlFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        ResourcesManager.setLocale(requireContext(), Locale("he", "IL"))
-
         val controller = controllerVM.controller
         commandResolver = RegexCommandResolver(requireContext())
         commandResolver.setCommands(
