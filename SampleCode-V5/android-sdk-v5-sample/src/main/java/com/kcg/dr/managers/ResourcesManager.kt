@@ -1,19 +1,21 @@
 package com.kcg.dr.managers
 
-import android.content.Context
+import android.app.Application
 import android.content.res.Resources
+import androidx.appcompat.app.AppCompatDelegate
 import com.kcg.dr.utils.getLocalizedResources
 import java.util.Locale
 
 object ResourcesManager {
-    var resources: Resources = Resources.getSystem()
-    private var _locale: Locale? = null
-    val locale: Locale get() = _locale ?: Locale.getDefault()
+    private lateinit var app: Application
 
-    fun setLocale(context: Context, locale: Locale? = null) {
-        _locale = locale
-        resources = with(context.applicationContext) {
-            locale?.let { getLocalizedResources(it) } ?: resources
-        }
+    val resources: Resources get() = app.getLocalizedResources(locale)
+
+    val locale: Locale
+        get() = AppCompatDelegate.getApplicationLocales().get(0)
+            ?: Locale.getDefault()
+
+    fun init(application: Application) {
+        app = application
     }
 }

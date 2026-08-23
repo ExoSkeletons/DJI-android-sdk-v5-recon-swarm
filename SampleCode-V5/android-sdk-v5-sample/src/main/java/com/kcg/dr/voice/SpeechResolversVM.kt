@@ -21,7 +21,6 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.kcg.dr.managers.ResourcesManager
 import com.kcg.dr.managers.SFXManager
 import com.kcg.dr.managers.SFXManager.playSfx
 import com.kcg.dr.utils.ServiceUtils
@@ -189,7 +188,7 @@ class SpeechResolversVM(
         viewModelScope.launch {
             AudioControlService.mediaButtonPresses.collectLatest {
                 Log.i(TAG, "media button collected")
-                toggleListening(ResourcesManager.locale)
+                toggleListening()
             }
         }
     }
@@ -273,7 +272,7 @@ class SpeechResolversVM(
         return@withContext false
     }
 
-    fun toggleListening(locale: Locale) =
+    fun toggleListening(locale: Locale = Locale.getDefault()) =
         if (_isListening.value == true) stopListening()
         else startListening(locale)
 

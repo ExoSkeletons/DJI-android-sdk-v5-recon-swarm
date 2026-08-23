@@ -100,9 +100,10 @@ abstract class DJIMainActivity : AppCompatActivity() {
 
         SFXManager.init(this)
         TTSManager.init(this) { tts, locale ->
+            ToastUtils.showToast("Please install a TTS engine for $locale.")
             promptInstallTTSLanguage(applicationContext)
         }
-        ResourcesManager.setLocale(this)
+        ResourcesManager.init(application)
     }
 
     override fun onRequestPermissionsResult(
