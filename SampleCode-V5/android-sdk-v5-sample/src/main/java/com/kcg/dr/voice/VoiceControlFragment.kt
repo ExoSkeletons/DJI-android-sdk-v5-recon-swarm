@@ -33,7 +33,6 @@ import dji.sampleV5.aircraft.databinding.ItemResolverBinding
 import dji.sampleV5.aircraft.util.ToastUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.util.Locale
 
 class VoiceControlFragment : Fragment() {
     private var _binding: FragVocomVoiceControlBinding? = null
@@ -41,6 +40,11 @@ class VoiceControlFragment : Fragment() {
 
     private lateinit var commandResolver: RegexCommandResolver
     private lateinit var actionResolver: LlamaActionSequenceResolver
+    private val groundStationResolver = GroundStationSpeechResolver(
+        // fixme: replace with ground station address
+        "0.0.0.0",
+        8080
+    )
 
     private val controllerVM: AircraftControlVM by activityViewModels()
     private val userVM: UserVM by activityViewModels()
@@ -54,10 +58,14 @@ class VoiceControlFragment : Fragment() {
                             R.string.commands_parser_regex,
                             R.drawable.ic_gears
                         ),
-                        actionResolver to SpeechResolversVM.ResolverItem(
+                        groundStationResolver to SpeechResolversVM.ResolverItem(
+                            R.string.commands_parser_gs,
+                            R.drawable.ic_llm_brain
+                        ),
+                        /*actionResolver to SpeechResolversVM.ResolverItem(
                             R.string.commands_parser_llm,
                             R.drawable.ic_llm_brain
-                        )
+                        )*/
                     )
                 )
             }

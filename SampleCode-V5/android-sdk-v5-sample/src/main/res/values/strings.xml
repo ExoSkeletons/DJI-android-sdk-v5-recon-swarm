@@ -620,4 +620,5 @@ More refer to the release notes." </string>
     <string name="report_fmt_heading">Heading is %.0f°</string>
     <string name="report_fmt_velocity_aircraft">Moving at around %.1f m/s</string>
     <string name="report_fmt_velocity_aircraft_xyz">Moving at %.2f x %.2f y %.2f z m/s</string>
+    <string name="commands_parser_gs">Ground Station</string>
 </resources>
