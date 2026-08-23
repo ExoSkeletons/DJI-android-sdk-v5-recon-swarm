@@ -17,6 +17,7 @@ import android.widget.EditText
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.widget.SwitchCompat
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
@@ -89,6 +90,9 @@ class ReconTTSFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AppCompatDelegate.getApplicationLocales().get(0)?.let {
+            Locale.setDefault(it)
+        }
         tts = TextToSpeech(requireContext(), onInitListener)
     }
 
@@ -198,11 +202,12 @@ class ReconTTSFragment : Fragment() {
 
     private fun speakText(text: String) {
         if (text.isNotBlank() && !silent) {
-            if (tts.isLanguageAvailable(Locale.getDefault()) < TextToSpeech.LANG_AVAILABLE) {
+            val locale = Locale.getDefault()
+            if (tts.isLanguageAvailable(locale) < TextToSpeech.LANG_AVAILABLE) {
                 promptInstallTTSLang()
                 return
             }
-            tts.language = Locale.getDefault()
+            tts.language = locale
             tts.setSpeechRate(1.1f)
             SFXManager.playSfx(SFXManager.SFX.NOTIFY_INFO)
             tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)

@@ -2,10 +2,16 @@ package dji.sampleV5.aircraft
 
 import android.os.Bundle
 import android.view.View
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import androidx.fragment.app.commit
 import androidx.navigation.Navigation
+import com.kcg.dr.utils.LocaleUtils
+import com.kcg.dr.utils.getSupportedLocales
 import dji.sampleV5.aircraft.databinding.ActivityTestingToolsBinding
 import dji.sampleV5.aircraft.models.MSDKCommonOperateVm
 import dji.sampleV5.aircraft.util.DJIToastUtil
@@ -70,6 +76,8 @@ abstract class TestingToolsActivity : AppCompatActivity() {
         }
 
         loadPages()
+
+        setupLocaleSwitcher()
     }
 
     override fun onResume() {
@@ -95,6 +103,44 @@ abstract class TestingToolsActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         DJIToastUtil.dJIToastLD = null
+    }
+
+    private fun setupLocaleSwitcher() {
+        val locales = getSupportedLocales(R.xml.locales_config)
+        val currentLocale = LocaleUtils.preferred
+
+        binding.langSpinner.adapter = ArrayAdapter(
+            this, android.R.layout.simple_spinner_item,
+            locales.map { it.getDisplayName(currentLocale) }
+        ).apply {
+            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
+
+        val selectedIndex = locales.indexOfFirst {
+            it.language == currentLocale.language
+        }
+
+        binding.tvCurrentLocale.text = currentLocale.toLanguageTag()
+        binding.tvSupportedLocales.text = locales.joinToString { it.language }
+
+        if (selectedIndex != -1) {
+            binding.langSpinner.setSelection(selectedIndex)
+        }
+
+        binding.langSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, pos: Int, id: Long) {
+                if (pos != AdapterView.INVALID_POSITION && pos != selectedIndex) {
+                    val selectedLocale = locales.getOrNull(pos) ?: return
+                    if (selectedLocale.language != currentLocale.language) {
+                        AppCompatDelegate.setApplicationLocales(
+                            LocaleListCompat.create(selectedLocale)
+                        )
+                    }
+                }
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
     }
 
     open fun loadTitleView() {

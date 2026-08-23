@@ -14,6 +14,7 @@ import dji.sdk.keyvalue.value.common.Velocity3D
 import dji.v5.common.callback.CommonCallbacks
 import dji.v5.common.error.IDJIError
 import dji.v5.et.action
+import dji.v5.et.cancelListen
 import dji.v5.et.create
 import dji.v5.et.listen
 import dji.v5.manager.KeyManager
@@ -57,9 +58,8 @@ class DJIAircraft : IAircraft {
 
         var isConfirmNeeded = false
         var isLandingConfirmed = false
-        FlightControllerKey.KeyIsLandingConfirmationNeeded.create().listen(this) {
-            isConfirmNeeded = it == true
-        }
+        val confirmNeededKey = FlightControllerKey.KeyIsLandingConfirmationNeeded.create()
+        confirmNeededKey.listen(this) { isConfirmNeeded = it == true }
         while (isActive && (isFlying.value || areMotorsOn.value)) {
             if (!isLandingConfirmed)
                 if (isConfirmNeeded) {
@@ -69,6 +69,7 @@ class DJIAircraft : IAircraft {
                 }
             delay(500.milliseconds)
         }
+        confirmNeededKey.cancelListen(this)
     }
 
     override suspend fun stop(emergency: Boolean) {

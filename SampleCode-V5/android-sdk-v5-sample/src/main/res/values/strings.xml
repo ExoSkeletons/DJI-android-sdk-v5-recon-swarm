@@ -497,7 +497,7 @@ More refer to the release notes." </string>
     <!-- STT commands -->
     <string name="item_vocom_title">Recon Swarm</string>
     <string name="item_vocom_description">Voice Control &amp; Reconnaissance</string>
-    <string name="item_vocom_container_title">Dashboard</string>
+    <string name="item_vocom_container_title">Voice Control Dashboard</string>
     <string name="item_vocom_camera_title">VoCom Camera</string>
     <string name="item_vocom_status_title">VoCom Status</string>
     <string name="item_vocom_waypoints_title">VoCom Waypoints</string>
@@ -506,7 +506,7 @@ More refer to the release notes." </string>
     <string name="item_vocom_demo_title">VoCom Demo</string>
     <string name="item_vocom_recon_title">VoCom Recon</string>
     <string name="item_server_api_title">API Server</string>
-    <string name="item_vocom_generic_desc">VoCom Refactored Component</string>
+    <string name="item_vocom_generic_desc">VoCom Dashboard Component</string>
 
     <string name="current_locale">Current Locale</string>
     <string name="language">Language</string>

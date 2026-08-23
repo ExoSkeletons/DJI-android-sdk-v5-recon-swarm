@@ -12,15 +12,15 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.Priority
+import com.kcg.dr.djiutils.LocationUtils.distanceTo
+import com.kcg.dr.djiutils.as2D
+import com.kcg.dr.djiutils.asDjiLocation
 import com.kcg.dr.flight.AircraftControlVM
 import com.kcg.dr.location.LiveLocationProvider
 import com.kcg.dr.location.UserVM
-import com.kcg.dr.utils.observe
-import com.kcg.dr.djiutils.LocationUtils.distanceTo
-import com.kcg.dr.managers.ResourcesManager
-import com.kcg.dr.djiutils.as2D
-import com.kcg.dr.djiutils.asDjiLocation
+import com.kcg.dr.utils.LocaleUtils
 import com.kcg.dr.utils.getLocalizedResources
+import com.kcg.dr.utils.observe
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVocomWaypointsBinding
 import kotlinx.coroutines.launch
@@ -36,7 +36,7 @@ class WaypointsFragment : Fragment() {
 
     private lateinit var waypointAdapter: LocationAdapter
     private lateinit var liveLocationProvider: LiveLocationProvider
-    private val locale: Locale get() = ResourcesManager.locale
+    private val locale: Locale = LocaleUtils.preferred
 
     override fun onCreateView(
         inflater: LayoutInflater,

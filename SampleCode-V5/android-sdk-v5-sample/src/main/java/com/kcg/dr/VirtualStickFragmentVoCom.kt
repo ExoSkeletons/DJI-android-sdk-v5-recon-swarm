@@ -26,19 +26,20 @@ import com.kcg.dr.api.dto.KeyActivator
 import com.kcg.dr.api.dto.actions.FlyToMe
 import com.kcg.dr.api.dto.actions.FollowMe
 import com.kcg.dr.api.dto.actions.TrackMe
+import com.kcg.dr.djiutils.LocationUtils.bearingTo
+import com.kcg.dr.djiutils.LocationUtils.distanceTo
+import com.kcg.dr.djiutils.as2D
+import com.kcg.dr.djiutils.asDjiLocation
+import com.kcg.dr.djiutils.atAlt
 import com.kcg.dr.flight.AircraftControlVM
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.flight.AircraftController.CircleFaceMode
 import com.kcg.dr.flight.AircraftController.IVirtualStick
 import com.kcg.dr.location.LiveLocationProvider
 import com.kcg.dr.location.UserVM
-import com.kcg.dr.djiutils.LocationUtils.bearingTo
-import com.kcg.dr.djiutils.LocationUtils.distanceTo
 import com.kcg.dr.managers.ResourcesManager
 import com.kcg.dr.managers.TTSManager.speak
-import com.kcg.dr.djiutils.as2D
-import com.kcg.dr.djiutils.asDjiLocation
-import com.kcg.dr.djiutils.atAlt
+import com.kcg.dr.utils.LocaleUtils
 import com.kcg.dr.utils.getLocalizedResources
 import com.kcg.dr.utils.observe
 import com.kcg.dr.voice.CommandResolver.Command
@@ -128,7 +129,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         { SpeechResolversVM.Factory }
     )
 
-    private val locale: Locale = ResourcesManager.locale
+    private val locale: Locale = LocaleUtils.preferred
 
     private val controller: AircraftController get() = controllerVM.controller
     private lateinit var commandResolver: RegexCommandResolver
@@ -300,9 +301,6 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         requireContext().apply {
             // API Server foreground service
             apiServerVM.startService(AircraftController.TAG)
-
-            // Locale
-            ResourcesManager.setLocale(this, Locale("he", "IL"))
         }
     }
 
@@ -311,13 +309,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?,
     ): View? {
-        val config = Configuration(requireContext().resources.configuration)
-        config.setLocale(locale)
-        config.setLayoutDirection(locale)
-        val localInflater =
-            inflater.cloneInContext(requireContext().createConfigurationContext(config))
-
-        binding = FragVirtualStickVocomPageBinding.inflate(localInflater, container, false)
+        binding = FragVirtualStickVocomPageBinding.inflate(inflater, container, false)
         return binding?.root
     }
 

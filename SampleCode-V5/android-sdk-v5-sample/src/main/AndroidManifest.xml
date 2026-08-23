@@ -2,7 +2,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="dji.sampleV5.aircraft">
 
-    <!-- Sample permission requirement -->
     <application
         android:name=".DJIAircraftApplication"
         android:allowBackup="true"
@@ -11,6 +10,7 @@
         android:requestLegacyExternalStorage="true"
         android:extractNativeLibs="true"
         android:supportsRtl="true"
+        android:localeConfig="@xml/locales_config"
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
         <activity
             android:name=".DJIAircraftMainActivity"
@@ -24,7 +24,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".UsbAttachActivity"
             android:exported="true"
@@ -36,21 +35,20 @@
             <meta-data
                 android:name="android.hardware.usb.action.USB_ACCESSORY_ATTACHED"
                 android:resource="@xml/accessory_filter" />
-        </activity> <!-- Maplibre Token -->
+        </activity>
+
         <activity
             android:name="dji.v5.ux.sample.showcase.defaultlayout.DefaultLayoutActivity"
             android:configChanges="orientation|screenSize"
             android:exported="false"
             android:screenOrientation="sensorLandscape"
             android:theme="@style/full_screen_theme" />
-
         <activity
             android:name="dji.v5.ux.sample.showcase.widgetlist.WidgetsActivity"
             android:configChanges="orientation|screenSize"
             android:exported="false"
             android:screenOrientation="sensorLandscape"
             android:theme="@style/full_screen_theme" />
-
         <activity
             android:name=".AircraftTestingToolsActivity"
             android:configChanges="orientation|screenSize"
@@ -59,9 +57,11 @@
             android:theme="@style/full_screen_theme"
             android:windowSoftInputMode="adjustPan" />
 
+        <!-- Maplibre API Key -->
         <meta-data
             android:name="com.dji.mapkit.maplibre.apikey"
             android:value="${MAPLIBRE_TOKEN}" />
+        <!-- DJI API Key -->
         <meta-data
             android:name="com.dji.sdk.API_KEY"
             android:value="${API_KEY}" />
@@ -77,12 +77,22 @@
         </provider>
 
         <service
+            android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
+            android:enabled="false"
+            android:exported="false">
+            <meta-data
+                android:name="autoStoreLocales"
+                android:value="true" />
+        </service>
+        <!-- API Server -->
+        <service
             android:name="com.kcg.dr.api.ApiServerService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="dataSync"
             android:permission="android.permission.INTERNET">
         </service>
+        <!-- Earphone Tap Input -->
         <service
             android:name="com.kcg.dr.voice.AudioControlService"
             android:exported="true"
@@ -99,9 +109,6 @@
             </intent-filter>
         </receiver>
     </application>
-    <!-- <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" /> -->
-    <!-- <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" /> -->
-    <!-- <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" /> -->
     <meta-data
         android:name="com.google.android.geo.API_KEY"
         android:value="${GMAP_API_KEY}" />
@@ -111,11 +118,19 @@
         android:required="true" />
     <uses-feature
         android:name="android.hardware.usb.host"
-        android:required="false" /> <!-- 自安装使用 -->
+        android:required="false" /> <!-- 自安装使用 Self-installation and use -->
+
+    <!-- Permissions -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" /> <!-- Google Maps -->
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
+    <!-- <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" /> -->
+    <!-- <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" /> -->
+    <!-- <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" /> -->
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -123,8 +138,4 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
-
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-
 </manifest>
