@@ -20,12 +20,14 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import dji.sampleV5.aircraft.util.ToastUtils
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 class LiveLocationProvider(
     fragment: Fragment,
-    intervalMillis: Long,
-    minUpdateIntervalMillis: Long = intervalMillis,
-    maxUpdateDelayMillis: Long = intervalMillis,
+    interval: Duration,
+    minUpdateInterval: Duration = 0.seconds,
+    maxUpdateDelay: Duration = interval,
     priority: Int = Priority.PRIORITY_BALANCED_POWER_ACCURACY,
 ) {
     private val TAG = "LiveLocationProvider"
@@ -41,10 +43,10 @@ class LiveLocationProvider(
     private val locationBuffer: ArrayDeque<Location> = ArrayDeque()
     val smoothingWindowSize: Int = 10
 
-    private val locationRequest = LocationRequest.Builder(intervalMillis)
+    private val locationRequest = LocationRequest.Builder(interval.inWholeMilliseconds)
         .setWaitForAccurateLocation(false)
-        .setMinUpdateIntervalMillis(minUpdateIntervalMillis)
-        .setMaxUpdateDelayMillis(maxUpdateDelayMillis)
+        .setMinUpdateIntervalMillis(minUpdateInterval.inWholeMilliseconds)
+        .setMaxUpdateDelayMillis(maxUpdateDelay.inWholeMilliseconds)
         .setPriority(priority)
         .build()
     private val mEnableLocationLauncher = fragment.registerForActivityResult(
