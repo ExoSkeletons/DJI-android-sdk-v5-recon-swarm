@@ -527,7 +527,7 @@ More refer to the release notes." </string>
     <string name="command_takeoff">takeoff|take off|fly|sky|liftoff|wakeup|sunshine|morning</string>
     <string name="command_land">land|landing|ground|down|fall|perch|floor|shutdown|shut down|night|off|turn off|sleep|sunset|plan|planned</string>
 
-    <string name="commands_return_home">home|safe|house|run|ron|escape|evac|evacuate</string>
+    <string name="commands_return_home">return home|((come|go)|return) (back)+ (to)+ (me|us|base|home)|safe|house|run|ron|escape|evac|evacuate</string>
     <string name="command_follow_target">follow|follow target|follow him|target</string>
     <string name="command_follow_me">follow me|follow (me|us)</string>
     <string name="command_look_at_me">looking at you|(look|watch|track)( at)+ (me|us)|where (am I)|(are we)</string>
