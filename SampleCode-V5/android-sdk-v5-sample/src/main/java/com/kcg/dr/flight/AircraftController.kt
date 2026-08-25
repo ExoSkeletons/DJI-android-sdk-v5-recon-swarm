@@ -3,7 +3,6 @@ package com.kcg.dr.flight
 import android.util.Log
 import com.kcg.dr.api.dto.Responses.toJson
 import com.kcg.dr.djiutils.DJIErrorException
-import com.kcg.dr.djiutils.LocationUtils
 import com.kcg.dr.djiutils.LocationUtils.RelativeDirection
 import com.kcg.dr.djiutils.LocationUtils.RelativeDirection.BACKWARD
 import com.kcg.dr.djiutils.LocationUtils.RelativeDirection.DOWN
@@ -1140,11 +1139,13 @@ open class AircraftController(
         angleOffset: Double = 0.0,
         gimbalUpdateInterval: Duration = 1.seconds,
     ) = coroutineScope {
+        // target live collector
         var curTarget: LocationCoordinate3D? = null
         launch {
             liveTarget.collect { curTarget = it }
         }
 
+        // motion
         launch {
             var currentAngVelocity = 0.0
             while (isActive) {
@@ -1172,6 +1173,7 @@ open class AircraftController(
                 sendFlightParam(spinParam)
             }
         }
+        // gimbal
         launch {
             while (isActive) {
                 delay(gimbalUpdateInterval)
