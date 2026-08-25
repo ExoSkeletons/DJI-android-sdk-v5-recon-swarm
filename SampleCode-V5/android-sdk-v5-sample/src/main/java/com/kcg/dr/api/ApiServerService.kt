@@ -37,11 +37,17 @@ class ApiServerService : Service() {
 
     override fun onBind(intent: Intent?): IBinder = binder
 
+    override fun onCreate() {
+        super.onCreate()
+        startAsForeground(NOTIFICATION_ID, createNotification())
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         host = intent?.getStringExtra(EXTRA_HOST) ?: host
         apiPort = intent?.getIntExtra(EXTRA_PORT, apiPort) ?: apiPort
 
-        startAsForeground(NOTIFICATION_ID, createNotification())
+        val manager = getSystemService(NOTIFICATION_SERVICE) as android.app.NotificationManager
+        manager.notify(NOTIFICATION_ID, createNotification())
 
         server.start(host = host, port = apiPort)
         Log.i(TAG, "HTTP server started on port $apiPort")
