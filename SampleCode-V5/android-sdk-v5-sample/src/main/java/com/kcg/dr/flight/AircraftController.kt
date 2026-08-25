@@ -558,9 +558,12 @@ open class AircraftController(
                 delay(TRANSMISSION_INTERVAL)
                 if (buffer.isNotEmpty()) {
                     if (buffer.size > 2) Log.i(TAG, "reducing ${buffer.size} flight params")
-                    val combinedParam = buffer.reduce { param1, param2 -> param1 + param2 }
+                    val combinedParam = synchronized(buffer) {
+                        val reduced = buffer.reduce { param1, param2 -> param1 + param2 }
+                        buffer.clear()
+                        reduced
+                    }
                     vSticks.sendStickParam(combinedParam)
-                    buffer.clear()
                 }
             }
 
@@ -1283,10 +1286,12 @@ open class AircraftController(
         targetLocation: StateFlow<LocationCoordinate3D?>,
         perchHeight: Double,
         perchDistance: Double,
-        followVelocity: Double,
+        maxVelocity: Double,
         targetHeading: StateFlow<Double>? = null,
         watch12Duration: Duration = Duration.INFINITE,
         watch6Duration: Duration? = null,
+        accelerationDist: Double,
+        decelerationDist: Double,
     ) = coroutineScope {
         Log.d(
             TAG,
@@ -1313,7 +1318,13 @@ open class AircraftController(
 
         takeoff()
 
-        whileFollowing(perchLocation, maxVelocity = followVelocity) {
+        whileFollowing(
+            perchLocation,
+            maxVelocity = maxVelocity,
+            accelerationDist = accelerationDist,
+            decelerationDist = decelerationDist,
+            approachTolerance = 1.5,
+        ) {
             while (isActive) {
                 ToastUtils.showToast("watching 12\n(${watch12Duration})")
                 withTimeoutOrNull(watch12Duration) {
