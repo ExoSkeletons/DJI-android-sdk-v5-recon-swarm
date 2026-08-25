@@ -6,6 +6,7 @@ import dji.v5.manager.datacenter.MediaDataCenter
 import dji.v5.manager.interfaces.ICameraStreamManager
 import java.net.ServerSocket
 import java.net.Socket
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
@@ -17,7 +18,7 @@ class VideoTcpServer {
     }
 
     private var serverSocket: ServerSocket? = null
-    private val acceptPool = Executors.newSingleThreadExecutor()
+    private var acceptPool: ExecutorService? = null
     private val atmClient = AtomicReference<Socket?>(null)
 
     private val atmLoggedCodec = AtomicBoolean(false)
@@ -49,21 +50,29 @@ class VideoTcpServer {
     }
 
     fun start(port: Int, cameraIndex: ComponentIndexType = ComponentIndexType.LEFT_OR_MAIN) {
+        Log.d(TAG, "video server start $port ${cameraIndex.name}")
+
+        stop()
+
+        Log.d(TAG, "video server starting")
+
         val server = ServerSocket(port)
         serverSocket = server
         cameraManager.addReceiveStreamListener(cameraIndex, streamListener)
 
-        acceptPool.execute {
-            while (!server.isClosed) {
-                // Accept client connection
-                val next = runCatching { server.accept() }.getOrNull() ?: break
-                Log.d(TAG, "video client accepted: ${next.inetAddress}")
-                next.apply {
-                    tcpNoDelay = true
-                    keepAlive = true
+        acceptPool = Executors.newSingleThreadExecutor().apply {
+            execute {
+                while (!server.isClosed) {
+                    // Accept client connection
+                    val next = runCatching { server.accept() }.getOrNull() ?: break
+                    Log.d(TAG, "video client accepted: ${next.inetAddress}")
+                    next.apply {
+                        tcpNoDelay = true
+                        keepAlive = true
+                    }
+                    // Replace and close any previous client
+                    closeClientAndSet(next)
                 }
-                // Replace and close any previous client
-                closeClientAndSet(next)
             }
         }
     }
@@ -71,10 +80,10 @@ class VideoTcpServer {
     fun stop() {
         Log.d(TAG, "video server stopping")
         cameraManager.removeReceiveStreamListener(streamListener)
-        closeClientAndSet()
+        closeClientAndSet(null)
         runCatching { serverSocket?.close() }
         serverSocket = null
-        acceptPool.shutdownNow()
+        acceptPool?.shutdownNow()
         Log.i(TAG, "video server stopped")
     }
 }
