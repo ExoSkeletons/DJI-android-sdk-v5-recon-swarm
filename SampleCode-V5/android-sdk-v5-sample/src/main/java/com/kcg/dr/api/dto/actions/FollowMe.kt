@@ -2,14 +2,14 @@
 
 package com.kcg.dr.api.dto.actions
 
-import com.kcg.dr.flight.AircraftController
-import com.kcg.dr.location.UserMetrics
 import com.kcg.dr.djiutils.LocationUtils
 import com.kcg.dr.djiutils.LocationUtils.bearingTo
 import com.kcg.dr.djiutils.LocationUtils.distanceTo
 import com.kcg.dr.djiutils.LocationUtils.translate
 import com.kcg.dr.djiutils.as2D
 import com.kcg.dr.djiutils.atAlt
+import com.kcg.dr.flight.AircraftController
+import com.kcg.dr.location.UserMetrics
 import dji.sampleV5.aircraft.util.ToastUtils
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
@@ -26,38 +26,40 @@ data class FollowMe(
     val cruiseHeight: Double? = 7.0,
     val followDistance: Double = 3.5,
     @property:SerialDescription("1..8 (m/s)")
-    val maxVelocity: Double = 8.0,
+    val maxVelocity: Double = 5.0,
     val accelerationDist: Double = 2.0,
     val decelerationDist: Double = 4.0,
 ) : Action {
     override suspend fun act(aircraft: AircraftController, user: UserMetrics?) {
-        val flyToTolerance = 1.5
-        with(aircraft) {
-            // If aircraft is far from a perch position, move closer
-            val deviceLocation = user?.liveLocation ?: return
-            val dl = deviceLocation.filterNotNull().first()
-            val ch = cruiseHeight ?: ac.height.value
-            val pl = dl.atAlt(ch)
-            val currentLoc = ac.location.value ?: return
+        val deviceLocation = user?.liveLocation ?: return
 
+        val flyToTolerance = 1.5
+
+        with(aircraft) {
+            val dl = deviceLocation.filterNotNull().first()
+            val currentLoc = ac.location.value ?: return
+            val ch = cruiseHeight ?: ac.height.value
+
+            // If aircraft is far from a perch position, move closer to perch location
             if (abs(
                     currentLoc.as2D.distanceTo(dl.as2D)
                         .minus(followDistance)
                 ) > flyToTolerance
             ) {
+                val bearingTo = currentLoc.as2D.bearingTo(dl.as2D)
+                val pl = dl.translate(
+                    followDistance,
+                    LocationUtils.RelativeDirection.BACKWARD,
+                    bearingTo
+                ).atAlt(ch)
+
                 ToastUtils.showToast("Looking for you")
                 lookAtWithSpin(dl.as2D, user.humanHeight.value)
                 ToastUtils.showToast("Moving to Perch")
 
-                val perchHeading = currentLoc.as2D.bearingTo(dl.as2D)
-
                 withEyesOn(deviceLocation) {
                     flyToSticks(
-                        pl.translate(
-                            followDistance,
-                            LocationUtils.RelativeDirection.BACKWARD,
-                            perchHeading
-                        ),
+                        pl,
                         maxVelocity = maxVelocity,
                         accelerationDist = accelerationDist,
                         decelerationDist = decelerationDist,
