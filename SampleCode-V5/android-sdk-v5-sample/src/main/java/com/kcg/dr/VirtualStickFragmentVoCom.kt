@@ -1,6 +1,5 @@
 package com.kcg.dr
 
-import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
@@ -37,7 +36,6 @@ import com.kcg.dr.flight.AircraftController.CircleFaceMode
 import com.kcg.dr.flight.AircraftController.IVirtualStick
 import com.kcg.dr.location.LiveLocationProvider
 import com.kcg.dr.location.UserVM
-import com.kcg.dr.managers.ResourcesManager
 import com.kcg.dr.managers.TTSManager.speak
 import com.kcg.dr.utils.LocaleUtils
 import com.kcg.dr.utils.getLocalizedResources
@@ -147,10 +145,7 @@ class VirtualStickFragmentVoCom : DJIFragment() {
 
     // Location
     private val liveLocation: LiveLocationProvider = LiveLocationProvider(
-        this,
-        200, 50,
-        500,
-        Priority.PRIORITY_HIGH_ACCURACY
+        this, 0.05.seconds, priority = Priority.PRIORITY_HIGH_ACCURACY
     )
     private var aircraftLocation: LocationCoordinate3D? = null
 

@@ -25,6 +25,7 @@ import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVocomWaypointsBinding
 import kotlinx.coroutines.launch
 import java.util.Locale
+import kotlin.time.Duration.Companion.milliseconds
 
 class WaypointsFragment : Fragment() {
     private var _binding: FragVocomWaypointsBinding? = null
@@ -62,9 +63,7 @@ class WaypointsFragment : Fragment() {
     private fun setupLocationProvider() {
         liveLocationProvider = LiveLocationProvider(
             this,
-            200, 50,
-            500,
-            Priority.PRIORITY_HIGH_ACCURACY
+            200.milliseconds, priority = Priority.PRIORITY_HIGH_ACCURACY
         ).apply {
             init(requireContext())
             locationCallback = object : LocationCallback() {
