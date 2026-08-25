@@ -43,7 +43,8 @@ class ApiServerFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        binding.switchServer.setOnCheckedChangeListener { _, isChecked ->
+        binding.switchServer.setOnClickListener {
+            val isChecked = binding.switchServer.isChecked
             if (isChecked) viewModel.startService(AircraftController.TAG)
             else viewModel.stopService()
         }

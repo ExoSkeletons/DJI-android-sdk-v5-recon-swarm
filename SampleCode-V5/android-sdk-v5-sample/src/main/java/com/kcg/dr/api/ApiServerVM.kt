@@ -74,6 +74,7 @@ class ApiServerVM(
 
             server.value = binder?.server
             isServiceBound.value = true
+            isServiceRunning.value = true
 
             binder?.server?.configure(controller, user)
         }
@@ -89,7 +90,7 @@ class ApiServerVM(
         val context = application.applicationContext
         val intent = Intent(context, ApiServerService::class.java)
         try {
-            context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+            context.bindService(intent, serviceConnection, 0)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -115,7 +116,8 @@ class ApiServerVM(
             ApiServerService::class.java,
             connection = serviceConnection
         )
-        // stop tunneling
+        server.value = null
+        // startTunneling(port)
         isServiceBound.value = false
         isServiceRunning.value = false
     }
