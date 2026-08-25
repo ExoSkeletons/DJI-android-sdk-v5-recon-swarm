@@ -16,6 +16,7 @@ import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVocomContainerBinding
 import dji.sampleV5.aircraft.pages.DJIFragment
 import dji.sdk.keyvalue.value.common.ComponentIndexType
+import kotlin.time.Duration.Companion.seconds
 
 class VoComFragment : DJIFragment() {
     private var _binding: FragVocomContainerBinding? = null
@@ -23,7 +24,7 @@ class VoComFragment : DJIFragment() {
 
     private val deviceLocationVM: UserVM by activityViewModels()
     private val controllerVM: AircraftControlVM by activityViewModels()
-    private val locationProvider = LiveLocationProvider(this, 200, 50, 500)
+    private val locationProvider = LiveLocationProvider(this, 0.5.seconds)
 
 
     override fun onCreateView(
