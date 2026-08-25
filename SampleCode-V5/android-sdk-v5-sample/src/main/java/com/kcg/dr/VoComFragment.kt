@@ -7,11 +7,12 @@ import android.view.ViewGroup
 import androidx.fragment.app.activityViewModels
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
+import com.kcg.dr.djiutils.asDjiLocation
 import com.kcg.dr.flight.AircraftControlVM
 import com.kcg.dr.location.LiveLocationProvider
 import com.kcg.dr.location.UserVM
 import com.kcg.dr.utils.observe
-import com.kcg.dr.djiutils.asDjiLocation
+import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVocomContainerBinding
 import dji.sampleV5.aircraft.pages.DJIFragment
 import dji.sdk.keyvalue.value.common.ComponentIndexType
@@ -50,12 +51,18 @@ class VoComFragment : DJIFragment() {
         binding.fpvWidget.updateVideoSource(ComponentIndexType.LEFT_OR_MAIN)
 
         controllerVM.c.vSticks.ownsControl.observe(viewLifecycleOwner) {
-            binding.tvControllerOwner.text =
-                "Control : " +
-                        when (it) {
-                            true -> "Auto"
-                            else -> "Manual"
-                        }
+            with(binding.tvControllerOwner) {
+                text = when (it) {
+                    true -> "AUTO"
+                    else -> "Manual"
+                }
+                setBackgroundColor(
+                    when (it) {
+                        true -> R.color.red
+                        false -> R.color.green
+                    }
+                )
+            }
         }
 
         // Start API server
