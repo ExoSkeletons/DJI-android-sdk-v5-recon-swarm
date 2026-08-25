@@ -529,7 +529,7 @@ More refer to the release notes." </string>
 
     <string name="commands_return_home">home|safe|house|run|ron|escape|evac|evacuate</string>
     <string name="command_follow_target">follow|follow target|follow him|target</string>
-    <string name="command_follow_me">follow me|me</string>
+    <string name="command_follow_me">follow me|follow (me|us)</string>
     <string name="command_look_at_me">looking at you|(look|watch|track)( at)+ (me|us)|where (am I)|(are we)</string>
     <string name="commands_mission_follow_me_name">follow me</string>
     <string name="commands_follow_me_side">sideways|side|crab</string>
