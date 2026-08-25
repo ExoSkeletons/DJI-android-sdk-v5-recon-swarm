@@ -44,7 +44,7 @@ class DJIVirtualStick : IVirtualStick {
         val isAdvanced = state.isVirtualStickAdvancedModeEnabled
         val isOwner = state.currentFlightControlAuthorityOwner == FlightControlAuthority.MSDK
         
-        _ownsControl.value = isEnabled && isAdvanced && isOwner
+        _ownsControl.value = isEnabled
     }
 
     override suspend fun listen() {
