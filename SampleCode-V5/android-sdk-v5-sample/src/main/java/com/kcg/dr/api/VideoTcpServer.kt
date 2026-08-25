@@ -49,6 +49,12 @@ class VideoTcpServer {
     }
 
     fun start(port: Int, cameraIndex: ComponentIndexType = ComponentIndexType.LEFT_OR_MAIN) {
+        Log.d(TAG, "video server start $port ${cameraIndex.name}")
+
+        stop()
+
+        Log.d(TAG, "video server starting")
+
         val server = ServerSocket(port)
         serverSocket = server
         cameraManager.addReceiveStreamListener(cameraIndex, streamListener)
@@ -71,7 +77,7 @@ class VideoTcpServer {
     fun stop() {
         Log.d(TAG, "video server stopping")
         cameraManager.removeReceiveStreamListener(streamListener)
-        closeClientAndSet()
+        closeClientAndSet(null)
         runCatching { serverSocket?.close() }
         serverSocket = null
         acceptPool.shutdownNow()
