@@ -26,11 +26,23 @@
         app:layout_constraintTop_toTopOf="parent"
         tools:layout="@layout/frag_vocom_status" />
 
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/voice"
+        android:name="com.kcg.dr.voice.VoiceControlFragment"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHeight_min="200dp"
+        app:layout_constraintStart_toEndOf="@id/controls"
+        tools:layout="@layout/frag_vocom_voice_control" />
+
     <LinearLayout
         android:id="@+id/controls"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
@@ -46,7 +58,7 @@
             android:name="com.kcg.dr.api.ApiServerFragment"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:visibility="gone"
+            android:visibility="visible"
             tools:layout="@layout/frag_api_server" />
 
         <androidx.fragment.app.FragmentContainerView
@@ -69,17 +81,6 @@
         app:layout_constraintStart_toEndOf="@id/status"
         app:layout_constraintTop_toTopOf="parent"
         tools:layout="@layout/frag_vocom_waypoints" />
-
-    <androidx.fragment.app.FragmentContainerView
-        android:id="@+id/voice"
-        android:name="com.kcg.dr.voice.VoiceControlFragment"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHeight_min="200dp"
-        app:layout_constraintStart_toStartOf="parent"
-        tools:layout="@layout/frag_vocom_voice_control" />
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/virtual_sticks"
