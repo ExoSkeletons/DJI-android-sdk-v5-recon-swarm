@@ -23,7 +23,7 @@ import kotlin.math.abs
 @SerialName("follow_me")
 @SerialDescription("Follow the user from above")
 data class FollowMe(
-    val cruiseHeight: Double? = 7.0,
+    val cruiseHeight: Double? = null,
     val followDistance: Double = 3.5,
     @property:SerialDescription("1..8 (m/s)")
     val maxVelocity: Double = 5.0,
@@ -72,7 +72,9 @@ data class FollowMe(
             perchShoulder(
                 deviceLocation,
                 ch, followDistance,
-                followVelocity = maxVelocity,
+                maxVelocity = maxVelocity,
+                accelerationDist = accelerationDist,
+                decelerationDist = decelerationDist,
             )
         }
     }
