@@ -46,20 +46,36 @@ class DJIGimbal : IGimbal {
         }
     }
 
+    fun GimbalAngleRotation.coerceIn(range: GimbalAttitudeRange?): GimbalAngleRotation {
+        if (range == null) return this
+        return GimbalAngleRotation().apply {
+            val old = this@coerceIn
+
+            mode = this.mode
+
+            pitch = pitch.coerceIn(range.pitch.min, range.pitch.max)
+            yaw = yaw.coerceIn(range.yaw.min, range.yaw.max)
+            roll = roll.coerceIn(range.roll.min, range.roll.max)
+
+            pitchIgnored = old.pitchIgnored
+            rollIgnored = old.rollIgnored
+            yawIgnored = old.yawIgnored
+            duration = old.duration
+            jointReferenceUsed = old.jointReferenceUsed
+            timeout = old.timeout
+        }
+    }
+
     override suspend fun angleCamera(
         rotation: GimbalAngleRotation,
         mode: GimbalMode?
     ) {
         mode?.let { setCameraGimbalMode(it) }
-        _attitudeRange.value?.let {
-            rotation.apply {
-                pitch = pitch.coerceIn(it.pitch.min, it.pitch.max)
-                yaw = yaw.coerceIn(it.yaw.min, it.yaw.max)
-                roll = roll.coerceIn(it.roll.min, it.roll.max)
-            }
-        }
         await { onSuccess: ((EmptyMsg?) -> Unit), onFailure ->
-            GimbalKey.KeyRotateByAngle.create().action(rotation, onSuccess, onFailure)
+            GimbalKey.KeyRotateByAngle.create().action(
+                rotation.coerceIn(_attitudeRange.value),
+                onSuccess, onFailure
+            )
         }
     }
 }
