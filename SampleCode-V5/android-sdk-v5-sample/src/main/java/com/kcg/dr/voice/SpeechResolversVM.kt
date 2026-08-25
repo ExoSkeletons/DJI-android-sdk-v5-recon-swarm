@@ -171,7 +171,6 @@ class SpeechResolversVM(
             override fun onPartialResults(partialResults: Bundle?) {
                 val matches =
                     partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                Log.d(TAG, "onPartialResults: $matches")
                 matches?.firstOrNull()?.let {
                     _speech.value = it
                     _partialSpeech.value = it
