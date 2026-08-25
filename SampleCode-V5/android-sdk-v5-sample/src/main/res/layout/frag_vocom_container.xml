@@ -16,36 +16,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <LinearLayout
-        android:id="@+id/debug_info_layout"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
-        android:orientation="vertical"
-        app:layout_constraintBottom_toTopOf="@+id/voice"
-        app:layout_constraintStart_toStartOf="@id/voice">
-
-        <TextView
-            android:id="@+id/silent"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:background="@color/uxsdk_background_blue"
-            app:layout_constraintBottom_toTopOf="@id/speech_layout"
-            app:layout_constraintStart_toEndOf="@+id/stick_button_list"
-            tools:text="Silent: OFF" />
-
-        <TextView
-            android:id="@+id/tv_controller_owner"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:background="@color/uxsdk_background_blue"
-            app:layout_constraintBottom_toTopOf="@+id/silent"
-            app:layout_constraintStart_toEndOf="@+id/stick_button_list"
-            tools:text="Controller : Auto" />
-    </LinearLayout>
-
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/status"
         android:name="com.kcg.dr.flight.StatusFragment"
@@ -133,5 +103,35 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/controls"
         tools:layout="@layout/frag_osc" />
+
+    <LinearLayout
+        android:id="@+id/debug_info_layout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toTopOf="@+id/voice"
+        app:layout_constraintStart_toStartOf="@id/voice">
+
+        <TextView
+            android:id="@+id/silent"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:background="@color/uxsdk_background_blue"
+            app:layout_constraintBottom_toTopOf="@id/speech_layout"
+            app:layout_constraintStart_toEndOf="@+id/stick_button_list"
+            tools:text="Silent: OFF" />
+
+        <TextView
+            android:id="@+id/tv_controller_owner"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:background="@color/uxsdk_background_blue"
+            app:layout_constraintBottom_toTopOf="@+id/silent"
+            app:layout_constraintStart_toEndOf="@+id/stick_button_list"
+            tools:text="Controller : Auto" />
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
