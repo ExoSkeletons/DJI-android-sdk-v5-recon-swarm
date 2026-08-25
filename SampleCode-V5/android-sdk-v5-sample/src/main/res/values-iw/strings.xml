@@ -33,7 +33,7 @@
 
     <string name="command_mission_scan">סריקה|(?:סרוק|סריקה|סריקת|תסרוק|זרוק|סמוק|רוק|צחוק|חוק|ספיקה|סליקה|שריטה)(?:\\s+(.+))?</string>
     <string name="commands_mission_scan_name">סריקה</string>
-    <string name="command_mission_recon">חקירה|(?:חקור|חקירה|תחקור|חקירת|אור|קור)(?:\\s+(.+))?</string>
+    <string name="command_mission_recon">חקירה|(?:חקור|חקירה|תחקור|חקירת|חיפוש|לחפש|אור|קור)(?:\\s+(.+))?</string>
     <string name="commands_mission_recon_name">חקירה</string>
     <string name="commands_mission_target_device">סייר|סביבי|אותי|מסביבי</string>
     <array name="commands_mission_targets">
