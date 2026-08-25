@@ -472,7 +472,12 @@ open class AircraftController(
                         block()
                     }
                 }.onFailure { e ->
-                    if (e is CancellationException) throw e
+                    val msg = when (e) {
+                        is CancellationException -> throw e
+                        is DJIErrorException -> e.error.toJson().toString()
+                        else -> e.localizedMessage
+                    }
+                    ToastUtils.showLongToast(msg)
                 }
                 Log.i(TAG, "[$job]: flight mission success")
             } finally {
