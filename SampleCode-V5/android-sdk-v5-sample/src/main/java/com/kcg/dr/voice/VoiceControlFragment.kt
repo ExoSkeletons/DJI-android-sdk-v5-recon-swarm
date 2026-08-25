@@ -88,14 +88,14 @@ class VoiceControlFragment : Fragment() {
                 Command(
                     R.string.command_spin,
                     respFmtSimpleId
-                ) { controller.fly { spinBy(360.0) } },
+                ) { controller.fly { spinBy(360.0, velocity = 120.0) } },
                 Command(R.string.command_mission_scan, respFmtExId) {
                     controller.fly { ScanGround(velocity = 2.0).act(this, userVM.metrics) }
                 },
                 Command(R.string.command_mission_recon, respFmtExId) {
                     controller.fly {
                         val h0 = controller.ac.height.value
-                        ascendTo(3.0)
+                        ascendTo(4.5, velocity = 1.0)
                         scanGround(2.0, 1.0)
                         ascendTo(h0)
                     }
@@ -121,8 +121,8 @@ class VoiceControlFragment : Fragment() {
                 ) {
                     controller.fly {
                         FollowMe(
-                            cruiseHeight = null,
-                            followDistance = 5.0,
+                            cruiseHeight = 7.0,
+                            followDistance = 3.0,
                         ).act(this, userVM.metrics)
                     }
                 },
