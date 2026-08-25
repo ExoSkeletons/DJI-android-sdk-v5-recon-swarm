@@ -57,10 +57,10 @@ class VoComFragment : DJIFragment() {
                     true -> "AUTO"
                     else -> "Manual"
                 }
-                setBackgroundColor(
+                setTextColor(
                     when (it) {
-                        true -> R.color.red
-                        false -> R.color.green
+                        true -> R.color.uxsdk_red_in_dark
+                        false -> R.color.uxsdk_green_in_dark
                     }
                 )
             }
