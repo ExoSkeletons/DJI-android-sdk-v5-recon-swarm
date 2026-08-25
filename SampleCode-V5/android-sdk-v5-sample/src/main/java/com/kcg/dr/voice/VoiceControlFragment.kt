@@ -25,6 +25,7 @@ import com.kcg.dr.managers.TTSManager.speak
 import com.kcg.dr.utils.LocaleUtils
 import com.kcg.dr.voice.CommandResolver.Command
 import com.kcg.dr.voice.CommandResolver.Command.Companion.respFmtExId
+import com.kcg.dr.voice.CommandResolver.Command.Companion.respFmtGoId
 import com.kcg.dr.voice.CommandResolver.Command.Companion.respFmtSimpleId
 import com.kcg.dr.voice.SpeechResolversVM.ResolverViewState
 import dji.sampleV5.aircraft.R
@@ -98,6 +99,7 @@ class VoiceControlFragment : Fragment() {
                     R.string.command_spin,
                     respFmtSimpleId
                 ) { controller.fly { spinBy(360.0, velocity = 120.0) } },
+
                 Command(R.string.command_mission_scan, respFmtExId) {
                     controller.fly { ScanGround(velocity = 2.0).act(this, userVM.metrics) }
                 },
@@ -110,6 +112,7 @@ class VoiceControlFragment : Fragment() {
                     }
                 },
                 Command(R.string.command_hello, respFmtSimpleId) { controller.fly { wave() } },
+
                 Command(R.string.commands_silence) { viewModel.silent.postValue(viewModel.silent.value != true) },
                 Command(R.string.commands_info_battery) {
                     requireContext().speak(
@@ -120,8 +123,7 @@ class VoiceControlFragment : Fragment() {
                 },
 
                 Command(
-                    R.string.commands_return_home,
-                    respFmtExId
+                    R.string.commands_return_home, respFmtExId
                 ) { controller.fly { FlyToMe().act(this, userVM.metrics) } },
                 Command(
                     R.string.command_follow_me,
@@ -132,12 +134,12 @@ class VoiceControlFragment : Fragment() {
                         FollowMe(
                             cruiseHeight = 7.0,
                             followDistance = 3.0,
+                            maxVelocity = 3.0,
                         ).act(this, userVM.metrics)
                     }
                 },
                 Command(
-                    R.string.command_look_at_me,
-                    respFmtSimpleId
+                    R.string.command_look_at_me, respFmtSimpleId
                 ) { controller.fly { TrackMe().act(this, userVM.metrics) } },
             )
         )
