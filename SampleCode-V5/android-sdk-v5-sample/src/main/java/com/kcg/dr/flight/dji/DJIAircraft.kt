@@ -51,23 +51,33 @@ class DJIAircraft : IAircraft {
     }
 
     override suspend fun land() = coroutineScope {
+        Log.d(TAG, "starting auto land..")
         await { onSuccess: (EmptyMsg) -> Unit, onFailure ->
             FlightControllerKey.KeyStartAutoLanding.create().action(onSuccess, onFailure)
         }
+        Log.d(TAG, "started auto land")
 
         var isConfirmNeeded = false
         var isLandingConfirmed = false
         val confirmNeededKey = FlightControllerKey.KeyIsLandingConfirmationNeeded.create()
-        confirmNeededKey.listen(this) { isConfirmNeeded = it == true }
+        confirmNeededKey.listen(this) {
+            Log.i(TAG, "key.listen confirmationNeeded = $it")
+            isConfirmNeeded = it == true
+        }
         while (isActive && (isFlying.value || areMotorsOn.value)) {
             if (!isLandingConfirmed)
                 if (isConfirmNeeded) {
-                        FlightControllerKey.KeyConfirmLanding.create().action(onSuccess, onFailure)
-                    }?.let { isLandingConfirmed = true }
+                    Log.d(TAG, "confirming land..")
                     await { onSuccess: (EmptyMsg) -> Unit, onFailure ->
+                        FlightControllerKey.KeyConfirmLanding.create()
+                            .action(onSuccess, onFailure)
+                    }
+                    Log.i(TAG, "landing confirmed")
+                    isLandingConfirmed = true
                 }
             delay(500.milliseconds)
         }
+        Log.i(TAG, "land complete. motors ${areMotorsOn.value} isFlying ${isFlying.value}")
         confirmNeededKey.cancelListen(this)
     }
 
