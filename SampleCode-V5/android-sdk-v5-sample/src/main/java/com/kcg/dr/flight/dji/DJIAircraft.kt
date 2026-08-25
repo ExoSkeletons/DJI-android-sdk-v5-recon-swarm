@@ -2,7 +2,6 @@ package com.kcg.dr.flight.dji
 
 import android.util.Log
 import com.kcg.dr.djiutils.await
-import com.kcg.dr.djiutils.awaitOrNull
 import com.kcg.dr.flight.AircraftController.Companion.TAG
 import com.kcg.dr.flight.AircraftController.IAircraft
 import dji.sampleV5.aircraft.util.ToastUtils
@@ -63,9 +62,9 @@ class DJIAircraft : IAircraft {
         while (isActive && (isFlying.value || areMotorsOn.value)) {
             if (!isLandingConfirmed)
                 if (isConfirmNeeded) {
-                    awaitOrNull { onSuccess: (EmptyMsg) -> Unit, onFailure ->
                         FlightControllerKey.KeyConfirmLanding.create().action(onSuccess, onFailure)
                     }?.let { isLandingConfirmed = true }
+                    await { onSuccess: (EmptyMsg) -> Unit, onFailure ->
                 }
             delay(500.milliseconds)
         }
