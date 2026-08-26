@@ -272,6 +272,7 @@ open class AircraftController(
 
     companion object {
         const val TAG: String = "AircraftController"
+        const val JTAG: String = "AircraftFlightScope"
 
         /** virtual stick controller requires constant sending of updates to move aircraft.
          * Sending freq. range per docs is 10-22hz iirc.
@@ -324,11 +325,11 @@ open class AircraftController(
 
     fun destroy() {
         stop(true)
-        Log.d(TAG, "cancelling flight param transmission job")
+        Log.d(JTAG, "cancelling flight param transmission job")
         flightParamTransmissionJob?.cancel()
-        Log.d(TAG, "cancelling rc consume job")
+        Log.d(JTAG, "cancelling rc consume job")
         rcConsumeJob?.cancel()
-        Log.d(TAG, "cancelling retake stick timer job")
+        Log.d(JTAG, "cancelling retake stick timer job")
         retakeStickTimerJob?.cancel()
         scope.launch {
             rc.stopListening()
@@ -375,12 +376,13 @@ open class AircraftController(
                 }
                 retakeStickTimerJob = scope.launch {
                     Log.i(
-                        TAG,
+                        JTAG,
                         "retake timer job starting. retaking in (${returnControlPostOverrideAfter})..."
                     )
                     delay(returnControlPostOverrideAfter)
                     if (isActive) {
-                        Log.i(TAG, "retake timer job finished. retaking sticks")
+                        Log.i(JTAG, "retake timer job finished.")
+                        Log.d(TAG, "retaking sticks")
                         vSticks.takeControl()
                         retakeStickTimerJob = null
                     }
@@ -399,26 +401,26 @@ open class AircraftController(
             block()
         }.onFailure { e ->
             Log.i(
-                TAG,
+                JTAG,
                 "[${coroutineContext.job}]: safely onFailure: ${e.toString()}: ${e.message.toString()}"
             )
             when (e) {
                 is ControllerOverrideException -> {
-                    Log.w(TAG, "[${coroutineContext.job}]: manual override in flight")
+                    Log.w(JTAG, "[${coroutineContext.job}]: manual override in flight")
                     brake(true)
                     ac.stop(true)
                     onRCOverride()
                 }
 
                 is CancellationException -> {
-                    Log.w(TAG, "[${coroutineContext.job}]: cancellation in flight")
+                    Log.w(JTAG, "[${coroutineContext.job}]: cancellation in flight")
                     brake()
                 }
 
                 is DJIErrorException -> {
                     val error = e.error
                     Log.w(
-                        TAG,
+                        JTAG,
                         "[${coroutineContext.job}]: ${error.errorType()} error in flight: ${error.toJson()}",
                         e
                     )
@@ -427,7 +429,7 @@ open class AircraftController(
 
                 else -> {
                     Log.w(
-                        TAG,
+                        JTAG,
                         "[${coroutineContext.job}]: exception in flight: ${e.toString()}: ${e.message.toString()}",
                         e
                     )
@@ -436,7 +438,7 @@ open class AircraftController(
             }
             throw e
         }.onSuccess {
-            Log.d(TAG, "[${coroutineContext.job}]: safely onSuccess")
+            Log.d(JTAG, "[${coroutineContext.job}]: safely onSuccess")
             if (isActive) brake()
         }
     }
@@ -448,20 +450,20 @@ open class AircraftController(
         val prevFlight = flightJob
         prevFlight?.let {
             if (it.isActive) {
-                Log.w(TAG, "Previous flight [$it] is still active.")
-                Log.d(TAG, "Cancelling previous flight scope...")
+                Log.w(JTAG, "Previous flight [$it] is still active.")
+                Log.d(JTAG, "Cancelling previous flight scope...")
                 it.cancel(CancellationException("New flight wants to start"))
             }
         }
         flightJob = scope.launch {
             val job = this.coroutineContext.job
-            Log.d(TAG, "Launched new flight scope $this, job is [$job]")
+            Log.d(JTAG, "Launched new flight scope $this, job is [$job]")
             prevFlight?.let {
-                Log.i(TAG, "[${job}]: Joining previous flight [$it]...")
+                Log.i(JTAG, "[${job}]: Joining previous flight [$it]...")
                 // Wait for the previous flight to actually finish,
                 // after inner cancellation
                 it.join()
-                Log.i(TAG, "[${job}]: Joined previous flight. prev [$it] finished")
+                Log.i(JTAG, "[${job}]: Joined previous flight. prev [$it] finished")
             }
             try {
                 Log.d(JTAG, "flight mission started (in flight job [$job])")
@@ -477,8 +479,9 @@ open class AircraftController(
                         else -> e.localizedMessage
                     }
                     ToastUtils.showLongToast(msg)
+                }.onSuccess {
+                    Log.i(JTAG, "[$job]: flight mission success")
                 }
-                Log.i(TAG, "[$job]: flight mission success")
             } finally {
                 if (flightJob === job)
                     flightJob = null
@@ -547,7 +550,7 @@ open class AircraftController(
     )
 
     private fun startFlightParamTransmission() {
-        Log.d(TAG, "starting flight param transmission job")
+        Log.d(JTAG, "starting flight param transmission job")
         flightParamTransmissionJob?.cancel()
         flightParamTransmissionJob = scope.launch {
             val buffer = mutableListOf<FlightParam>()
@@ -568,7 +571,7 @@ open class AircraftController(
             }
 
             collectJob.cancelAndJoin()
-            Log.w(TAG, "flight param transmission job cancelled")
+            Log.w(JTAG, "flight param transmission job cancelled")
         }
     }
 
