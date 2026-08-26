@@ -562,12 +562,12 @@ More refer to the release notes." </string>
 
     <string name="commands_silence">stealth|quiet|silence|dark</string>
 
-    <string name="command_go_up">(go )?(up|rise|high)</string>
-    <string name="command_go_forward">(go )?forward</string>
-    <string name="command_go_down">(go )?(down|under|low)</string>
-    <string name="command_go_backward">(go )?(back(ward)?( up)?)</string>
-    <string name="command_go_right">(go )?right(ward(s)?)?</string>
-    <string name="command_go_left">(go )?left(ward(s)?)?</string>
+    <string name="command_go_up">up|(go )?(up|rise|high)</string>
+    <string name="command_go_forward">forward|(go )?forward</string>
+    <string name="command_go_down">down|(go )?(down|under|low)</string>
+    <string name="command_go_backward">backwards|(go )?(back(ward)?( up)?)</string>
+    <string name="command_go_right">right|(go )?right(ward(s)?)?</string>
+    <string name="command_go_left">left|(go )?left(ward(s)?)?</string>
 
     <string name="commands_parser_title">STT</string>
     <string name="commands_parser_regex">Flash</string>

@@ -51,6 +51,8 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
@@ -166,7 +168,7 @@ open class AircraftController(
             rollDegrees: Double? = null,
             angleMode: GimbalAngleRotationMode = GimbalAngleRotationMode.ABSOLUTE_ANGLE,
             gimbalMode: GimbalMode? = null,
-            durationSec: Double = 0.1,
+            duration: Duration = 0.1.seconds,
         ) {
             val rotation = GimbalAngleRotation()
             rotation.apply {
@@ -180,36 +182,36 @@ open class AircraftController(
                 rollIgnored = rollDegrees == null
 
                 mode = angleMode
-                duration = durationSec
+                this.duration = duration.toDouble(DurationUnit.SECONDS)
             }
             angleCamera(rotation, gimbalMode)
         }
 
         suspend fun pitch(
             degrees: Double,
-            durationSec: Double = 0.0,
+            duration: Duration = 0.1.seconds,
             angleMode: GimbalAngleRotationMode = GimbalAngleRotationMode.ABSOLUTE_ANGLE,
             gimbalMode: GimbalMode = GimbalMode.FPV,
         ) = angleCamera(
             pitchDegrees = degrees,
-            durationSec = durationSec,
+            duration = duration,
             angleMode = angleMode,
             gimbalMode = gimbalMode,
         )
 
         suspend fun roll(
             degrees: Double,
-            durationSec: Double = 0.0,
+            duration: Duration = 0.1.seconds,
             angleMode: GimbalAngleRotationMode = GimbalAngleRotationMode.ABSOLUTE_ANGLE,
-        ) = angleCamera(rollDegrees = degrees, durationSec = durationSec, angleMode = angleMode)
+        ) = angleCamera(rollDegrees = degrees, duration = duration, angleMode = angleMode)
 
         suspend fun yaw(
             degrees: Double,
-            durationSec: Double = 0.0,
+            duration: Duration = 0.1.seconds,
             angleMode: GimbalAngleRotationMode = GimbalAngleRotationMode.ABSOLUTE_ANGLE,
         ) = angleCamera(
             yawDegrees = degrees,
-            durationSec = durationSec,
+            duration = duration,
             angleMode = angleMode,
             gimbalMode = GimbalMode.FREE,
         )
@@ -272,6 +274,7 @@ open class AircraftController(
 
     companion object {
         const val TAG: String = "AircraftController"
+        const val JTAG: String = "AircraftFlightScope"
 
         /** virtual stick controller requires constant sending of updates to move aircraft.
          * Sending freq. range per docs is 10-22hz iirc.
@@ -324,11 +327,11 @@ open class AircraftController(
 
     fun destroy() {
         stop(true)
-        Log.d(TAG, "cancelling flight param transmission job")
+        Log.d(JTAG, "cancelling flight param transmission job")
         flightParamTransmissionJob?.cancel()
-        Log.d(TAG, "cancelling rc consume job")
+        Log.d(JTAG, "cancelling rc consume job")
         rcConsumeJob?.cancel()
-        Log.d(TAG, "cancelling retake stick timer job")
+        Log.d(JTAG, "cancelling retake stick timer job")
         retakeStickTimerJob?.cancel()
         scope.launch {
             rc.stopListening()
@@ -375,12 +378,13 @@ open class AircraftController(
                 }
                 retakeStickTimerJob = scope.launch {
                     Log.i(
-                        TAG,
+                        JTAG,
                         "retake timer job starting. retaking in (${returnControlPostOverrideAfter})..."
                     )
                     delay(returnControlPostOverrideAfter)
                     if (isActive) {
-                        Log.i(TAG, "retake timer job finished. retaking sticks")
+                        Log.i(JTAG, "retake timer job finished.")
+                        Log.d(TAG, "retaking sticks")
                         vSticks.takeControl()
                         retakeStickTimerJob = null
                     }
@@ -399,26 +403,26 @@ open class AircraftController(
             block()
         }.onFailure { e ->
             Log.i(
-                TAG,
+                JTAG,
                 "[${coroutineContext.job}]: safely onFailure: ${e.toString()}: ${e.message.toString()}"
             )
             when (e) {
                 is ControllerOverrideException -> {
-                    Log.w(TAG, "[${coroutineContext.job}]: manual override in flight")
+                    Log.w(JTAG, "[${coroutineContext.job}]: manual override in flight")
                     brake(true)
                     ac.stop(true)
                     onRCOverride()
                 }
 
                 is CancellationException -> {
-                    Log.w(TAG, "[${coroutineContext.job}]: cancellation in flight")
+                    Log.w(JTAG, "[${coroutineContext.job}]: cancellation in flight")
                     brake()
                 }
 
                 is DJIErrorException -> {
                     val error = e.error
                     Log.w(
-                        TAG,
+                        JTAG,
                         "[${coroutineContext.job}]: ${error.errorType()} error in flight: ${error.toJson()}",
                         e
                     )
@@ -427,7 +431,7 @@ open class AircraftController(
 
                 else -> {
                     Log.w(
-                        TAG,
+                        JTAG,
                         "[${coroutineContext.job}]: exception in flight: ${e.toString()}: ${e.message.toString()}",
                         e
                     )
@@ -436,7 +440,7 @@ open class AircraftController(
             }
             throw e
         }.onSuccess {
-            Log.d(TAG, "[${coroutineContext.job}]: safely onSuccess")
+            Log.d(JTAG, "[${coroutineContext.job}]: safely onSuccess")
             if (isActive) brake()
         }
     }
@@ -448,23 +452,23 @@ open class AircraftController(
         val prevFlight = flightJob
         prevFlight?.let {
             if (it.isActive) {
-                Log.w(TAG, "Previous flight [$it] is still active.")
-                Log.d(TAG, "Cancelling previous flight scope...")
+                Log.w(JTAG, "Previous flight [$it] is still active.")
+                Log.d(JTAG, "Cancelling previous flight scope...")
                 it.cancel(CancellationException("New flight wants to start"))
             }
         }
         flightJob = scope.launch {
             val job = this.coroutineContext.job
-            Log.d(TAG, "Launched new flight scope $this, job is [$job]")
+            Log.d(JTAG, "Launched new flight scope $this, job is [$job]")
             prevFlight?.let {
-                Log.i(TAG, "[${job}]: Joining previous flight [$it]...")
+                Log.i(JTAG, "[${job}]: Joining previous flight [$it]...")
                 // Wait for the previous flight to actually finish,
                 // after inner cancellation
                 it.join()
-                Log.i(TAG, "[${job}]: Joined previous flight. prev [$it] finished")
+                Log.i(JTAG, "[${job}]: Joined previous flight. prev [$it] finished")
             }
             try {
-                Log.d(TAG, "flight mission started (in flight job [$job])")
+                Log.d(JTAG, "flight mission started (in flight job [$job])")
                 runCatching {
                     safely(onRCOverride) {
                         vSticks.takeControl()
@@ -477,8 +481,9 @@ open class AircraftController(
                         else -> e.localizedMessage
                     }
                     ToastUtils.showLongToast(msg)
+                }.onSuccess {
+                    Log.i(JTAG, "[$job]: flight mission success")
                 }
-                Log.i(TAG, "[$job]: flight mission success")
             } finally {
                 if (flightJob === job)
                     flightJob = null
@@ -547,7 +552,7 @@ open class AircraftController(
     )
 
     private fun startFlightParamTransmission() {
-        Log.d(TAG, "starting flight param transmission job")
+        Log.d(JTAG, "starting flight param transmission job")
         flightParamTransmissionJob?.cancel()
         flightParamTransmissionJob = scope.launch {
             val buffer = mutableListOf<FlightParam>()
@@ -568,7 +573,7 @@ open class AircraftController(
             }
 
             collectJob.cancelAndJoin()
-            Log.w(TAG, "flight param transmission job cancelled")
+            Log.w(JTAG, "flight param transmission job cancelled")
         }
     }
 
@@ -1182,8 +1187,8 @@ open class AircraftController(
                 delay(gimbalUpdateInterval)
 
                 val cur = ac.location.value ?: continue
-                val target = curTarget ?: continue
                 val height = ac.height.value
+                val target = curTarget ?: continue
 
                 val dist2D = cur.as2D.distanceTo(target.as2D)
                 val dh = target.altitude - height
@@ -1196,29 +1201,30 @@ open class AircraftController(
     suspend fun wave(waves: Int = 2) {
         Log.d(TAG, "waving")
         require(waves > 0) { "wave count must be positive" }
-        val t = 0.2
-        val tm = t.seconds
+        val t = 0.2.seconds
         val rollAngle = 10.0
         val waveAngle = 40.0
 
         camGim.resetAngle()
 
         camGim.roll(rollAngle, t / 2, GimbalAngleRotationMode.RELATIVE_ANGLE)
-        delay(tm)
+        delay(t)
+        // todo: currently gimbal rotations return imm. since dji keys return imm. and so does await.
+        //  in future, assume gim includes suspending delay until completion. then in dji impl. add delay(duration)
         camGim.roll(-rollAngle * 2, t / 2, GimbalAngleRotationMode.RELATIVE_ANGLE)
-        delay(tm)
+        delay(t)
 
         delay(0.4.seconds)
 
         repeat(waves) {
             camGim.pitch(-waveAngle, t)
-            delay(tm)
+            delay(t)
             camGim.pitch(waveAngle * .5, t)
-            delay(tm)
+            delay(t)
         }
 
         camGim.roll(rollAngle, t / 2, GimbalAngleRotationMode.RELATIVE_ANGLE)
-        delay(tm)
+        delay(t)
 
         delay(0.1.seconds)
 
@@ -1226,14 +1232,14 @@ open class AircraftController(
     }
 
     suspend fun gimbalFan() = coroutineScope {
-        val scanDuration = 3.0.seconds
-        camGim.pitch(0.0, 0.5)
+        val panDuration = 3.0.seconds
+        camGim.pitch(0.0)
         delay(1.seconds)
-        camGim.pitch(-90.0, scanDuration.toDouble(DurationUnit.MILLISECONDS))
-        delay(scanDuration)
+        camGim.pitch(-90.0, panDuration)
+        delay(panDuration)
         delay(0.5.seconds)
-        camGim.pitch(0.0, scanDuration.toDouble(DurationUnit.MILLISECONDS))
-        delay(scanDuration)
+        camGim.pitch(0.0, panDuration)
+        delay(panDuration)
     }
 
 
@@ -1283,11 +1289,11 @@ open class AircraftController(
 
 
     suspend fun perchShoulder(
-        targetLocation: StateFlow<LocationCoordinate3D?>,
+        targetLocation: Flow<LocationCoordinate3D?>,
         perchHeight: Double,
         perchDistance: Double,
         maxVelocity: Double,
-        targetHeading: StateFlow<Double>? = null,
+        targetHeading: Flow<Double>? = null,
         watch12Duration: Duration = Duration.INFINITE,
         watch6Duration: Duration? = null,
         accelerationDist: Double,
@@ -1295,7 +1301,9 @@ open class AircraftController(
     ) = coroutineScope {
         Log.d(
             TAG,
-            "perching shoulder of ${targetLocation.value} at $perchHeight m, $perchDistance m away"
+            "perching shoulder of ${
+                targetLocation.filterNotNull().firstOrNull()
+            } at $perchHeight m, $perchDistance m away"
         )
 
         val perchLocation = combine(
@@ -1309,11 +1317,9 @@ open class AircraftController(
             val heading = th ?: al.as2D.bearingTo(tl.as2D)
 
             // Adjust perch location to target location moved "back" (towards aircraft) by perch distance.
-            tl.translate(
-                perchDistance,
-                BACKWARD,
-                heading
-            ).atAlt(perchHeight)
+            tl
+                .translate(perchDistance, BACKWARD, heading)
+                .atAlt(perchHeight)
         }
 
         takeoff()
@@ -1328,7 +1334,7 @@ open class AircraftController(
             while (isActive) {
                 ToastUtils.showToast("watching 12\n(${watch12Duration})")
                 withTimeoutOrNull(watch12Duration) {
-                    lookAtAndTrack(targetLocation)
+                    lookAtAndTrack(targetLocation, angleOffset = 2.0)
                 }
                 brakeFor(1.seconds)
                 watch6Duration?.let {
