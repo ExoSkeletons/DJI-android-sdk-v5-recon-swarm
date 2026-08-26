@@ -1,6 +1,7 @@
 package com.kcg.dr.flight.dji
 
 import com.kcg.dr.djiutils.await
+import com.kcg.dr.djiutils.awaitOrNull
 import com.kcg.dr.djiutils.ifConnected
 import com.kcg.dr.flight.AircraftController.IGimbal
 import dji.sdk.keyvalue.key.GimbalKey
@@ -69,11 +70,11 @@ class DJIGimbal : IGimbal {
     override suspend fun angleCamera(
         rotation: GimbalAngleRotation,
         mode: GimbalMode?
-    ) {
+    ) = ifConnected {
         mode?.let { setCameraGimbalMode(it) }
-        await { onSuccess: ((EmptyMsg?) -> Unit), onFailure ->
+        awaitOrNull { onSuccess: ((EmptyMsg?) -> Unit), onFailure ->
             GimbalKey.KeyRotateByAngle.create().action(
-                rotation.coerceIn(_attitudeRange.value),
+                rotation, //rotation.coerceIn(_attitudeRange.value),
                 onSuccess, onFailure
             )
         }
