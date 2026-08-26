@@ -14,17 +14,19 @@ import java.util.Locale
 
 private const val TAG = "GroundStationSpeechResolver"
 
-class GroundStationSpeechResolver(
-    val address: String,
-    val port: Int
-) : SpeechExecutor<String, Unit>, PipelineResolver<String> {
+class GroundStationSpeechResolver : SpeechExecutor<String, Unit>, PipelineResolver<String> {
+    var port: Int? = null
+    var address: String? = null
+
     // rest client
     private val restClient = HttpClient(CIO)
     // tcp client
     private val tcpClient = TCPClient()
 
-    override suspend fun init() {
-        super.init()
+    fun connect(address: String, port: Int = 8080) {
+        this.address = address
+        this.port = port
+        Log.d(TAG, "connecting to ground station $address:$port")
         tcpClient.connect(address, port)
     }
 
@@ -63,7 +65,7 @@ class GroundStationSpeechResolver(
         t: String,
         locale: Locale
     ): SpeechResolver.Description = SpeechResolver.Description(
-        "-> Ground Station:\n$t",
-        "Sending command to ground station"
+        "->GS: \n$t",
+        ""//""Sending command to ground station"
     )
 }

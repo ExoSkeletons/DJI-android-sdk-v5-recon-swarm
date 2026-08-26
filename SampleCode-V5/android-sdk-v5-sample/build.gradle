@@ -135,6 +135,7 @@ dependencies {
 
     implementation 'com.llama.cpp.android:lib:1.0.0'
     implementation 'com.google.mlkit:translate:17.0.3'
+    implementation 'com.github.stealthcopter:AndroidNetworkTools:0.4.5.3'
 
     implementation 'com.google.android.gms:play-services-location:21.3.0'
     implementation 'com.google.android.material:material:1.12.0'

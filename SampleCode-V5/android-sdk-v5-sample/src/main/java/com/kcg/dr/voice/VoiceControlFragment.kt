@@ -20,14 +20,16 @@ import com.kcg.dr.api.dto.actions.TrackMe
 import com.kcg.dr.flight.AircraftControlVM
 import com.kcg.dr.location.UserVM
 import com.kcg.dr.managers.SFXManager
-import com.kcg.dr.managers.SFXManager.playSfx
+import com.kcg.dr.managers.SFXManager.SFX
 import com.kcg.dr.managers.TTSManager.speak
 import com.kcg.dr.utils.LocaleUtils
+import com.kcg.dr.utils.getLocalIpAddress
 import com.kcg.dr.voice.CommandResolver.Command
 import com.kcg.dr.voice.CommandResolver.Command.Companion.respFmtExId
-import com.kcg.dr.voice.CommandResolver.Command.Companion.respFmtGoId
 import com.kcg.dr.voice.CommandResolver.Command.Companion.respFmtSimpleId
 import com.kcg.dr.voice.SpeechResolversVM.ResolverViewState
+import com.stealthcopter.networktools.SubnetDevices
+import com.stealthcopter.networktools.subnet.Device
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVocomVoiceControlBinding
 import dji.sampleV5.aircraft.databinding.ItemResolverBinding
@@ -41,11 +43,7 @@ class VoiceControlFragment : Fragment() {
 
     private lateinit var commandResolver: RegexCommandResolver
     private lateinit var actionResolver: LlamaActionSequenceResolver
-    private val groundStationResolver = GroundStationSpeechResolver(
-        // fixme: replace with ground station address
-        "0.0.0.0",
-        8080
-    )
+    private val groundStationResolver = GroundStationSpeechResolver()
 
     private val controllerVM: AircraftControlVM by activityViewModels()
     private val userVM: UserVM by activityViewModels()
@@ -151,6 +149,7 @@ class VoiceControlFragment : Fragment() {
             userVM.metrics,
         )
         lifecycleScope.launch(Dispatchers.Default) { // todo: init in vm
+            /*
             ToastUtils.showShortToast("AI is Loading...")
             try {
                 actionResolver.init()
@@ -160,6 +159,31 @@ class VoiceControlFragment : Fragment() {
                 Log.e("LlamaActionResolver", "error: ${e.message}", e)
                 ToastUtils.showShortToast("AI Failed to Load: ${e.message}")
             }
+            */
+
+            ToastUtils.showShortToast("Finding Ground Station...")
+            SubnetDevices.fromLocalAddress()
+                .findDevices(object : SubnetDevices.OnSubnetDeviceFound {
+                    override fun onDeviceFound(device: Device?) {}
+
+                    override fun onFinished(devicesFound: ArrayList<Device?>?) {
+                        val localAddress = getLocalIpAddress()
+                        val devices = devicesFound
+                            ?.filterNotNull()
+                            ?.filter { it.ip != localAddress }
+                            ?: emptyList()
+                        Log.i("VoiceControlFragment", "found devices: $devices")
+                        devices.firstOrNull()?.let {
+                            ToastUtils.showShortToast("Connecting to ${it.ip}")
+                            groundStationResolver.connect(it.ip)
+                            SFXManager.playSfx(SFX.ACTION_CONFIRM)
+                        } ?: run {
+                            ToastUtils.showToast("No devices found on network.")
+                            SFXManager.playSfx(SFX.NOTIFY_TECHNICAL)
+                        }
+                    }
+                })
+                .setTimeOutMillis(2000)
         }
 
         binding.btnMic.setOnClickListener { viewModel.toggleListening(locale) }
