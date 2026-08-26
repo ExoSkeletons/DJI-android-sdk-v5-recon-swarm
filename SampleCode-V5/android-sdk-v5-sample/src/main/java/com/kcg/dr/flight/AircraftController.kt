@@ -1334,7 +1334,7 @@ open class AircraftController(
             while (isActive) {
                 ToastUtils.showToast("watching 12\n(${watch12Duration})")
                 withTimeoutOrNull(watch12Duration) {
-                    lookAtAndTrack(targetLocation)
+                    lookAtAndTrack(targetLocation, angleOffset = 2.0)
                 }
                 brakeFor(1.seconds)
                 watch6Duration?.let {
