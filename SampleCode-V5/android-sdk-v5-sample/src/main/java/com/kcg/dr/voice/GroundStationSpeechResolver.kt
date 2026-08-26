@@ -45,7 +45,7 @@ class GroundStationSpeechResolver : SpeechExecutor<String, Unit>, PipelineResolv
         Log.d(TAG, "posting")
         val response = restClient.post("http://$address:$port/input") {
             contentType(ContentType.Application.Json)
-            setBody(inputObject)
+            setBody(inputObject.toString())
         }
         Log.d(TAG, "${response.status}")
         if (response.status.value != 200)
