@@ -51,6 +51,8 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
@@ -1287,11 +1289,11 @@ open class AircraftController(
 
 
     suspend fun perchShoulder(
-        targetLocation: StateFlow<LocationCoordinate3D?>,
+        targetLocation: Flow<LocationCoordinate3D?>,
         perchHeight: Double,
         perchDistance: Double,
         maxVelocity: Double,
-        targetHeading: StateFlow<Double>? = null,
+        targetHeading: Flow<Double>? = null,
         watch12Duration: Duration = Duration.INFINITE,
         watch6Duration: Duration? = null,
         accelerationDist: Double,
@@ -1299,7 +1301,9 @@ open class AircraftController(
     ) = coroutineScope {
         Log.d(
             TAG,
-            "perching shoulder of ${targetLocation.value} at $perchHeight m, $perchDistance m away"
+            "perching shoulder of ${
+                targetLocation.filterNotNull().firstOrNull()
+            } at $perchHeight m, $perchDistance m away"
         )
 
         val perchLocation = combine(
@@ -1313,11 +1317,9 @@ open class AircraftController(
             val heading = th ?: al.as2D.bearingTo(tl.as2D)
 
             // Adjust perch location to target location moved "back" (towards aircraft) by perch distance.
-            tl.translate(
-                perchDistance,
-                BACKWARD,
-                heading
-            ).atAlt(perchHeight)
+            tl
+                .translate(perchDistance, BACKWARD, heading)
+                .atAlt(perchHeight)
         }
 
         takeoff()
