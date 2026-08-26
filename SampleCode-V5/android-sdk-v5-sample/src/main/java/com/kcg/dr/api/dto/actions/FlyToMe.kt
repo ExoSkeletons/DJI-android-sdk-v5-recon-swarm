@@ -26,10 +26,10 @@ data class FlyToMe(
         with(aircraft) {
             user ?: return
 
-            val dl = user.liveLocation.filterNotNull().first()
+            val dl = user.standingLocation.filterNotNull().first()
 
             ToastUtils.showToast("following phone location")
-            lookAtWithSpin(dl.as2D, 0.0)
+            lookAtWithSpin(dl.as2D, dl.altitude)
             flyToSticks(
                 dl,
                 maxVelocity = maxVelocity,
