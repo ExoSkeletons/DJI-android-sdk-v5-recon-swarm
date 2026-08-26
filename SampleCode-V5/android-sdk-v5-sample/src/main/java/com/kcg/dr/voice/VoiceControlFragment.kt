@@ -135,7 +135,7 @@ class VoiceControlFragment : Fragment() {
                 ) {
                     controller.fly {
                         FollowMe(
-                            cruiseHeight = 7.0,
+                            cruiseHeight = 6.0,
                             followDistance = 3.0,
                             maxVelocity = 3.0,
                         ).act(this, userVM.metrics)
