@@ -358,6 +358,7 @@ open class AircraftController(
             retakeStickTimerJob?.cancel()
 
             if (vSticks.ownsControl.value) {
+                ToastUtils.showToast("Controller Override")
                 Log.d(TAG, "RC touched while vStick is enabled. disabling vStick.")
                 scope.launch { vSticks.relinquishControl() }
             }
