@@ -23,7 +23,8 @@ import com.kcg.dr.managers.SFXManager
 import com.kcg.dr.managers.SFXManager.SFX
 import com.kcg.dr.managers.TTSManager.speak
 import com.kcg.dr.utils.LocaleUtils
-import com.kcg.dr.utils.getLocalIpAddress
+import com.kcg.dr.utils.NetworkType
+import com.kcg.dr.utils.getIpAddress
 import com.kcg.dr.voice.CommandResolver.Command
 import com.kcg.dr.voice.CommandResolver.Command.Companion.respFmtExId
 import com.kcg.dr.voice.CommandResolver.Command.Companion.respFmtSimpleId
@@ -162,17 +163,24 @@ class VoiceControlFragment : Fragment() {
             */
 
             ToastUtils.showShortToast("Finding Ground Station...")
-            SubnetDevices.fromLocalAddress()
+            val ipAddress = getIpAddress(NetworkType.HOTSPOT) ?: run {
+                ToastUtils.showToast("Could not find hotspot IP.")
+                return@launch
+            }
+
+            SubnetDevices.fromIPAddress(ipAddress)
                 .findDevices(object : SubnetDevices.OnSubnetDeviceFound {
                     override fun onDeviceFound(device: Device?) {}
 
                     override fun onFinished(devicesFound: ArrayList<Device?>?) {
-                        val localAddress = getLocalIpAddress()
                         val devices = devicesFound
                             ?.filterNotNull()
-                            ?.filter { it.ip != localAddress }
+                            ?.filter { it.ip != ipAddress }
                             ?: emptyList()
-                        Log.i("VoiceControlFragment", "found devices: $devices")
+                        Log.i(
+                            "VoiceControlFragment",
+                            "found devices on subnet $ipAddress: $devices"
+                        )
                         devices.firstOrNull()?.let {
                             ToastUtils.showShortToast("Connecting to ${it.ip}")
                             groundStationResolver.connect(it.ip)
