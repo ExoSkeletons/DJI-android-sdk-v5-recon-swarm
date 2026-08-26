@@ -53,8 +53,9 @@ class GroundStationSpeechResolver(
         tcpClient.send(inputObject.toString())
     }
 
-    // todo: use translation stage in pipelining to pre process speech before sending to ground station
-    override val pipeline: List<PipelineResolver.Stage> = listOf()
+    override val pipeline: List<PipelineResolver.Stage> = listOf(
+        TranslatorStage(listOf("he"), "en"),
+    )
 
     override suspend fun finalResolve(speech: String, locale: Locale): String = speech
 
