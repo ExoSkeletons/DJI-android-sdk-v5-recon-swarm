@@ -166,7 +166,7 @@ open class AircraftController(
             rollDegrees: Double? = null,
             angleMode: GimbalAngleRotationMode = GimbalAngleRotationMode.ABSOLUTE_ANGLE,
             gimbalMode: GimbalMode? = null,
-            durationSec: Double = 0.1,
+            duration: Duration = 0.1.seconds,
         ) {
             val rotation = GimbalAngleRotation()
             rotation.apply {
@@ -180,36 +180,36 @@ open class AircraftController(
                 rollIgnored = rollDegrees == null
 
                 mode = angleMode
-                duration = durationSec
+                this.duration = duration.toDouble(DurationUnit.SECONDS)
             }
             angleCamera(rotation, gimbalMode)
         }
 
         suspend fun pitch(
             degrees: Double,
-            durationSec: Double = 0.0,
+            duration: Duration = 0.1.seconds,
             angleMode: GimbalAngleRotationMode = GimbalAngleRotationMode.ABSOLUTE_ANGLE,
             gimbalMode: GimbalMode = GimbalMode.FPV,
         ) = angleCamera(
             pitchDegrees = degrees,
-            durationSec = durationSec,
+            duration = duration,
             angleMode = angleMode,
             gimbalMode = gimbalMode,
         )
 
         suspend fun roll(
             degrees: Double,
-            durationSec: Double = 0.0,
+            duration: Duration = 0.1.seconds,
             angleMode: GimbalAngleRotationMode = GimbalAngleRotationMode.ABSOLUTE_ANGLE,
-        ) = angleCamera(rollDegrees = degrees, durationSec = durationSec, angleMode = angleMode)
+        ) = angleCamera(rollDegrees = degrees, duration = duration, angleMode = angleMode)
 
         suspend fun yaw(
             degrees: Double,
-            durationSec: Double = 0.0,
+            duration: Duration = 0.1.seconds,
             angleMode: GimbalAngleRotationMode = GimbalAngleRotationMode.ABSOLUTE_ANGLE,
         ) = angleCamera(
             yawDegrees = degrees,
-            durationSec = durationSec,
+            duration = duration,
             angleMode = angleMode,
             gimbalMode = GimbalMode.FREE,
         )
@@ -464,7 +464,7 @@ open class AircraftController(
                 Log.i(TAG, "[${job}]: Joined previous flight. prev [$it] finished")
             }
             try {
-                Log.d(TAG, "flight mission started (in flight job [$job])")
+                Log.d(JTAG, "flight mission started (in flight job [$job])")
                 runCatching {
                     safely(onRCOverride) {
                         vSticks.takeControl()
@@ -1182,8 +1182,8 @@ open class AircraftController(
                 delay(gimbalUpdateInterval)
 
                 val cur = ac.location.value ?: continue
-                val target = curTarget ?: continue
                 val height = ac.height.value
+                val target = curTarget ?: continue
 
                 val dist2D = cur.as2D.distanceTo(target.as2D)
                 val dh = target.altitude - height
@@ -1196,29 +1196,30 @@ open class AircraftController(
     suspend fun wave(waves: Int = 2) {
         Log.d(TAG, "waving")
         require(waves > 0) { "wave count must be positive" }
-        val t = 0.2
-        val tm = t.seconds
+        val t = 0.2.seconds
         val rollAngle = 10.0
         val waveAngle = 40.0
 
         camGim.resetAngle()
 
         camGim.roll(rollAngle, t / 2, GimbalAngleRotationMode.RELATIVE_ANGLE)
-        delay(tm)
+        delay(t)
+        // todo: currently gimbal rotations return imm. since dji keys return imm. and so does await.
+        //  in future, assume gim includes suspending delay until completion. then in dji impl. add delay(duration)
         camGim.roll(-rollAngle * 2, t / 2, GimbalAngleRotationMode.RELATIVE_ANGLE)
-        delay(tm)
+        delay(t)
 
         delay(0.4.seconds)
 
         repeat(waves) {
             camGim.pitch(-waveAngle, t)
-            delay(tm)
+            delay(t)
             camGim.pitch(waveAngle * .5, t)
-            delay(tm)
+            delay(t)
         }
 
         camGim.roll(rollAngle, t / 2, GimbalAngleRotationMode.RELATIVE_ANGLE)
-        delay(tm)
+        delay(t)
 
         delay(0.1.seconds)
 
@@ -1226,14 +1227,14 @@ open class AircraftController(
     }
 
     suspend fun gimbalFan() = coroutineScope {
-        val scanDuration = 3.0.seconds
-        camGim.pitch(0.0, 0.5)
+        val panDuration = 3.0.seconds
+        camGim.pitch(0.0)
         delay(1.seconds)
-        camGim.pitch(-90.0, scanDuration.toDouble(DurationUnit.MILLISECONDS))
-        delay(scanDuration)
+        camGim.pitch(-90.0, panDuration)
+        delay(panDuration)
         delay(0.5.seconds)
-        camGim.pitch(0.0, scanDuration.toDouble(DurationUnit.MILLISECONDS))
-        delay(scanDuration)
+        camGim.pitch(0.0, panDuration)
+        delay(panDuration)
     }
 
 
