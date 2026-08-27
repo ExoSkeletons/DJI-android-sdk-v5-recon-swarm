@@ -51,7 +51,7 @@
     <string name="command_cam_fan">מניפה</string>
     <string name="command_spin">מסתובב|סיבוב|תסתובב|תסתובבי|סביב|סביבך</string>
 
-    <string name="commands_silence">שקט|השקט|הס|חשאי|חושך|צל|חשאיות</string>
+    <string name="commands_silence">שקט|השקט|חשאי|חושך|צל|חשאיות</string>
 
     <string name="command_go_up">טיסה למעלה|((טיסה|טוס|תלך|לך|איך) למעלה)|(עלה|עליה|תעלה|תענה)</string>
     <string name="command_go_forward">טיסה קדימה|(טיסה|טוס|תלך|לך|איך|סרוק) (קדימה|אמא)|תתקדם|תתקדמי</string>
