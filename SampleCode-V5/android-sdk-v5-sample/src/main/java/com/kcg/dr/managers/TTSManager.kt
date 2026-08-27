@@ -118,7 +118,7 @@ object TTSManager {
         (locale?.let {
             this.getLocalizedResources(locale)
         } ?: this.resources)
-            .getString(textId, formatArgs),
+            .getString(textId, *formatArgs),
         locale,
         queueMode,
     )
