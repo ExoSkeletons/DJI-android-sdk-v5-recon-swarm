@@ -361,6 +361,7 @@ class SpeechResolversVM(
                         try {
                             function()
                         } catch (e: Exception) {
+                            Log.e(TAG, "error executing resolution", e)
                             playSfx(SFXManager.SFX.NOTIFY_TECHNICAL)
                             _resolutionName.postValue(e.message ?: e.toString())
                         }
