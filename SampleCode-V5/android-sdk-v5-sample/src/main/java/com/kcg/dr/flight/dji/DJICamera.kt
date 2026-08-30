@@ -1,8 +1,8 @@
 package com.kcg.dr.flight.dji
 
 import android.util.Log
-import com.kcg.dr.flight.AircraftController.ICamera
 import com.kcg.dr.djiutils.awaitCallback
+import com.kcg.dr.flight.AircraftController.ICamera
 import dji.sdk.keyvalue.value.common.ComponentIndexType
 import dji.v5.common.error.IDJIError
 import dji.v5.manager.datacenter.MediaDataCenter
@@ -50,8 +50,12 @@ class DJICamera : ICamera<ComponentIndexType, LiveStreamStatus> {
         }
 
     override suspend fun init() {
-        streamManager.addLiveStreamStatusListener(liveStreamStatusListener)
-        cameraManager.addAvailableCameraUpdatedListener(availableCameraUpdatedListener)
+        runCatching {
+            streamManager.addLiveStreamStatusListener(liveStreamStatusListener)
+            cameraManager.addAvailableCameraUpdatedListener(availableCameraUpdatedListener)
+        }.onFailure { e ->
+            e.printStackTrace()
+        }
         _isStreaming.value = streamManager.isStreaming
     }
 
