@@ -47,18 +47,23 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="TUNNEL URL"
+        android:textColor="@color/uxsdk_dic_color_c27_yellow"
         android:textStyle="bold|italic" />
 
     <TextView
         android:id="@+id/tv_tunneling_url"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:clickable="true"
+        android:textColor="@android:color/primary_text_dark"
+        android:textSize="16sp"
         tools:text="https://alpacha-wombat57.cloudflare/" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="REST"
+        android:textColor="@color/uxsdk_dic_color_c27_yellow"
         android:textStyle="bold|italic" />
 
     <TextView
@@ -68,7 +73,7 @@
         android:fontFamily="monospace"
         android:scrollbars="vertical"
         android:text="Waiting for requests..."
-        android:textColor="#A0FFFFFF"
+        android:textColor="@android:color/primary_text_dark"
         android:textSize="12sp"
         tools:text="GET /status\nPOST /key\nGET /fly" />
 
@@ -76,11 +81,13 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="WS"
+        android:textColor="@color/uxsdk_dic_color_c27_yellow"
         android:textStyle="bold|italic" />
 
     <TextView
         android:id="@+id/tv_logs_ws"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:textColor="@android:color/primary_text_dark" />
 
 </LinearLayout>
