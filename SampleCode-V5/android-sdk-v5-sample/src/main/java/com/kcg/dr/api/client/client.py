@@ -100,7 +100,7 @@ async def telemetry_screen():
         telemetry = json.loads(message)
 
         battery_percent = int(telemetry["battery"])
-        b1, b0, bf = "█", "░", 0.1
+        b1, b0, bf = "█", "░", 0.2
         location = telemetry["location"]
         velocity = telemetry["velocity"]
 
@@ -112,7 +112,7 @@ async def telemetry_screen():
               POSITION
               Latitude       {location["latitude"]}
               Longitude      {location["longitude"]}
-              Altitude       {location["altitude"]} m
+              Altitude       {round(location["altitude"], 2)} m
             
               VELOCITY
               X              {round(velocity['x'], 2)} m/s
