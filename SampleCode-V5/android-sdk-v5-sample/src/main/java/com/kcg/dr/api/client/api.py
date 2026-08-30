@@ -2,14 +2,8 @@ from typing import Callable, Any
 
 import requests
 import websockets
+from config import ADDRESS, PORT
 
-ADDRESS = '-'.join([
-    'patch',
-    'accommodate',
-    'verbal',
-    'macro',
-]) + ".trycloudflare.com"
-PORT = 8080
 BASE_URL = f"http://{ADDRESS}:{PORT}"
 
 def get(path):
