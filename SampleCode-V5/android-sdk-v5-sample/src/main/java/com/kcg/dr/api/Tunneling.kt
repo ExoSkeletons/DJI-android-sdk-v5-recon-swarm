@@ -210,7 +210,7 @@ object Tunneling {
                                         protocol: http2
                                         ingress:
                                             - hostname: ${result.hostname}
-                                                service: http://localhost:$port
+                                              service: http://localhost:$port
                                             - service: http_status:404
                                     """.trimIndent()
             )
