@@ -196,8 +196,8 @@ flight_menu = Menu(
     {
         'up': lambda: post_and_print("/c/fly/", {'type': 'fly_by', 'dz': 0.5}),
         'down': lambda: post_and_print("/c/fly/", {'type': 'fly_by', 'dz': -0.5}),
-        'left': lambda: post_and_print("/c/fly/", {'type': 'fly_by', 'dy': 0.5}),
-        'right': lambda: post_and_print("/c/fly/", {'type': 'fly_by', 'dy': -0.5}),
+        'left': lambda: post_and_print("/c/fly/", {'type': 'fly_by', 'dy': -0.5}),
+        'right': lambda: post_and_print("/c/fly/", {'type': 'fly_by', 'dy': 0.5}),
         'forward': lambda: post_and_print("/c/fly/", {'type': 'fly_by', 'dx': 0.5}),
         'backward': lambda: post_and_print("/c/fly/", {'type': 'fly_by', 'dx': -0.5}),
         'spin': lambda: post_and_print("/c/fly/", {'type': 'spin_by', 'degrees': 90.0}),
