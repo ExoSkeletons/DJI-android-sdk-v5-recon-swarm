@@ -15,6 +15,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -54,19 +55,21 @@ object Tunneling {
             Log.d(TAG, "pinggy path: ${pinggy.absolutePath}")
             Log.d(TAG, "starting process")
             // start tunnel process
-            ProcessBuilder(
-                pinggy.absolutePath,
-                "-l",
-                "http://localhost:$port",
-                "-d",
-                P_DEBUG_PORT.toString(),
-            )
-                .redirectErrorStream(true)
-                .redirectOutput(ProcessBuilder.Redirect.INHERIT)
-                .start()
+            withContext(Dispatchers.IO) {
+                ProcessBuilder(
+                    pinggy.absolutePath,
+                    "-l",
+                    "http://localhost:$port",
+                    "-d",
+                    P_DEBUG_PORT.toString(),
+                )
+                    .redirectErrorStream(true)
+                    .redirectOutput(ProcessBuilder.Redirect.INHERIT)
+                    .start()
+            }
 
             // extract generated urls
-            Log.d("Tunneling", "getting urls with http client")
+            Log.d(TAG, "getting urls with http client")
             val debugClient = HttpClient(CIO)
             val debugResponse = debugClient.get("http://localhost:$P_DEBUG_PORT/urls")
             val json = Json.parseToJsonElement(debugResponse.bodyAsText()).jsonObject
