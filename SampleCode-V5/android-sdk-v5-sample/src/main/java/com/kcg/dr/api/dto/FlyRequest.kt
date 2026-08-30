@@ -8,4 +8,4 @@ import kotlinx.serialization.Serializable
 
 
 @Serializable
-data class FlyRequest(val mission: List<Action>)
+data class FlyRequest(val actions: List<Action>)

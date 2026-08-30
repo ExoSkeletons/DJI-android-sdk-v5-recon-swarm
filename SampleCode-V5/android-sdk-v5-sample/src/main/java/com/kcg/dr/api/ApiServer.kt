@@ -420,7 +420,7 @@ private fun Route.controllerRoute(
     post("/fly") {
         val request = call.receive<FlyRequest>()
         controller.fly {
-            for (action: Action in request.mission)
+            for (action: Action in request.actions)
                 action.act(controller, user)
         }
         // respond without waiting for completion
