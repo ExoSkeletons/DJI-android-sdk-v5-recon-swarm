@@ -7,8 +7,13 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -27,6 +32,8 @@ import java.net.InetAddress
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toJavaDuration
 
+private const val TAG = "Tunneling"
+
 object Tunneling {
     interface Tunneler {
         suspend fun startTunneling(context: Context, port: Int): List<String>
@@ -44,8 +51,8 @@ object Tunneling {
             // get executable file
             val pinggy = context.getExecutableFromLibs(P_NAME)
 
-            Log.d("Tunneling", "pinggy path: ${pinggy.absolutePath}")
-            Log.d("Tunneling", "starting process")
+            Log.d(TAG, "pinggy path: ${pinggy.absolutePath}")
+            Log.d(TAG, "starting process")
             // start tunnel process
             ProcessBuilder(
                 pinggy.absolutePath,
@@ -65,7 +72,7 @@ object Tunneling {
             val json = Json.parseToJsonElement(debugResponse.bodyAsText()).jsonObject
             val urls = json["urls"]?.jsonArray?.map { it.jsonPrimitive.content } ?: emptyList()
             debugClient.close()
-            Log.d("Tunneling", "urls: $urls")
+            Log.d(TAG, "urls: $urls")
             return urls
         }
 
@@ -82,6 +89,11 @@ object Tunneling {
         private const val QUICK_TUNNEL_ENDPOINT = "https://api.trycloudflare.com/tunnel"
         private const val MAX_EDGE_IP_COUNT = 4
 
+        private var currentProcess: Process? = null
+        private val tunnelScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        private var loggingJob: Job? = null
+
+        @OptIn(InternalSerializationApi::class)
         @Serializable
         private data class CloudflaredResult(
             @SerialName("id")
@@ -102,76 +114,78 @@ object Tunneling {
 
         override suspend fun startTunneling(
             context: Context, port: Int
-        ): List<String> = coroutineScope {
+        ): List<String> = withContext(Dispatchers.IO) {
             // get executable file
             val cloudflared = context.getExecutableFromLibs(NAME)
 
-            /*val process = ProcessBuilder(
-                cloudflared.absolutePath,
-                "tunnel",
-                "--url",
-                "http://localhost:$port",
-            )
-                .redirectErrorStream(true)
-                .start()
+            // Manually request a tunnel by making a call to cloudflare's API
+            Log.d(TAG, "Making cloudflare API call to $QUICK_TUNNEL_ENDPOINT")
+            client.newCall(
+                okhttp3.Request.Builder()
+                    .url(QUICK_TUNNEL_ENDPOINT)
+                    .post("".toRequestBody("application/json".toMediaType()))
+                    .build()
+            ).execute().use { response ->
+                Log.d(TAG, "Cloudflare API response: ${response.code}")
+                if (!response.isSuccessful)
+                    throw RuntimeException("Cloudflare API error: ${response.code}")
+                val body = json.parseToJsonElement(
+                    response.body?.string()
+                        ?: throw IllegalStateException("No response body")
+                ).jsonObject
+                val result = json.decodeFromJsonElement<CloudflaredResult>(
+                    body["result"]
+                        ?: throw IllegalStateException("No result in response body")
+                )
 
-            return@coroutineScope suspendCancellableCoroutine { c ->
-                launch(Dispatchers.IO) {
-                    val urlRegex = Regex("https://[a-zA-Z0-9-]+\\.trycloudflare\\.com")
+                val cfgFile = setupCfg(context, result, port)
+                val edgeIps = fetchEdgeIps()
 
-                    process.inputStream.bufferedReader().forEachLine { line ->
-                        Log.i("Cloudflared", line)
-                        urlRegex.find(line)?.let {
-                            val url = it.value
-                            Log.d("Tunneling", "Found Cloudflare URL: $url")
-                            c.resume(listOf(url))
+                // Start cloudflared tunnel process, with our manually resolved edge ips
+                val command = mutableListOf(
+                    cloudflared.absolutePath, "tunnel",
+                    "--config", cfgFile.absolutePath,
+                    "--no-prechecks",
+                    "--edge-ip-version", "4",
+                    "--no-autoupdate",
+                )
+                for (ip in edgeIps.take(MAX_EDGE_IP_COUNT))
+                    command.addAll(listOf("--edge", ip))
+                command.addAll(listOf("run", result.tunnelId))
+                Log.d(TAG, "Starting cloudflared tunnel process")
+
+                stopTunneling()
+
+                val process = ProcessBuilder(command)
+                    .directory(context.cacheDir)
+                    .redirectErrorStream(true)
+                    .start()
+
+                currentProcess = process
+
+                loggingJob?.cancel()
+                loggingJob = tunnelScope.launch {
+                    val logs = mutableListOf<String>()
+                    launch {
+                        while (isActive) {
+                            delay(1.seconds)
+                            synchronized(logs) {
+                                if (logs.isEmpty()) return@synchronized
+                                Log.d("CloudflareProc", logs.joinToString("\n"))
+                                logs.clear()
+                            }
+                        }
+                    }
+                    process.inputStream.bufferedReader().use { reader ->
+                        runCatching {
+                            reader.forEachLine { synchronized(logs) { logs += it } }
                         }
                     }
                 }
-            }*/
 
-            runCatching {
-                withContext(Dispatchers.IO) {
-                    // Manually request a tunnel by making a call to cloudflare's API
-                    client.newCall(
-                        okhttp3.Request.Builder()
-                            .url(QUICK_TUNNEL_ENDPOINT)
-                            .post("".toRequestBody("application/json".toMediaType()))
-                            .build()
-                    ).execute().use { response ->
-                        if (!response.isSuccessful) {
-                            Log.e("Tunneling", "Cloudflare API error: ${response.code}")
-                            return@withContext emptyList()
-                        }
-                        val body = json.parseToJsonElement(
-                            response.body?.string() ?: return@withContext emptyList()
-                        ).jsonObject
-                        val result = json.decodeFromJsonElement<CloudflaredResult>(
-                            body["result"] ?: return@withContext emptyList()
-                        )
-
-                        val cfgFile = setupCfg(context, result, port)
-                        val edgeIps = fetchEdgeIps()
-
-                        // Start cloudflared tunnel process, with our manually resolved edge ips
-                        val command = mutableListOf(
-                            cloudflared.absolutePath, "tunnel",
-                            "--config", cfgFile.absolutePath,
-                            "--edge-ip-version", "4",
-                            "--no-autoupdate"
-                        )
-                        for (ip in edgeIps.take(MAX_EDGE_IP_COUNT))
-                            command.addAll(listOf("--edge", ip))
-                        command.addAll(listOf("run", result.tunnelId))
-                        ProcessBuilder(command)
-                            .directory(context.cacheDir)
-                            .redirectErrorStream(true)
-                            .start()
-
-                        listOf(result.hostname)
-                    }
-                }
-            }.getOrNull() ?: emptyList()
+                Log.d(TAG, "Started cloudflared tunnel process. URL: ${result.hostname}")
+                listOf(result.hostname)
+            }
         }
 
         private fun fetchEdgeIps(): MutableList<String> {
@@ -205,20 +219,26 @@ object Tunneling {
             val cfgFile = File(context.filesDir, CFG_FILE)
             cfgFile.writeText(
                 """
-                                        tunnel_id: ${result.tunnelId}
-                                        credentials-file: ${credFile.absolutePath}
-                                        protocol: http2
-                                        ingress:
-                                            - hostname: ${result.hostname}
-                                              service: http://localhost:$port
-                                            - service: http_status:404
-                                    """.trimIndent()
+                tunnel: ${result.tunnelId}
+                credentials-file: ${credFile.absolutePath}
+                protocol: quic
+                ingress:
+                  - hostname: ${result.hostname}
+                    service: http://127.0.0.1:$port
+                  - service: http_status:404
+                """.trimIndent()
             )
             return cfgFile
         }
 
         override suspend fun stopTunneling() {
-            TODO("Not yet implemented")
+            withContext(Dispatchers.IO) {
+                loggingJob?.cancel()
+                loggingJob = null
+                currentProcess?.destroy()
+                currentProcess = null
+                Log.d(TAG, "Cloudflared tunnel process stopped")
+            }
         }
     }
 }
