@@ -1,9 +1,13 @@
 package com.kcg.dr.api
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context.CLIPBOARD_SERVICE
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.viewmodel.MutableCreationExtras
@@ -67,6 +71,13 @@ class ApiServerFragment : Fragment() {
         }
         viewModel.tunnelingUrl.observe(viewLifecycleOwner) {
             binding.tvTunnelingUrl.text = it
+        }
+        binding.tvTunnelingUrl.setOnClickListener {
+            val urlText = binding.tvTunnelingUrl.text?.toString()
+            if (urlText.isNullOrBlank()) return@setOnClickListener
+            val clipboard = requireContext().getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+            clipboard.setPrimaryClip(ClipData.newPlainText("url", urlText))
+            Toast.makeText(requireContext(), "URL copied to clipboard", Toast.LENGTH_SHORT).show()
         }
         viewModel.serverLogs.observe(viewLifecycleOwner) { latest ->
             binding.tvLogs.text =
