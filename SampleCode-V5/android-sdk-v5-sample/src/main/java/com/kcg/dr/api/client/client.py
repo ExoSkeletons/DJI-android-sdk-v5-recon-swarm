@@ -227,9 +227,7 @@ def execute_mission(mission: dict):
     if not confirm:
         return
 
-    fly_request = {
-        "actions": list(mission["actions"])
-    }
+    fly_request = list(mission["actions"])
     code, response = api.post("/c/fly", data=fly_request)
     print_response(code, response)
 

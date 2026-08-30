@@ -2,7 +2,6 @@ package com.kcg.dr.api
 
 import android.util.Log
 import androidx.lifecycle.MutableLiveData
-import com.kcg.dr.api.dto.FlyRequest
 import com.kcg.dr.api.dto.KeyActivator
 import com.kcg.dr.api.dto.Responses.djiErrorResponse
 import com.kcg.dr.api.dto.Responses.errorResponse
@@ -15,10 +14,10 @@ import com.kcg.dr.api.dto.TTSRequest
 import com.kcg.dr.api.dto.actions.Action
 import com.kcg.dr.api.dto.actions.FlyTo
 import com.kcg.dr.api.dto.actions.LookAt
+import com.kcg.dr.djiutils.DJIErrorException
+import com.kcg.dr.djiutils.actionOrExcept
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.location.UserMetrics
-import com.kcg.dr.djiutils.actionOrExcept
-import com.kcg.dr.djiutils.DJIErrorException
 import com.kcg.dr.managers.TTSManager
 import dji.sdk.keyvalue.key.AirLinkKey
 import dji.sdk.keyvalue.key.BatteryKey
@@ -38,6 +37,7 @@ import io.ktor.server.application.install
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.ApplicationEngine
 import io.ktor.server.engine.embeddedServer
+import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.request.httpMethod
@@ -66,17 +66,33 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonObjectBuilder
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.put
 import kotlinx.serialization.serializer
 import java.nio.channels.ClosedChannelException
 import java.util.Locale
 
 private const val TAG = "ApiHttpServer"
+
+private val json = Json {
+    ignoreUnknownKeys = true
+    isLenient = true
+    @OptIn(ExperimentalSerializationApi::class)
+    decodeEnumsCaseInsensitive = true
+    @OptIn(ExperimentalSerializationApi::class)
+    allowComments = true
+    @OptIn(ExperimentalSerializationApi::class)
+    allowTrailingComma = true
+}
 
 class ApiServer {
     private var server: ApplicationEngine? = null
@@ -110,7 +126,7 @@ class ApiServer {
         if (server != null) stop()
 
         server = embeddedServer(CIO, host = host, port = port) {
-            install(ContentNegotiation) { json() }
+            install(ContentNegotiation) { json(json) }
             install(IgnoreTrailingSlash)
             install(WebSockets) {
                 contentConverter = KotlinxWebsocketSerializationConverter(Json {
@@ -418,13 +434,15 @@ private fun Route.controllerRoute(
     }
 
     post("/fly") {
-        val request = call.receive<FlyRequest>()
-        controller.fly {
-            for (action: Action in request.actions)
-                action.act(controller, user)
+        val actions = when (val element = call.receive<JsonElement>()) {
+            is JsonArray -> element.map { json.decodeFromJsonElement<Action>(it) }
+            is JsonObject -> listOf(json.decodeFromJsonElement<Action>(element))
+            else -> throw BadRequestException("Unsupported JSON format for Action")
         }
-        // respond without waiting for completion
-        call.respond(status { "starting mission" })
+        controller.fly { actions.forEach { action -> action.act(this, user) } }
+        call.respond(ok {
+            put("actions", JsonArray(actions.map { json.encodeToJsonElement(it) }))
+        })
     }
 
     post("/stop") {
