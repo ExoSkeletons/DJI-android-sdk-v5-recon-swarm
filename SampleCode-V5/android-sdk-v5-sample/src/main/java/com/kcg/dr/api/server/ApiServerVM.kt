@@ -1,4 +1,4 @@
-package com.kcg.dr.api
+package com.kcg.dr.api.server
 
 import android.app.Application
 import android.content.ComponentName

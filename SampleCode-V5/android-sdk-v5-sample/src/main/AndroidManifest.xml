@@ -86,7 +86,7 @@
         </service>
         <!-- API Server -->
         <service
-            android:name="com.kcg.dr.api.ApiServerService"
+            android:name="com.kcg.dr.api.server.ApiServerService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="dataSync"

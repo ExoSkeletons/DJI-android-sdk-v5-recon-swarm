@@ -1,4 +1,4 @@
-package com.kcg.dr.api
+package com.kcg.dr.api.server
 
 import android.util.Log
 import androidx.lifecycle.MutableLiveData
@@ -14,6 +14,8 @@ import com.kcg.dr.api.dto.TTSRequest
 import com.kcg.dr.api.dto.actions.Action
 import com.kcg.dr.api.dto.actions.FlyTo
 import com.kcg.dr.api.dto.actions.LookAt
+import com.kcg.dr.api.toElement
+import com.kcg.dr.api.toJsonElement
 import com.kcg.dr.djiutils.DJIErrorException
 import com.kcg.dr.djiutils.actionOrExcept
 import com.kcg.dr.flight.AircraftController

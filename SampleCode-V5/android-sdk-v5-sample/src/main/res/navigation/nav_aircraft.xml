@@ -55,7 +55,7 @@
 
     <fragment
         android:id="@+id/api_server"
-        android:name="com.kcg.dr.api.ApiServerFragment"
+        android:name="com.kcg.dr.api.server.ApiServerFragment"
         android:label="api_server_page"
         tools:layout="@layout/frag_api_server"/>
 
