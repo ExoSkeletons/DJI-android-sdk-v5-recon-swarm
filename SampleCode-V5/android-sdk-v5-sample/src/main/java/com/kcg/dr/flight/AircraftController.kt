@@ -401,7 +401,9 @@ open class AircraftController(
         }
     }
 
-    fun isFlying(): Boolean = ac.isFlying.value
+    inline val isFlying: Boolean get() = ac.isFlying.value
+
+    inline val ownsControl: Boolean get() = vSticks.ownsControl.value
 
     suspend fun safely(
         onRCOverride: () -> Unit = {},
@@ -525,7 +527,7 @@ open class AircraftController(
     ) {
         Log.d(TAG, "takeoff")
 
-        if (isFlying()) {
+        if (isFlying) {
             Log.i(TAG, "already flying")
             return
         }
