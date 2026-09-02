@@ -214,6 +214,10 @@ class ApiServer {
                             send("Connected to sticks websocket")
                             sticksControlSession(wsIncoming) { this@ApiServer.controller }
                         }
+                        webSocket("/gimbal") {
+                            send("Connected to gimbal websocket")
+                            gimbalControlSession(wsIncoming) { this@ApiServer.controller }
+                        }
                         webSocket("/telemetry") {
                             send("Connected to telemetry websocket")
                             val controller = this@ApiServer.controller
@@ -520,10 +524,40 @@ private suspend fun DefaultWebSocketServerSession.sticksControlSession(
             frame as? Frame.Text ?: continue
             val receivedText = frame.readText()
             wsIncoming.emit(receivedText)
-            val sticksRequest = Json.decodeFromString<AircraftController.FlightParam>(receivedText)
-            controllerProvider()?.sendFlightParam(sticksRequest)
+            val flightParam = Json.decodeFromString<AircraftController.FlightParam>(receivedText)
+            controllerProvider()?.sendFlightParam(flightParam)
             responseFlow.emit(ok {
-                put("param", sticksRequest.toString())
+                put("param", flightParam.toString())
+            })
+        }
+    }.onFailure { e ->
+        when (e) {
+            is ClosedChannelException -> Log.i(TAG, "WebSocket closed ${closeReason.await()}")
+            else -> Log.e(TAG, "WebSocket exception ${closeReason.await()}", e)
+        }
+    }.also { responderJob.cancel() }
+}
+
+private suspend fun DefaultWebSocketServerSession.gimbalControlSession(
+    wsIncoming: MutableSharedFlow<String>,
+    controllerProvider: () -> AircraftController?
+) {
+    val responseFlow = MutableSharedFlow<JsonObject>()
+    val responderJob = launch {
+        responseFlow.collect { response ->
+            sendSerialized(response)
+        }
+    }
+
+    runCatching {
+        for (frame in incoming) {
+            frame as? Frame.Text ?: continue
+            val receivedText = frame.readText()
+            wsIncoming.emit(receivedText)
+            val rotation = Json.decodeFromString<AircraftController.GimbalRotation>(receivedText)
+            controllerProvider()?.camGim?.angleCamera(rotation)
+            responseFlow.emit(ok {
+                put("param", rotation.toString())
             })
         }
     }.onFailure { e ->
