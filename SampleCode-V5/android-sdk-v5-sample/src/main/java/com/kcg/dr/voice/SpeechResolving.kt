@@ -13,28 +13,17 @@ import com.google.mlkit.nl.translate.TranslatorOptions
 import com.kcg.dr.api.dto.actions.Action
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.location.UserMetrics
+import com.kcg.dr.utils.appendPropertyShortJson
+import com.kcg.dr.utils.dereference
 import com.kcg.dr.utils.getAssetOrExtract
 import com.kcg.dr.utils.getLocalizedResources
 import com.kcg.dr.voice.LlamaResolver.LlamaAndroidStage
-import com.kcg.dr.voice.SerialisedResolver.Companion.appendPropertyShortJson
-import com.kcg.dr.voice.SerialisedResolver.Companion.dereference
 import com.kcg.dr.voice.SpeechResolver.Description
 import dji.sampleV5.aircraft.R
-import io.ktor.http.parsing.ParseException
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.schema.generator.json.serialization.SerializationClassJsonSchemaGenerator
-import kotlinx.schema.json.ArrayContainer
-import kotlinx.schema.json.ArrayPropertyDefinition
-import kotlinx.schema.json.BooleanPropertyDefinition
-import kotlinx.schema.json.CommonSchemaAttributes
-import kotlinx.schema.json.JsonSchema
-import kotlinx.schema.json.NumericPropertyDefinition
 import kotlinx.schema.json.ObjectPropertyDefinition
-import kotlinx.schema.json.PropertiesContainer
-import kotlinx.schema.json.PropertyDefinition
-import kotlinx.schema.json.ReferencePropertyDefinition
 import kotlinx.schema.json.StringPropertyDefinition
-import kotlinx.schema.json.ValuePropertyDefinition
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.ListSerializer
@@ -174,161 +163,6 @@ interface SerialisedResolver<T> : SpeechResolver<T> {
     } catch (e: Exception) {
         Log.e("SerialisedResolver", "error decoding json: ${e.message}", e)
         null
-    }
-
-    companion object {
-        fun dereference(
-            definition: PropertyDefinition,
-            defs: Map<String, PropertyDefinition>
-        ): PropertyDefinition =
-            (definition as? ReferencePropertyDefinition)?.let {
-                definition.ref?.let {
-                    defs[it.substringAfterLast("/")]
-                        ?: throw ParseException("Missing definition for Reference Property: $definition")
-                } ?: throw ParseException("Missing ref field in Reference Property: $definition")
-            } ?: definition
-
-        fun StringBuilder.appendPropertyMarkdown(
-            definition: PropertyDefinition,
-            defs: Map<String, PropertyDefinition>,
-            name: String? = null,
-            required: Boolean = true,
-            depth: Int = 0,
-        ) {
-            val indent = "\t".repeat(depth)
-            val p = dereference(definition, defs)
-
-            append(indent)
-            if (depth > 0) append("- ")
-
-            if (definition is StringPropertyDefinition && name == "type") {
-                appendLine("type: ${definition.constValue}")
-                return
-            }
-
-            append("${name}:")
-            val (types, desc) = when (p) {
-                /*is ObjectPropertyDefinition ->
-                    ((p.properties?.get("type") as? StringPropertyDefinition)
-                        ?.constValue?.toString()?.let {
-                            listOf(it)
-                        } ?: emptyList()) + p.type to p.description*/
-                is ValuePropertyDefinition<*> -> (p.type ?: emptyList()) to p.description
-                is JsonSchema -> p.type to p.description
-                else -> throw ParseException("Invalid property type: ${definition::class}")
-            }
-            append(" ${types.joinToString("|")}")
-            if (!required) append(" (optional)")
-            appendLine()
-            desc?.let { appendLine("$indent* Description\n$indent\t$it") }
-
-            (p as? ObjectPropertyDefinition)?.properties?.takeIf { it.isNotEmpty() }?.let {
-                appendLine("${indent}* Fields")
-                it.forEach { (childName, childProperty) ->
-                    appendPropertyMarkdown(
-                        childProperty, defs,
-                        childName,
-                        p.required?.contains(childName) == true,
-                        depth + 1
-                    )
-                }
-            }
-        }
-
-        fun StringBuilder.appendPropertyShortJson(
-            definition: PropertyDefinition,
-            defs: Map<String, PropertyDefinition>,
-            name: String? = null,
-            required: Boolean = true,
-            depth: Int = 0,
-        ) {
-            val indent = "\t".repeat(depth)
-            val p = dereference(definition, defs)
-
-            if (definition is StringPropertyDefinition && name == "type") {
-                appendLine("${indent}\"type\": ${definition.constValue},")
-                return
-            }
-
-            val desc = (p as? CommonSchemaAttributes)?.description
-            val types = (p as? CommonSchemaAttributes)?.type
-            val properties = (p as? PropertiesContainer)?.properties
-            val req = (p as? PropertiesContainer)?.required
-            val items = (p as? ArrayContainer)?.items
-            val enum = when (p) {
-                is ObjectPropertyDefinition -> p.enum
-                is NumericPropertyDefinition -> p.enum
-                is StringPropertyDefinition -> p.enum?.map { "\"$it\"" }
-                is BooleanPropertyDefinition -> p.enum
-                is ArrayPropertyDefinition -> p.enum
-                is JsonSchema -> p.enum
-                else -> null
-            }
-
-            desc?.let { appendLine("$indent// $it") }
-            append(indent)
-            name?.let { append("\"$it\": ") }
-            types?.let { append(" ${it.joinToString("|")}") }
-            enum?.let { append(" enum [${it.joinToString("|")}]") }
-            if (!required) append(" (optional)")
-
-            properties?.takeIf { it.isNotEmpty() }?.let {
-                appendLine(" {")
-                properties.forEach { (childName, childProperty) ->
-                    appendPropertyShortJson(
-                        childProperty, defs,
-                        childName,
-                        req?.contains(childName) == true,
-                        depth + 1
-                    )
-                }
-                append("$indent}")
-            }
-            items?.let {
-                appendLine(" [")
-                appendPropertyShortJson(items, defs, null, true, depth + 1)
-                appendLine("${indent}\t...,")
-                append("$indent]")
-            }
-            appendLine(",")
-        }
-
-        fun findJson(t: String): String? {
-            var text = t
-            text = text
-                .substringAfterLast("```json")
-                .substringBeforeLast("```")
-                .replace(Regex("//[^\r\n]*"), "")
-
-            val start = text.indexOfFirst { it == '{' || it == '[' }
-            if (start == -1) return null
-
-            val brackStack = ArrayDeque<Char>()
-            var inString = false
-            var escaped = false
-
-            for (i in start until text.length) {
-                when (val c = text[i]) {
-                    '"' -> if (!escaped) inString = !inString
-                    '\\' -> escaped = inString && !escaped
-                    else -> {
-                        escaped = false
-                        if (!inString) when (c) {
-                            '{' -> brackStack += '}'
-                            '[' -> brackStack += ']'
-                            '}', ']' -> {
-                                if (brackStack.removeLastOrNull() != c)
-                                    return null
-                                if (brackStack.isEmpty())
-                                    return text.substring(start, i + 1)
-                            }
-                        }
-                    }
-                }
-            }
-
-            return null
-        }
     }
 }
 
@@ -548,9 +382,48 @@ class TranslatorStage(
 
 abstract class LlamaSerialisedStage(context: Context, modelName: String) :
     LlamaAndroidStage(context, modelName) {
+    companion object {
+        fun findJson(t: String): String? {
+            var text = t
+            text = text
+                .substringAfterLast("```json")
+                .substringBeforeLast("```")
+                .replace(Regex("//[^\r\n]*"), "")
+
+            val start = text.indexOfFirst { it == '{' || it == '[' }
+            if (start == -1) return null
+
+            val brackStack = ArrayDeque<Char>()
+            var inString = false
+            var escaped = false
+
+            for (i in start until text.length) {
+                when (val c = text[i]) {
+                    '"' -> if (!escaped) inString = !inString
+                    '\\' -> escaped = inString && !escaped
+                    else -> {
+                        escaped = false
+                        if (!inString) when (c) {
+                            '{' -> brackStack += '}'
+                            '[' -> brackStack += ']'
+                            '}', ']' -> {
+                                if (brackStack.removeLastOrNull() != c)
+                                    return null
+                                if (brackStack.isEmpty())
+                                    return text.substring(start, i + 1)
+                            }
+                        }
+                    }
+                }
+            }
+
+            return null
+        }
+    }
+
     protected abstract val schema: String
     override suspend fun postProcess(result: String): String =
-        SerialisedResolver.findJson(result) ?: result
+        findJson(result) ?: result
 }
 
 class LlamaActionSequenceResolver(
