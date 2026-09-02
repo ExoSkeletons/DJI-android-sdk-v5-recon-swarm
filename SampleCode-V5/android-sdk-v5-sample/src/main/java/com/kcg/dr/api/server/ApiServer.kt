@@ -67,6 +67,7 @@ import io.ktor.websocket.send
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.InternalSerializationApi
@@ -572,7 +573,7 @@ private suspend fun DefaultWebSocketServerSession.telemetrySession(
     controller: AircraftController
 ) {
     runCatching {
-        combine(
+        val aircraftTel = combine(
             controller.ac.location,
             controller.ac.attitude,
             controller.ac.batteryPercent,
@@ -584,9 +585,18 @@ private suspend fun DefaultWebSocketServerSession.telemetrySession(
                 put("battery", battery)
                 put("velocity", velocity.toJson().toJsonElement())
             }
-        }.collect {
-            sendSerialized(it)
         }
+        val gimbalTel = controller.camGim.attitude.map { attitude ->
+            buildJsonObject {
+                put("attitude", attitude.toJson().toJsonElement())
+            }
+        }
+        combine(aircraftTel, gimbalTel) { a, g ->
+            buildJsonObject {
+                put("aircraft", a)
+                put("gimbal", g)
+            }
+        }.collect { sendSerialized(it) }
     }.onFailure { e ->
         when (e) {
             is ClosedChannelException -> Log.i(TAG, "WebSocket closed ${closeReason.await()}")
