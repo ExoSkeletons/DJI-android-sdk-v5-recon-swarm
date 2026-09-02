@@ -574,11 +574,13 @@ private suspend fun DefaultWebSocketServerSession.telemetrySession(
     runCatching {
         combine(
             controller.ac.location,
+            controller.ac.attitude,
             controller.ac.batteryPercent,
             controller.ac.velocity,
-        ) { location, battery, velocity ->
+        ) { location, attitude, battery, velocity ->
             buildJsonObject {
                 put("location", location?.toJson().toJsonElement())
+                put("attitude", attitude.toJson().toJsonElement())
                 put("battery", battery)
                 put("velocity", velocity.toJson().toJsonElement())
             }
