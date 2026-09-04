@@ -16,7 +16,7 @@ open class TCPClient(
     private val timeout: Int = 0,
     private val maxRetries: Int? = 3,
     private val retryDelay: Long = 1_000L, private val maxRetryDelay: Long = 20_000L,
-    private val publishScope: CoroutineScope = CoroutineScope(Dispatchers.Main),
+    private val publishScope: CoroutineScope = CoroutineScope(Dispatchers.Default),
     private val netScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
 ) {
     // Internal socket connection
