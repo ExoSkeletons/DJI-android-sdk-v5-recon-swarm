@@ -14,13 +14,13 @@ import com.kcg.dr.api.dto.TTSRequest
 import com.kcg.dr.api.dto.actions.Action
 import com.kcg.dr.api.dto.actions.FlyTo
 import com.kcg.dr.api.dto.actions.LookAt
-import com.kcg.dr.api.toElement
-import com.kcg.dr.api.toJsonElement
 import com.kcg.dr.djiutils.DJIErrorException
 import com.kcg.dr.djiutils.actionOrExcept
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.location.UserMetrics
 import com.kcg.dr.managers.TTSManager
+import com.kcg.dr.utils.toElement
+import com.kcg.dr.utils.toJsonElement
 import dji.sdk.keyvalue.key.AirLinkKey
 import dji.sdk.keyvalue.key.BatteryKey
 import dji.sdk.keyvalue.key.FlightControllerKey
