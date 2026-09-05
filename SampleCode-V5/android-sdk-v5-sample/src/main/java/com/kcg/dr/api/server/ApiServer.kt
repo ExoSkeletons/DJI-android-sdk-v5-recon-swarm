@@ -1,8 +1,7 @@
-package com.kcg.dr.api
+package com.kcg.dr.api.server
 
 import android.util.Log
 import androidx.lifecycle.MutableLiveData
-import com.kcg.dr.api.dto.FlyRequest
 import com.kcg.dr.api.dto.KeyActivator
 import com.kcg.dr.api.dto.Responses.djiErrorResponse
 import com.kcg.dr.api.dto.Responses.errorResponse
@@ -15,11 +14,13 @@ import com.kcg.dr.api.dto.TTSRequest
 import com.kcg.dr.api.dto.actions.Action
 import com.kcg.dr.api.dto.actions.FlyTo
 import com.kcg.dr.api.dto.actions.LookAt
+import com.kcg.dr.djiutils.DJIErrorException
+import com.kcg.dr.djiutils.actionOrExcept
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.location.UserMetrics
-import com.kcg.dr.djiutils.actionOrExcept
-import com.kcg.dr.djiutils.DJIErrorException
 import com.kcg.dr.managers.TTSManager
+import com.kcg.dr.utils.toElement
+import com.kcg.dr.utils.toJsonElement
 import dji.sdk.keyvalue.key.AirLinkKey
 import dji.sdk.keyvalue.key.BatteryKey
 import dji.sdk.keyvalue.key.FlightControllerKey
@@ -38,6 +39,7 @@ import io.ktor.server.application.install
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.ApplicationEngine
 import io.ktor.server.engine.embeddedServer
+import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.request.httpMethod
@@ -65,18 +67,35 @@ import io.ktor.websocket.send
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonObjectBuilder
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.put
 import kotlinx.serialization.serializer
 import java.nio.channels.ClosedChannelException
 import java.util.Locale
 
 private const val TAG = "ApiHttpServer"
+
+private val json = Json {
+    ignoreUnknownKeys = true
+    isLenient = true
+    @OptIn(ExperimentalSerializationApi::class)
+    decodeEnumsCaseInsensitive = true
+    @OptIn(ExperimentalSerializationApi::class)
+    allowComments = true
+    @OptIn(ExperimentalSerializationApi::class)
+    allowTrailingComma = true
+}
 
 class ApiServer {
     private var server: ApplicationEngine? = null
@@ -110,7 +129,7 @@ class ApiServer {
         if (server != null) stop()
 
         server = embeddedServer(CIO, host = host, port = port) {
-            install(ContentNegotiation) { json() }
+            install(ContentNegotiation) { json(json) }
             install(IgnoreTrailingSlash)
             install(WebSockets) {
                 contentConverter = KotlinxWebsocketSerializationConverter(Json {
@@ -195,6 +214,10 @@ class ApiServer {
                         webSocket("/sticks") {
                             send("Connected to sticks websocket")
                             sticksControlSession(wsIncoming) { this@ApiServer.controller }
+                        }
+                        webSocket("/gimbal") {
+                            send("Connected to gimbal websocket")
+                            gimbalControlSession(wsIncoming) { this@ApiServer.controller }
                         }
                         webSocket("/telemetry") {
                             send("Connected to telemetry websocket")
@@ -418,13 +441,15 @@ private fun Route.controllerRoute(
     }
 
     post("/fly") {
-        val request = call.receive<FlyRequest>()
-        controller.fly {
-            for (action: Action in request.mission)
-                action.act(controller, user)
+        val actions = when (val element = call.receive<JsonElement>()) {
+            is JsonArray -> element.map { json.decodeFromJsonElement<Action>(it) }
+            is JsonObject -> listOf(json.decodeFromJsonElement<Action>(element))
+            else -> throw BadRequestException("Unsupported JSON format for Action")
         }
-        // respond without waiting for completion
-        call.respond(status { "starting mission" })
+        controller.fly { actions.forEach { action -> action.act(this, user) } }
+        call.respond(ok {
+            put("actions", JsonArray(actions.map { json.encodeToJsonElement(it) }))
+        })
     }
 
     post("/stop") {
@@ -500,10 +525,40 @@ private suspend fun DefaultWebSocketServerSession.sticksControlSession(
             frame as? Frame.Text ?: continue
             val receivedText = frame.readText()
             wsIncoming.emit(receivedText)
-            val sticksRequest = Json.decodeFromString<AircraftController.FlightParam>(receivedText)
-            controllerProvider()?.sendFlightParam(sticksRequest)
+            val flightParam = Json.decodeFromString<AircraftController.FlightParam>(receivedText)
+            controllerProvider()?.sendFlightParam(flightParam)
             responseFlow.emit(ok {
-                put("param", sticksRequest.toString())
+                put("param", flightParam.toString())
+            })
+        }
+    }.onFailure { e ->
+        when (e) {
+            is ClosedChannelException -> Log.i(TAG, "WebSocket closed ${closeReason.await()}")
+            else -> Log.e(TAG, "WebSocket exception ${closeReason.await()}", e)
+        }
+    }.also { responderJob.cancel() }
+}
+
+private suspend fun DefaultWebSocketServerSession.gimbalControlSession(
+    wsIncoming: MutableSharedFlow<String>,
+    controllerProvider: () -> AircraftController?
+) {
+    val responseFlow = MutableSharedFlow<JsonObject>()
+    val responderJob = launch {
+        responseFlow.collect { response ->
+            sendSerialized(response)
+        }
+    }
+
+    runCatching {
+        for (frame in incoming) {
+            frame as? Frame.Text ?: continue
+            val receivedText = frame.readText()
+            wsIncoming.emit(receivedText)
+            val rotation = Json.decodeFromString<AircraftController.GimbalRotation>(receivedText)
+            controllerProvider()?.camGim?.angleCamera(rotation)
+            responseFlow.emit(ok {
+                put("param", rotation.toString())
             })
         }
     }.onFailure { e ->
@@ -518,19 +573,30 @@ private suspend fun DefaultWebSocketServerSession.telemetrySession(
     controller: AircraftController
 ) {
     runCatching {
-        combine(
+        val aircraftTel = combine(
             controller.ac.location,
+            controller.ac.attitude,
             controller.ac.batteryPercent,
             controller.ac.velocity,
-        ) { location, battery, velocity ->
+        ) { location, attitude, battery, velocity ->
             buildJsonObject {
                 put("location", location?.toJson().toJsonElement())
+                put("attitude", attitude.toJson().toJsonElement())
                 put("battery", battery)
                 put("velocity", velocity.toJson().toJsonElement())
             }
-        }.collect {
-            sendSerialized(it)
         }
+        val gimbalTel = controller.camGim.attitude.map { attitude ->
+            buildJsonObject {
+                put("attitude", attitude.toJson().toJsonElement())
+            }
+        }
+        combine(aircraftTel, gimbalTel) { a, g ->
+            buildJsonObject {
+                put("aircraft", a)
+                put("gimbal", g)
+            }
+        }.collect { sendSerialized(it) }
     }.onFailure { e ->
         when (e) {
             is ClosedChannelException -> Log.i(TAG, "WebSocket closed ${closeReason.await()}")

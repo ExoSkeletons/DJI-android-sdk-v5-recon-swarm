@@ -21,7 +21,7 @@ data class FlyBy(
     @property:SerialDescription("z+ is up")
     val dz: Double = 0.0,
     @property:SerialDescription("-6..6 (m/s)")
-    val velocity: Double = 4.0,
+    val velocity: Double = 1.0,
 ) : Action {
     override suspend fun act(aircraft: AircraftController, user: UserMetrics?) =
         aircraft.flyBy(XYZ(dx, dy, dz), velocity)

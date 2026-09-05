@@ -20,7 +20,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.Priority
-import com.kcg.dr.api.ApiServerVM
+import com.kcg.dr.api.server.ApiServerVM
 import com.kcg.dr.api.dto.KeyActivator
 import com.kcg.dr.api.dto.actions.FlyToMe
 import com.kcg.dr.api.dto.actions.FollowMe

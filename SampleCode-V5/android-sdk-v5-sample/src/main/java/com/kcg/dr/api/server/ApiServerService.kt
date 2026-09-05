@@ -1,12 +1,14 @@
-package com.kcg.dr.api
+package com.kcg.dr.api.server
 
 import android.app.Notification
+import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
 import android.os.Binder
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.kcg.dr.api.VideoTcpServer
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.utils.getLocalIpAddress
 import com.kcg.dr.utils.startAsForeground
@@ -46,7 +48,7 @@ class ApiServerService : Service() {
         host = intent?.getStringExtra(EXTRA_HOST) ?: host
         apiPort = intent?.getIntExtra(EXTRA_PORT, apiPort) ?: apiPort
 
-        val manager = getSystemService(NOTIFICATION_SERVICE) as android.app.NotificationManager
+        val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         manager.notify(NOTIFICATION_ID, createNotification())
 
         server.start(host = host, port = apiPort)

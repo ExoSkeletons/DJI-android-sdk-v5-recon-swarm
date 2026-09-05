@@ -158,9 +158,9 @@ open class AircraftController(
 
         suspend fun reset()
 
-        suspend fun resetAngle() = angleCamera(GimbalAngleRotation())
+        suspend fun resetAngle() = angleCamera(GimbalRotation())
 
-        suspend fun angleCamera(rotation: GimbalAngleRotation, mode: GimbalMode? = null)
+        suspend fun angleCamera(rotation: GimbalRotation, mode: GimbalMode? = null)
 
         suspend fun angleCamera(
             pitchDegrees: Double? = null,
@@ -170,19 +170,15 @@ open class AircraftController(
             gimbalMode: GimbalMode? = null,
             duration: Duration = 0.1.seconds,
         ) {
-            val rotation = GimbalAngleRotation()
+            val rotation = GimbalRotation()
             rotation.apply {
                 pitch = pitchDegrees
                 roll = rollDegrees
                 yaw = yawDegrees
                 mode = GimbalAngleRotationMode.ABSOLUTE_ANGLE
 
-                pitchIgnored = pitchDegrees == null
-                yawIgnored = yawDegrees == null
-                rollIgnored = rollDegrees == null
-
                 mode = angleMode
-                this.duration = duration.toDouble(DurationUnit.SECONDS)
+                this.duration = duration
             }
             angleCamera(rotation, gimbalMode)
         }
@@ -271,6 +267,17 @@ open class AircraftController(
             vz = other.vz ?: this.vz
         }
     }
+
+    @OptIn(InternalSerializationApi::class)
+    @Serializable
+    @SerialName("gimbal_rotation")
+    data class GimbalRotation(
+        var pitch: Double? = null,
+        var yaw: Double? = null,
+        var roll: Double? = null,
+        var duration: Duration = 0.1.seconds,
+        var mode: GimbalAngleRotationMode = GimbalAngleRotationMode.ABSOLUTE_ANGLE,
+    )
 
     companion object {
         const val TAG: String = "AircraftController"
@@ -394,7 +401,9 @@ open class AircraftController(
         }
     }
 
-    fun isFlying(): Boolean = ac.isFlying.value
+    inline val isFlying: Boolean get() = ac.isFlying.value
+
+    inline val ownsControl: Boolean get() = vSticks.ownsControl.value
 
     suspend fun safely(
         onRCOverride: () -> Unit = {},
@@ -518,7 +527,7 @@ open class AircraftController(
     ) {
         Log.d(TAG, "takeoff")
 
-        if (isFlying()) {
+        if (isFlying) {
             Log.i(TAG, "already flying")
             return
         }

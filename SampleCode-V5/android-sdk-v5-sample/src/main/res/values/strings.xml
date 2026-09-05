@@ -554,7 +554,7 @@ More refer to the release notes." </string>
         <item>bush|bushes|six|6</item>
     </array>
 
-    <string name="command_hello">hello|hi|heya|hiya|hey|wave</string>
+    <string name="command_hello">hello|(\\b(hi|heya|hiya|hey|wave)\\b)</string>
     <string name="command_circle">circle|loop|circling|orbit</string>
     <string name="command_square">square|patrol|perimeter</string>
     <string name="command_cam_fan">fan</string>

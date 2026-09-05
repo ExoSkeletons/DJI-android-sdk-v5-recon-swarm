@@ -2,7 +2,7 @@
 
 package com.kcg.dr.api.dto.actions
 
-import com.kcg.dr.api.SerializerSurrogates.LocationCoordinate3DSerializer
+import com.kcg.dr.djiutils.dto.LocationCoordinate3DSerializer
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.location.UserMetrics
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D

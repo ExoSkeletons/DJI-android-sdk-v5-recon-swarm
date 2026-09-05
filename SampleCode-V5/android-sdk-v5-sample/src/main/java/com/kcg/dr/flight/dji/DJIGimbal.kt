@@ -3,6 +3,7 @@ package com.kcg.dr.flight.dji
 import com.kcg.dr.djiutils.await
 import com.kcg.dr.djiutils.awaitOrNull
 import com.kcg.dr.djiutils.ifConnected
+import com.kcg.dr.flight.AircraftController.GimbalRotation
 import com.kcg.dr.flight.AircraftController.IGimbal
 import dji.sdk.keyvalue.key.GimbalKey
 import dji.sdk.keyvalue.value.common.Attitude
@@ -17,6 +18,7 @@ import dji.v5.et.create
 import dji.v5.et.listen
 import dji.v5.et.set
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlin.time.DurationUnit
 
 class DJIGimbal : IGimbal {
     private val _attitudeRange = MutableStateFlow<GimbalAttitudeRange?>(null)
@@ -67,14 +69,30 @@ class DJIGimbal : IGimbal {
         }
     }
 
+    fun GimbalRotation.build(): GimbalAngleRotation {
+        val rotation = this@build
+        return GimbalAngleRotation().apply {
+            pitch = rotation.pitch
+            roll = rotation.roll
+            yaw = rotation.yaw
+            mode = rotation.mode
+
+            pitchIgnored = rotation.pitch == null
+            yawIgnored = rotation.yaw == null
+            rollIgnored = rotation.roll == null
+            this.duration = rotation.duration.toDouble(DurationUnit.SECONDS)
+        }
+        // .coerceIn(_attitudeRange.value),
+    }
+
     override suspend fun angleCamera(
-        rotation: GimbalAngleRotation,
+        rotation: GimbalRotation,
         mode: GimbalMode?
     ) = ifConnected {
         mode?.let { setCameraGimbalMode(it) }
         awaitOrNull { onSuccess: ((EmptyMsg?) -> Unit), onFailure ->
             GimbalKey.KeyRotateByAngle.create().action(
-                rotation, //rotation.coerceIn(_attitudeRange.value),
+                rotation.build(),
                 onSuccess, onFailure
             )
         }

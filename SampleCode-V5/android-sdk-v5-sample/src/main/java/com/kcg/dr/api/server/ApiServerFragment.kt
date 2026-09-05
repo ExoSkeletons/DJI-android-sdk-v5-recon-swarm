@@ -1,9 +1,13 @@
-package com.kcg.dr.api
+package com.kcg.dr.api.server
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context.CLIPBOARD_SERVICE
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.viewmodel.MutableCreationExtras
@@ -49,27 +53,31 @@ class ApiServerFragment : Fragment() {
             else viewModel.stopService()
         }
 
-        viewModel.isServerRunning.observe(viewLifecycleOwner) {
-            binding.switchServer.isChecked = it
-            binding.tvServerStatus.text = when (it) {
-                true -> "API Server: Running"
-                else -> "API Server: Stopped"
-            }
-            binding.ivServerIcon.setImageResource(
-                if (it) R.drawable.ic_media_play
-                else R.drawable.ic_media_stop
+        viewModel.isServerRunning.observe(viewLifecycleOwner) { isRunning ->
+            binding.switchServer.isChecked = isRunning
+            binding.tvServerStatus.setText(
+                if (isRunning) R.string.actionbar_item_status_on
+                else R.string.actionbar_item_status_off
             )
-            binding.ivServerIcon.setColorFilter(
-                if (it) resources.getColor(android.R.color.holo_green_light, null)
-                else resources.getColor(android.R.color.white, null)
+            binding.layoutHeader.setBackgroundResource(
+                if (isRunning) R.drawable.uxsdk_gradient_good
+                else R.drawable.uxsdk_gradient_offline
             )
-            binding.tvLogs.alpha = if (it) 1f else 0.5f
+            binding.tvLogsRest.alpha = if (isRunning) 1f else 0.5f
+            binding.tvLogsWs.alpha = if (isRunning) 1f else 0.5f
         }
         viewModel.tunnelingUrl.observe(viewLifecycleOwner) {
             binding.tvTunnelingUrl.text = it
         }
+        binding.tvTunnelingUrl.setOnClickListener {
+            val urlText = binding.tvTunnelingUrl.text?.toString()
+            if (urlText.isNullOrBlank()) return@setOnClickListener
+            val clipboard = requireContext().getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+            clipboard.setPrimaryClip(ClipData.newPlainText("url", urlText))
+            Toast.makeText(requireContext(), "URL copied to clipboard", Toast.LENGTH_SHORT).show()
+        }
         viewModel.serverLogs.observe(viewLifecycleOwner) { latest ->
-            binding.tvLogs.text =
+            binding.tvLogsRest.text =
                 if (latest?.isEmpty() ?: true) "Waiting for requests..."
                 else latest
         }

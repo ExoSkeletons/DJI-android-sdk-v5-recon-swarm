@@ -9,66 +9,77 @@
         android:orientation="vertical"
         android:padding="10dp">
 
-        <LinearLayout
+    <LinearLayout
+        android:id="@+id/layout_header"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/uxsdk_gradient_offline"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_marginEnd="10dp"
+            android:src="@drawable/ic_topbar_signal_level_5" />
+
+        <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:layout_marginEnd="10dp"
+            android:layout_weight="1"
+            android:text="API Server" />
 
-            <ImageView
-                android:id="@+id/iv_server_icon"
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:src="@drawable/ic_media_stop"
-                app:tint="@android:color/white" />
+        <TextView
+            android:id="@+id/tv_server_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="10dp"
+            android:text="@string/actionbar_item_status_off"
+            android:textColor="@android:color/white"
+            android:textStyle="bold" />
 
-            <TextView
-                android:id="@+id/tv_server_status"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_weight="1"
-                android:text="API Server: Stopped"
-                android:textColor="@android:color/white"
-                android:textSize="11sp"
-                android:textStyle="bold" />
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/switch_server"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="10dp"
+            android:minHeight="60dp"
+            android:minWidth="60dp"
+            app:thumbTint="@android:color/white" />
 
-            <androidx.appcompat.widget.SwitchCompat
-                android:id="@+id/switch_server"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:minHeight="60dp"
-                android:minWidth="60dp"
-                app:thumbTint="@android:color/white" />
-
-        </LinearLayout>
+    </LinearLayout>
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="TUNNEL URL"
+        android:textColor="@color/uxsdk_dic_color_c27_yellow"
         android:textStyle="bold|italic" />
 
     <TextView
         android:id="@+id/tv_tunneling_url"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        tools:text="https://alpacha-wombat57.cloudflare/" />
+        android:clickable="true"
+        android:textColor="@android:color/primary_text_dark"
+        android:textSize="16sp"
+        tools:text="alpacha-wombat57.cloudflare" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="REST"
+        android:textColor="@color/uxsdk_dic_color_c27_yellow"
         android:textStyle="bold|italic" />
 
     <TextView
-        android:id="@+id/tv_logs"
+        android:id="@+id/tv_logs_rest"
         android:layout_width="match_parent"
         android:layout_height="64dp"
         android:fontFamily="monospace"
         android:scrollbars="vertical"
-        android:text="Waiting for requests..."
-        android:textColor="#A0FFFFFF"
+        android:textColor="@android:color/primary_text_dark"
         android:textSize="12sp"
         tools:text="GET /status\nPOST /key\nGET /fly" />
 
@@ -76,11 +87,15 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="WS"
+        android:textColor="@color/uxsdk_dic_color_c27_yellow"
         android:textStyle="bold|italic" />
 
     <TextView
         android:id="@+id/tv_logs_ws"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:fontFamily="monospace"
+        android:textColor="@android:color/primary_text_dark"
+        android:textSize="12sp" />
 
 </LinearLayout>

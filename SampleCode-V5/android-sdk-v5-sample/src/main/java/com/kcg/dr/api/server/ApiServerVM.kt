@@ -1,8 +1,7 @@
-package com.kcg.dr.api
+package com.kcg.dr.api.server
 
 import android.app.Application
 import android.content.ComponentName
-import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.os.IBinder
@@ -19,6 +18,7 @@ import com.kcg.dr.api.Tunneling.Cloudflared
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.location.UserMetrics
 import com.kcg.dr.utils.ServiceUtils
+import dji.sampleV5.aircraft.util.ToastUtils
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.launch
@@ -107,6 +107,7 @@ class ApiServerVM(
             },
             connection = serviceConnection
         )
+        startTunneling(port)
     }
 
     fun stopService() {
@@ -117,18 +118,23 @@ class ApiServerVM(
             connection = serviceConnection
         )
         server.value = null
-        // startTunneling(port)
+        stopTunneling()
         isServiceBound.value = false
         isServiceRunning.value = false
     }
 
     fun startTunneling(port: Int = 8080) {
         viewModelScope.launch {
-            val urls = Cloudflared.startTunneling(
-                context = getApplication<Application>().applicationContext,
-                port = port
-            )
-            tunnelingUrl.value = urls.firstOrNull()
+            runCatching {
+                val urls = Cloudflared.startTunneling(
+                    context = getApplication<Application>().applicationContext,
+                    port = port
+                )
+                tunnelingUrl.value = urls.first()
+            }.onFailure { e ->
+                e.printStackTrace()
+                ToastUtils.showToast("Failed to start tunneling\n${e.message}")
+            }
         }
     }
 
