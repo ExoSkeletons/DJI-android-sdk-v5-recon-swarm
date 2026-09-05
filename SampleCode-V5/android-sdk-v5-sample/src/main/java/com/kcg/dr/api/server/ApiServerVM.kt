@@ -17,7 +17,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.kcg.dr.api.Tunneling.Cloudflared
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.location.UserMetrics
-import com.kcg.dr.utils.ServiceUtils
+import com.aviad40l.dr.util.ServiceUtils
 import dji.sampleV5.aircraft.util.ToastUtils
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan

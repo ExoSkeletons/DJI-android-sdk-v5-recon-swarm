@@ -22,7 +22,7 @@ import com.kcg.dr.location.UserVM
 import com.kcg.dr.managers.SFXManager
 import com.kcg.dr.managers.SFXManager.playSfx
 import com.kcg.dr.managers.TTSManager.speak
-import com.kcg.dr.utils.LocaleUtils
+import com.aviad40l.dr.util.LocaleUtils
 import com.kcg.dr.voice.CommandResolver.Command
 import com.kcg.dr.voice.CommandResolver.Command.Companion.respFmtExId
 import com.kcg.dr.voice.CommandResolver.Command.Companion.respFmtGoId

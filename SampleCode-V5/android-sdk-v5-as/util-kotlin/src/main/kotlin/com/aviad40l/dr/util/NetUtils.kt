@@ -1,4 +1,4 @@
-package com.kcg.dr.utils
+package com.aviad40l.dr.util
 
 import java.net.Inet4Address
 import java.net.NetworkInterface

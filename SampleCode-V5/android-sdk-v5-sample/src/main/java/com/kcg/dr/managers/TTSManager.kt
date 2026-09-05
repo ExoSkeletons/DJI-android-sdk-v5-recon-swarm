@@ -10,7 +10,7 @@ import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.MutableLiveData
-import com.kcg.dr.utils.getLocalizedResources
+import com.aviad40l.dr.util.getLocalizedResources
 import dji.sampleV5.aircraft.R
 import java.util.Locale
 

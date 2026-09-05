@@ -2,7 +2,7 @@ package com.kcg.dr.api
 
 import android.content.Context
 import android.util.Log
-import com.kcg.dr.utils.getExecutableFromLibs
+import com.aviad40l.dr.util.getExecutableFromLibs
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.get

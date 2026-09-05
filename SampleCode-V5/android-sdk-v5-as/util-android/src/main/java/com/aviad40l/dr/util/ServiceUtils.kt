@@ -1,4 +1,4 @@
-package com.kcg.dr.utils
+package com.aviad40l.dr.util
 
 import android.app.Notification
 import android.app.Service

@@ -1,4 +1,4 @@
-package com.kcg.dr.utils
+package com.aviad40l.dr.util
 
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
@@ -30,7 +30,7 @@ suspend fun <T> LiveData<T>.awaitValue(
     require(timeout >= updateInterval) { "timeout $timeout to short, must be greater than update interval $updateInterval" }
 
     return withTimeout(timeout) {
-        while (isActive && !isInitialized && value == null)
+        while (isActive && value == null)
             delay(updateInterval)
         value ?: throw CancellationException()
     }

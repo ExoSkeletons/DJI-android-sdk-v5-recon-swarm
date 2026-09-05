@@ -3,8 +3,8 @@
 package com.kcg.dr.djiutils
 
 import android.location.Location
-import com.kcg.dr.utils.mag
-import com.kcg.dr.utils.normalizeAngle
+import com.aviad40l.dr.util.mag
+import com.aviad40l.dr.util.normalizeAngle
 import dji.sdk.keyvalue.value.common.LocationCoordinate2D
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
 import dji.sdk.keyvalue.value.common.XYZ

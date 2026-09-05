@@ -1,6 +1,6 @@
 @file:OptIn(InternalSerializationApi::class)
 
-package com.kcg.dr.utils
+package com.aviad40l.dr.util
 
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.json.JsonArray
@@ -10,6 +10,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import org.json.JSONArray
 import org.json.JSONObject
+import kotlin.collections.iterator
 
 fun Any?.toElement(): JsonElement = when (val value = this) {
     null -> JsonNull

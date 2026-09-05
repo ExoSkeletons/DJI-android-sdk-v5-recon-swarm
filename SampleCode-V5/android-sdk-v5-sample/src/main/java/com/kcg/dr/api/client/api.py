@@ -1,5 +1,6 @@
 from typing import Callable, Any
 
+import keyboard
 import requests
 import websockets
 from config import ADDRESS, PORT
@@ -38,6 +39,7 @@ def post(path, data=None):
 async def ws_connect(
         path,
         on_msg:Callable[[str | bytes], Any],
+        exit_key ='x',
         pre_recv: Callable[[], Any] = None,
         on_error: Callable[[Exception], Any] | None = None
 ):
@@ -54,6 +56,9 @@ async def ws_connect(
                 await ws.recv()
 
                 while True:
+                    if keyboard.is_pressed(exit_key):  # if exit key is pressed
+                        break
+
                     if pre_recv: pre_recv()
 
                     message = await ws.recv()

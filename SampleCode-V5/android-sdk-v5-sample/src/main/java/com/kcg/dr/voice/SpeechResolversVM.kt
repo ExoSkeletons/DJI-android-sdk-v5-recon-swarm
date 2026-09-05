@@ -23,9 +23,9 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.kcg.dr.managers.SFXManager
 import com.kcg.dr.managers.SFXManager.playSfx
-import com.kcg.dr.utils.ServiceUtils
+import com.aviad40l.dr.util.ServiceUtils
 import com.kcg.dr.managers.TTSManager.speak
-import com.kcg.dr.utils.getLocalizedResources
+import com.aviad40l.dr.util.getLocalizedResources
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.util.ToastUtils
 import kotlinx.coroutines.Dispatchers

@@ -1,4 +1,4 @@
-package com.kcg.dr.utils
+package com.aviad40l.dr.util
 
 import android.content.Context
 import android.content.res.Configuration

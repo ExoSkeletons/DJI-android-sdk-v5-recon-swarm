@@ -24,9 +24,9 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.lifecycleScope
 import com.kcg.dr.managers.SFXManager
-import com.kcg.dr.utils.JobRepeater
-import com.kcg.dr.utils.TCPClient
-import com.kcg.dr.utils.TCPJSONClient
+import com.aviad40l.dr.util.JobRepeater
+import com.aviad40l.dr.util.TCPClient
+import com.aviad40l.dr.util.TCPJSONClient
 import dji.sampleV5.aircraft.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

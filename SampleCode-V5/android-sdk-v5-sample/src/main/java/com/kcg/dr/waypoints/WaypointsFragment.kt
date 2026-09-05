@@ -18,9 +18,9 @@ import com.kcg.dr.djiutils.asDjiLocation
 import com.kcg.dr.flight.AircraftControlVM
 import com.kcg.dr.location.LiveLocationProvider
 import com.kcg.dr.location.UserVM
-import com.kcg.dr.utils.LocaleUtils
-import com.kcg.dr.utils.getLocalizedResources
-import com.kcg.dr.utils.observe
+import com.aviad40l.dr.util.LocaleUtils
+import com.aviad40l.dr.util.getLocalizedResources
+import com.aviad40l.dr.util.observe
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.databinding.FragVocomWaypointsBinding
 import kotlinx.coroutines.launch

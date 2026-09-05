@@ -37,9 +37,9 @@ import com.kcg.dr.flight.AircraftController.IVirtualStick
 import com.kcg.dr.location.LiveLocationProvider
 import com.kcg.dr.location.UserVM
 import com.kcg.dr.managers.TTSManager.speak
-import com.kcg.dr.utils.LocaleUtils
-import com.kcg.dr.utils.getLocalizedResources
-import com.kcg.dr.utils.observe
+import com.aviad40l.dr.util.LocaleUtils
+import com.aviad40l.dr.util.getLocalizedResources
+import com.aviad40l.dr.util.observe
 import com.kcg.dr.voice.CommandResolver.Command
 import com.kcg.dr.voice.CommandResolver.Command.Companion.respFmtExId
 import com.kcg.dr.voice.CommandResolver.Command.Companion.respFmtGoId

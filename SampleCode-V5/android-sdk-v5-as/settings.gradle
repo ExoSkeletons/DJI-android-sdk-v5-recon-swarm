@@ -3,3 +3,5 @@ project(':sample').projectDir = new File(rootProject.projectDir, '../android-sdk
 
 include ':uxsdk'// uxsdk模块
 project(':uxsdk').projectDir = new File(rootProject.projectDir, '../android-sdk-v5-uxsdk')
+include ':util-kotlin'
+include ':util-android'

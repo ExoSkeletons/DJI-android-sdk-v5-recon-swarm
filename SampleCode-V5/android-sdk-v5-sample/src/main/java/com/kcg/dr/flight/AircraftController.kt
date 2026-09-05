@@ -21,10 +21,10 @@ import com.kcg.dr.djiutils.dt
 import com.kcg.dr.djiutils.mag
 import com.kcg.dr.djiutils.minus
 import com.kcg.dr.djiutils.times
-import com.kcg.dr.utils.normalizeAngle
-import com.kcg.dr.utils.toDegrees
-import com.kcg.dr.utils.whileSuspendedBy
-import com.kcg.dr.utils.wrap180
+import com.aviad40l.dr.util.normalizeAngle
+import com.aviad40l.dr.util.toDegrees
+import com.aviad40l.dr.util.whileSuspendedBy
+import com.aviad40l.dr.util.wrap180
 import dji.sampleV5.aircraft.models.VirtualStickVM.RCStickValue
 import dji.sampleV5.aircraft.util.ToastUtils
 import dji.sdk.keyvalue.value.common.Attitude
@@ -33,7 +33,6 @@ import dji.sdk.keyvalue.value.common.LocationCoordinate2D
 import dji.sdk.keyvalue.value.common.LocationCoordinate3D
 import dji.sdk.keyvalue.value.common.Velocity3D
 import dji.sdk.keyvalue.value.common.XYZ
-import dji.sdk.keyvalue.value.gimbal.GimbalAngleRotation
 import dji.sdk.keyvalue.value.gimbal.GimbalAngleRotationMode
 import dji.sdk.keyvalue.value.gimbal.GimbalMode
 import dji.v5.common.callback.CommonCallbacks
