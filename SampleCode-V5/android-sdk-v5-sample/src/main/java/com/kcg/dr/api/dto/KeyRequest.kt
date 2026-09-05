@@ -16,8 +16,8 @@ package com.kcg.dr.api.dto
 
 import android.util.Log
 import com.google.gson.annotations.SerializedName
-import com.aviad40l.dr.util.toElement
-import com.aviad40l.dr.util.toJsonElement
+import com.aviadl40.utils.json.toElement
+import com.aviadl40.utils.json.toJsonElement
 import com.kcg.dr.djiutils.actionOrExcept
 import com.kcg.dr.djiutils.getOrExcept
 import com.kcg.dr.djiutils.setOrExcept

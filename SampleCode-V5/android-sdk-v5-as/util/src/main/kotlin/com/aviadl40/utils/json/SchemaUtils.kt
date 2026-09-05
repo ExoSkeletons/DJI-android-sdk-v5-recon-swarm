@@ -1,4 +1,4 @@
-package com.aviad40l.dr.util
+package com.aviadl40.utils.json
 
 import kotlinx.schema.json.ArrayContainer
 import kotlinx.schema.json.ArrayPropertyDefinition

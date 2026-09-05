@@ -2,8 +2,8 @@ package com.kcg.dr.managers
 
 import android.app.Application
 import android.content.res.Resources
-import com.aviad40l.dr.util.LocaleUtils
-import com.aviad40l.dr.util.getLocalizedResources
+import com.aviadl40.utils.android.LocaleUtils
+import com.aviadl40.utils.android.getLocalizedResources
 
 object ResourcesManager {
     private var app: Application? = null

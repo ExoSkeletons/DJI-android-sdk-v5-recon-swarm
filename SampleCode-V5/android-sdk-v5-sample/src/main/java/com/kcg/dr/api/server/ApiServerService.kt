@@ -10,8 +10,8 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.kcg.dr.api.VideoTcpServer
 import com.kcg.dr.flight.AircraftController
-import com.aviad40l.dr.util.getLocalIpAddress
-import com.aviad40l.dr.util.startAsForeground
+import com.aviadl40.utils.net.getLocalIpAddress
+import com.aviadl40.utils.android.startAsForeground
 import dji.sampleV5.aircraft.R
 
 private const val TAG = "DroneApiService"

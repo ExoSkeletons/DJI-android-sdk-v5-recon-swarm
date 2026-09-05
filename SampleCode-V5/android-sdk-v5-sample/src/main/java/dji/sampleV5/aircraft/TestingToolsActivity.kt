@@ -10,8 +10,8 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import androidx.fragment.app.commit
 import androidx.navigation.Navigation
-import com.aviad40l.dr.util.LocaleUtils
-import com.aviad40l.dr.util.getSupportedLocales
+import com.aviadl40.utils.android.LocaleUtils
+import com.aviadl40.utils.android.getSupportedLocales
 import dji.sampleV5.aircraft.databinding.ActivityTestingToolsBinding
 import dji.sampleV5.aircraft.models.MSDKCommonOperateVm
 import dji.sampleV5.aircraft.util.DJIToastUtil

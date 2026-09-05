@@ -144,7 +144,7 @@ dependencies {
 
     /** <-----------------sample所需--------------------> **/
     implementation project(':util-android')
-    implementation project(':util-kotlin')
+    implementation project(':util')
     implementation project(':uxsdk')
     implementation deps.appcompat
     implementation deps.constraintLayout

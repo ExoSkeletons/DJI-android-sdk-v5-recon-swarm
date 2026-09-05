@@ -1,4 +1,4 @@
-package com.aviad40l.dr.util
+package com.aviadl40.utils.net
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

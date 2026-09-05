@@ -1,4 +1,4 @@
-package com.aviad40l.dr.util
+package com.aviadl40.utils.coroutine
 
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin

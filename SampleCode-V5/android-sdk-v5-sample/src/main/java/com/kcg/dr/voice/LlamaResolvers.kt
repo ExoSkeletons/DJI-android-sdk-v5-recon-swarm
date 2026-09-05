@@ -8,9 +8,9 @@ import com.arm.aichat.isModelLoaded
 import com.kcg.dr.api.dto.actions.Action
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.location.UserMetrics
-import com.aviad40l.dr.util.appendPropertyShortJson
-import com.aviad40l.dr.util.dereference
-import com.aviad40l.dr.util.getAssetOrExtract
+import com.aviadl40.utils.json.appendPropertyShortJson
+import com.aviadl40.utils.json.dereference
+import com.aviadl40.utils.android.getAssetOrExtract
 import com.kcg.dr.voice.SpeechResolver.Description
 import dji.sampleV5.aircraft.R
 import kotlinx.schema.generator.json.serialization.SerializationClassJsonSchemaGenerator

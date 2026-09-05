@@ -1,6 +1,6 @@
 package dji.sampleV5.aircraft.models
 
-import com.aviad40l.dr.util.toDegrees
+import com.aviadl40.utils.math.toDegrees
 import dji.sdk.keyvalue.key.GimbalKey
 import dji.sdk.keyvalue.value.gimbal.GimbalAngleRotation
 import dji.sdk.keyvalue.value.gimbal.GimbalAngleRotationMode

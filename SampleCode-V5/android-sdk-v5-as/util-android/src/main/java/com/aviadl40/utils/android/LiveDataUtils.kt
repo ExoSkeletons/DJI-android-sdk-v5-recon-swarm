@@ -1,4 +1,4 @@
-package com.aviad40l.dr.util
+package com.aviadl40.utils.android
 
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner

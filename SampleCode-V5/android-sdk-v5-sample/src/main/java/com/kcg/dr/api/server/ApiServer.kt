@@ -19,8 +19,8 @@ import com.kcg.dr.djiutils.actionOrExcept
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.location.UserMetrics
 import com.kcg.dr.managers.TTSManager
-import com.aviad40l.dr.util.toElement
-import com.aviad40l.dr.util.toJsonElement
+import com.aviadl40.utils.json.toElement
+import com.aviadl40.utils.json.toJsonElement
 import dji.sdk.keyvalue.key.AirLinkKey
 import dji.sdk.keyvalue.key.BatteryKey
 import dji.sdk.keyvalue.key.FlightControllerKey

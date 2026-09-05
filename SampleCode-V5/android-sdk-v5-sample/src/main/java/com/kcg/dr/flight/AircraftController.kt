@@ -21,10 +21,10 @@ import com.kcg.dr.djiutils.dt
 import com.kcg.dr.djiutils.mag
 import com.kcg.dr.djiutils.minus
 import com.kcg.dr.djiutils.times
-import com.aviad40l.dr.util.normalizeAngle
-import com.aviad40l.dr.util.toDegrees
-import com.aviad40l.dr.util.whileSuspendedBy
-import com.aviad40l.dr.util.wrap180
+import com.aviadl40.utils.math.normalizeAngle
+import com.aviadl40.utils.math.toDegrees
+import com.aviadl40.utils.coroutine.whileSuspendedBy
+import com.aviadl40.utils.math.wrap180
 import dji.sampleV5.aircraft.models.VirtualStickVM.RCStickValue
 import dji.sampleV5.aircraft.util.ToastUtils
 import dji.sdk.keyvalue.value.common.Attitude

@@ -7,7 +7,7 @@ import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.Translation
 import com.google.mlkit.nl.translate.Translator
 import com.google.mlkit.nl.translate.TranslatorOptions
-import com.aviad40l.dr.util.getLocalizedResources
+import com.aviadl40.utils.android.getLocalizedResources
 import com.kcg.dr.voice.SpeechResolver.Description
 import dji.sampleV5.aircraft.R
 import kotlinx.coroutines.suspendCancellableCoroutine

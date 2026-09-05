@@ -1,6 +1,6 @@
 @file:OptIn(InternalSerializationApi::class)
 
-package com.aviad40l.dr.util
+package com.aviadl40.utils.json
 
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.json.JsonArray

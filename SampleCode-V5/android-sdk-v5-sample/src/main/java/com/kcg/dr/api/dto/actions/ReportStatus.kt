@@ -11,7 +11,7 @@ import com.kcg.dr.managers.TTSManager.speak
 import com.kcg.dr.djiutils.as2D
 import com.kcg.dr.djiutils.asXYZ
 import com.kcg.dr.djiutils.mag
-import com.aviad40l.dr.util.LocaleUtils
+import com.aviadl40.utils.android.LocaleUtils
 import dji.sampleV5.aircraft.R
 import dji.sampleV5.aircraft.util.ToastUtils
 import kotlinx.schema.generator.json.SerialDescription
