@@ -217,7 +217,7 @@ class ApiServer {
                         }
                         webSocket("/gimbal") {
                             send("Connected to gimbal websocket")
-                            gimbalControlSession(wsIncoming) { this@ApiServer.controller }
+                            gimbalControlSession(wsIncoming) { this@ApiServer.controller?.camGim }
                         }
                         webSocket("/telemetry") {
                             send("Connected to telemetry websocket")
@@ -541,7 +541,7 @@ private suspend fun DefaultWebSocketServerSession.sticksControlSession(
 
 private suspend fun DefaultWebSocketServerSession.gimbalControlSession(
     wsIncoming: MutableSharedFlow<String>,
-    controllerProvider: () -> AircraftController?
+    gimbalProvider: () -> AircraftController.IGimbal?
 ) {
     val responseFlow = MutableSharedFlow<JsonObject>()
     val responderJob = launch {
@@ -556,7 +556,7 @@ private suspend fun DefaultWebSocketServerSession.gimbalControlSession(
             val receivedText = frame.readText()
             wsIncoming.emit(receivedText)
             val rotation = Json.decodeFromString<AircraftController.GimbalRotation>(receivedText)
-            controllerProvider()?.camGim?.angleCamera(rotation)
+            gimbalProvider()?.angleCamera(rotation)
             responseFlow.emit(ok {
                 put("param", rotation.toString())
             })
