@@ -221,17 +221,6 @@ class ApiServer {
                         }
                         webSocket("/telemetry") {
                             send("Connected to telemetry websocket")
-                            val controller = this@ApiServer.controller
-                            if (controller == null) {
-                                sendSerialized(errorResponse { "No controller" })
-                                close(
-                                    CloseReason(
-                                        CloseReason.Codes.INTERNAL_ERROR,
-                                        "No controller"
-                                    )
-                                )
-                                return@webSocket
-                            }
                             telemetrySession(controller)
                         }
                     }
@@ -570,8 +559,17 @@ private suspend fun DefaultWebSocketServerSession.gimbalControlSession(
 }
 
 private suspend fun DefaultWebSocketServerSession.telemetrySession(
-    controller: AircraftController
+    controller: AircraftController?
 ) {
+    if (controller == null) {
+        sendSerialized(errorResponse { "No controller" })
+        return close(
+            CloseReason(
+                CloseReason.Codes.INTERNAL_ERROR,
+                "No controller"
+            )
+        )
+    }
     runCatching {
         val aircraftTel = combine(
             controller.ac.location,
