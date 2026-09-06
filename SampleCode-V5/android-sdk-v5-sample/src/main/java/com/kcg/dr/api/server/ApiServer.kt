@@ -2,6 +2,8 @@ package com.kcg.dr.api.server
 
 import android.util.Log
 import androidx.lifecycle.MutableLiveData
+import com.aviadl40.utils.json.toElement
+import com.aviadl40.utils.json.toJsonElement
 import com.kcg.dr.api.dto.KeyActivator
 import com.kcg.dr.api.dto.Responses.djiErrorResponse
 import com.kcg.dr.api.dto.Responses.errorResponse
@@ -19,8 +21,6 @@ import com.kcg.dr.djiutils.actionOrExcept
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.location.UserMetrics
 import com.kcg.dr.managers.TTSManager
-import com.aviadl40.utils.json.toElement
-import com.aviadl40.utils.json.toJsonElement
 import dji.sdk.keyvalue.key.AirLinkKey
 import dji.sdk.keyvalue.key.BatteryKey
 import dji.sdk.keyvalue.key.FlightControllerKey
@@ -181,7 +181,7 @@ class ApiServer {
                     }
                 }
 
-                route("/status") { aircraftStatusRoute() }
+                route("/status") { djiStatusRoute() }
 
                 post("/tts") {
                     val request = call.receive<TTSRequest>()
@@ -238,8 +238,8 @@ class ApiServer {
                 }
 
 
-                quickActionsRoute()
-                keyActivationRoute()
+                djiQuickActionsRoute()
+                djiApiKeyRoute()
             }
         }.start(wait = false)
         isRunning.value = true
@@ -248,7 +248,7 @@ class ApiServer {
     }
 }
 
-private fun Routing.keyActivationRoute() {
+private fun Routing.djiApiKeyRoute() {
     post("/key") {
         try {
             val jsonStr = call.receiveText()
@@ -264,7 +264,7 @@ private fun Routing.keyActivationRoute() {
     }
 }
 
-private fun Route.aircraftStatusRoute() {
+private fun Route.djiStatusRoute() {
     get("/") {
         try {
             val isFlying = FlightControllerKey.KeyIsFlying.create().get(false)
@@ -363,7 +363,7 @@ private fun Route.aircraftStatusRoute() {
     }
 }
 
-private fun Routing.quickActionsRoute() {
+private fun Routing.djiQuickActionsRoute() {
     get(Regex("/(fly|takeoff)")) {
         try {
             val isFlying = FlightControllerKey.KeyIsFlying.create().get(false)
