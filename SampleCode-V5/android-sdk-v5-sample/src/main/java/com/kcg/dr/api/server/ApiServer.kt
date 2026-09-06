@@ -222,7 +222,7 @@ class ApiServer {
 private suspend fun DefaultWebSocketServerSession.sticksControlSession(
     wsIncoming: MutableSharedFlow<String>,
     controllerProvider: () -> AircraftController?
-) = serialisedSession<AircraftController.FlightParam> { param ->
+) = handleJsonRequests<AircraftController.FlightParam> { param ->
     wsIncoming.emit(param.toString())
     val controller = controllerProvider() ?: throw IllegalStateException("Controller not ready")
     controller.sendFlightParam(param)
@@ -232,17 +232,17 @@ private suspend fun DefaultWebSocketServerSession.sticksControlSession(
 private suspend fun DefaultWebSocketServerSession.gimbalControlSession(
     wsIncoming: MutableSharedFlow<String>,
     gimbalProvider: () -> AircraftController.IGimbal?
-) = serialisedSession<AircraftController.GimbalRotation> { rotation ->
+) = handleJsonRequests<AircraftController.GimbalRotation> { rotation ->
     wsIncoming.emit(rotation.toString())
     val gimbal = gimbalProvider() ?: throw IllegalStateException("Gimbal not ready")
     gimbal.angleCamera(rotation)
     ok { put("param", rotation.toString()) }
 }
 
-private suspend inline fun <reified P, reified R> DefaultWebSocketServerSession.serialisedSession(
-    handler: suspend (P) -> R
+private suspend inline fun <reified Request, reified Response> DefaultWebSocketServerSession.handleJsonRequests(
+    handler: suspend (Request) -> Response
 ) {
-    val resultFlow = MutableSharedFlow<R>()
+    val resultFlow = MutableSharedFlow<Response>()
     val expectationFlow = MutableSharedFlow<Throwable>()
     val responderJob = launch {
         launch { resultFlow.collect { sendSerialized(it) } }
@@ -258,7 +258,7 @@ private suspend inline fun <reified P, reified R> DefaultWebSocketServerSession.
             Log.i(TAG, "Received text:\n$receivedText")
 
             runCatching {
-                val decoded = json.decodeFromString<P>(receivedText)
+                val decoded = json.decodeFromString<Request>(receivedText)
                 handler(decoded)
             }.onFailure { e ->
                 Log.e(TAG, "Failed to handle control session", e)
@@ -273,9 +273,9 @@ private suspend inline fun <reified P, reified R> DefaultWebSocketServerSession.
     }.also { responderJob.cancel() }
 }
 
-@JvmName("serialisedJsonObjectSession")
-private suspend inline fun <reified P> DefaultWebSocketServerSession.serialisedSession(handler: suspend (P) -> JsonObject) =
-    serialisedSession<P, JsonObject>(handler)
+@JvmName("handleJsonRequestsWithJsonObjectResponse")
+private suspend inline fun <reified Request> DefaultWebSocketServerSession.handleJsonRequests(handler: suspend (Request) -> JsonObject) =
+    handleJsonRequests<Request, JsonObject>(handler)
 
 private suspend fun DefaultWebSocketServerSession.telemetrySession(
     controller: AircraftController?
