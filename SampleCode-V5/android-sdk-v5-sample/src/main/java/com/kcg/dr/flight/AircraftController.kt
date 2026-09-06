@@ -1,7 +1,10 @@
 package com.kcg.dr.flight
 
 import android.util.Log
-import com.kcg.dr.api.dto.Responses.toJson
+import com.aviadl40.utils.coroutine.whileSuspendedBy
+import com.aviadl40.utils.math.normalizeAngle
+import com.aviadl40.utils.math.toDegrees
+import com.aviadl40.utils.math.wrap180
 import com.kcg.dr.djiutils.DJIErrorException
 import com.kcg.dr.djiutils.LocationUtils.RelativeDirection
 import com.kcg.dr.djiutils.LocationUtils.RelativeDirection.BACKWARD
@@ -21,10 +24,7 @@ import com.kcg.dr.djiutils.dt
 import com.kcg.dr.djiutils.mag
 import com.kcg.dr.djiutils.minus
 import com.kcg.dr.djiutils.times
-import com.aviadl40.utils.math.normalizeAngle
-import com.aviadl40.utils.math.toDegrees
-import com.aviadl40.utils.coroutine.whileSuspendedBy
-import com.aviadl40.utils.math.wrap180
+import com.kcg.dr.djiutils.toJson
 import dji.sampleV5.aircraft.models.VirtualStickVM.RCStickValue
 import dji.sampleV5.aircraft.util.ToastUtils
 import dji.sdk.keyvalue.value.common.Attitude
