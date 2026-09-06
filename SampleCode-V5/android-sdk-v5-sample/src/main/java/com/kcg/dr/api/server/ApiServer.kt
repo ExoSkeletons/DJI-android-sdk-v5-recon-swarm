@@ -501,41 +501,32 @@ private fun Route.controllerRoute(
 private suspend fun DefaultWebSocketServerSession.sticksControlSession(
     wsIncoming: MutableSharedFlow<String>,
     controllerProvider: () -> AircraftController?
-) {
-    val responseFlow = MutableSharedFlow<JsonObject>()
-    val responderJob = launch {
-        responseFlow.collect { response ->
-            sendSerialized(response)
-        }
-    }
-
-    runCatching {
-        for (frame in incoming) {
-            frame as? Frame.Text ?: continue
-            val receivedText = frame.readText()
-            wsIncoming.emit(receivedText)
-            val flightParam = Json.decodeFromString<AircraftController.FlightParam>(receivedText)
-            controllerProvider()?.sendFlightParam(flightParam)
-            responseFlow.emit(ok {
-                put("param", flightParam.toString())
-            })
-        }
-    }.onFailure { e ->
-        when (e) {
-            is ClosedChannelException -> Log.i(TAG, "WebSocket closed ${closeReason.await()}")
-            else -> Log.e(TAG, "WebSocket exception ${closeReason.await()}", e)
-        }
-    }.also { responderJob.cancel() }
+) = serialisedSession<AircraftController.FlightParam> { param ->
+    wsIncoming.emit(param.toString())
+    val controller = controllerProvider() ?: throw IllegalStateException("Controller not ready")
+    controller.sendFlightParam(param)
+    ok { put("param", param.toString()) }
 }
 
 private suspend fun DefaultWebSocketServerSession.gimbalControlSession(
     wsIncoming: MutableSharedFlow<String>,
     gimbalProvider: () -> AircraftController.IGimbal?
+) = serialisedSession<AircraftController.GimbalRotation> { rotation ->
+    wsIncoming.emit(rotation.toString())
+    val gimbal = gimbalProvider() ?: throw IllegalStateException("Gimbal not ready")
+    gimbal.angleCamera(rotation)
+    ok { put("param", rotation.toString()) }
+}
+
+private suspend inline fun <reified P, reified R> DefaultWebSocketServerSession.serialisedSession(
+    handler: suspend (P) -> R
 ) {
-    val responseFlow = MutableSharedFlow<JsonObject>()
+    val resultFlow = MutableSharedFlow<R>()
+    val expectationFlow = MutableSharedFlow<Throwable>()
     val responderJob = launch {
-        responseFlow.collect { response ->
-            sendSerialized(response)
+        launch { resultFlow.collect { sendSerialized(it) } }
+        launch {
+            expectationFlow.collect { e -> sendSerialized(exceptResponse(e)) }
         }
     }
 
@@ -543,12 +534,15 @@ private suspend fun DefaultWebSocketServerSession.gimbalControlSession(
         for (frame in incoming) {
             frame as? Frame.Text ?: continue
             val receivedText = frame.readText()
-            wsIncoming.emit(receivedText)
-            val rotation = Json.decodeFromString<AircraftController.GimbalRotation>(receivedText)
-            gimbalProvider()?.angleCamera(rotation)
-            responseFlow.emit(ok {
-                put("param", rotation.toString())
-            })
+            Log.i(TAG, "Received text:\n$receivedText")
+
+            runCatching {
+                val decoded = json.decodeFromString<P>(receivedText)
+                handler(decoded)
+            }.onFailure { e ->
+                Log.e(TAG, "Failed to handle control session", e)
+                expectationFlow.emit(e)
+            }.onSuccess { resultFlow.emit(it) }
         }
     }.onFailure { e ->
         when (e) {
@@ -557,6 +551,9 @@ private suspend fun DefaultWebSocketServerSession.gimbalControlSession(
         }
     }.also { responderJob.cancel() }
 }
+
+private suspend inline fun <reified P> DefaultWebSocketServerSession.serialisedSession(handler: suspend (P) -> JsonObject) =
+    serialisedSession<P, JsonObject>(handler)
 
 private suspend fun DefaultWebSocketServerSession.telemetrySession(
     controller: AircraftController?
