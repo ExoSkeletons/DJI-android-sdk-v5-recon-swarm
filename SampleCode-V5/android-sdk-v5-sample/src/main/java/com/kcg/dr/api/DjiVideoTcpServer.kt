@@ -11,7 +11,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
-class VideoTcpServer {
+class DjiVideoTcpServer {
     private companion object {
         const val TAG = "VideoTcpStreamer"
         private val cameraManager get() = MediaDataCenter.getInstance().cameraStreamManager

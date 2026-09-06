@@ -8,7 +8,7 @@ import android.os.Binder
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import com.kcg.dr.api.VideoTcpServer
+import com.kcg.dr.api.DjiVideoTcpServer
 import com.kcg.dr.flight.AircraftController
 import com.aviadl40.utils.net.getLocalIpAddress
 import com.aviadl40.utils.android.startAsForeground
@@ -25,7 +25,7 @@ const val NOTIFICATION_ID = 1304
 
 class ApiServerService : Service() {
     private var server = ApiServer()
-    private var streamServer = VideoTcpServer()
+    private var streamServer = DjiVideoTcpServer()
 
     var host: String = DEFAULT_HOST
     var apiPort: Int = DEFAULT_API_PORT
