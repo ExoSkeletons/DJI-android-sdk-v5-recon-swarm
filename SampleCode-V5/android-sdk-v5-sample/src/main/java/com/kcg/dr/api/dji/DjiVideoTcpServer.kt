@@ -1,4 +1,4 @@
-package com.kcg.dr.api
+package com.kcg.dr.api.dji
 
 import android.util.Log
 import dji.sdk.keyvalue.value.common.ComponentIndexType

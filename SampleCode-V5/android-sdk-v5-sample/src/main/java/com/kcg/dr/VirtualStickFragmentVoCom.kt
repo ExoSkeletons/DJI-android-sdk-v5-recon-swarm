@@ -21,10 +21,10 @@ import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.Priority
 import com.kcg.dr.api.server.ApiServerVM
-import com.kcg.dr.api.dto.KeyActivator
-import com.kcg.dr.api.dto.actions.FlyToMe
-import com.kcg.dr.api.dto.actions.FollowMe
-import com.kcg.dr.api.dto.actions.TrackMe
+import com.kcg.dr.api.dji.dto.KeyActivator
+import com.kcg.dr.api.ac.dto.actions.FlyToMe
+import com.kcg.dr.api.ac.dto.actions.FollowMe
+import com.kcg.dr.api.ac.dto.actions.TrackMe
 import com.kcg.dr.djiutils.LocationUtils.bearingTo
 import com.kcg.dr.djiutils.LocationUtils.distanceTo
 import com.kcg.dr.djiutils.as2D

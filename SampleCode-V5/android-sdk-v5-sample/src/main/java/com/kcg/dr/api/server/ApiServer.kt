@@ -2,29 +2,21 @@ package com.kcg.dr.api.server
 
 import android.util.Log
 import androidx.lifecycle.MutableLiveData
-import com.aviadl40.utils.json.toElement
 import com.aviadl40.utils.json.toJsonElement
-import com.kcg.dr.api.dto.KeyActivator
-import com.kcg.dr.api.dto.Responses.djiErrorResponse
-import com.kcg.dr.api.dto.Responses.errorResponse
-import com.kcg.dr.api.dto.Responses.exceptResponse
-import com.kcg.dr.api.dto.Responses.nok
-import com.kcg.dr.api.dto.Responses.ok
-import com.kcg.dr.api.dto.Responses.status
-import com.kcg.dr.api.dto.StreamRequest
+import com.kcg.dr.api.ac.routes.controllerRoute
+import com.kcg.dr.api.dji.responses.djiErrorResponse
+import com.kcg.dr.api.dji.routes.djiApiKeyRoute
+import com.kcg.dr.api.dji.routes.djiQuickActionsRoute
+import com.kcg.dr.api.dji.routes.djiStatusRoute
 import com.kcg.dr.api.dto.TTSRequest
-import com.kcg.dr.api.dto.actions.Action
-import com.kcg.dr.api.dto.actions.FlyTo
-import com.kcg.dr.api.dto.actions.LookAt
+import com.kcg.dr.api.responses.errorResponse
+import com.kcg.dr.api.responses.exceptResponse
+import com.kcg.dr.api.responses.ok
 import com.kcg.dr.djiutils.DJIErrorException
-import com.kcg.dr.djiutils.actionOrExcept
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.location.UserMetrics
 import com.kcg.dr.managers.TTSManager
-import dji.sdk.keyvalue.key.AirLinkKey
-import dji.sdk.keyvalue.key.BatteryKey
 import dji.sdk.keyvalue.key.FlightControllerKey
-import dji.sdk.keyvalue.key.GimbalKey
 import dji.sdk.keyvalue.key.ProductKey
 import dji.sdk.keyvalue.key.RemoteControllerKey
 import dji.v5.et.create
@@ -39,18 +31,14 @@ import io.ktor.server.application.install
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.ApplicationEngine
 import io.ktor.server.engine.embeddedServer
-import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.request.httpMethod
 import io.ktor.server.request.receive
-import io.ktor.server.request.receiveText
 import io.ktor.server.request.uri
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.IgnoreTrailingSlash
-import io.ktor.server.routing.Route
-import io.ktor.server.routing.Routing
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
@@ -70,17 +58,10 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonObjectBuilder
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.decodeFromJsonElement
-import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.put
-import kotlinx.serialization.serializer
 import java.nio.channels.ClosedChannelException
 import java.util.Locale
 
@@ -237,266 +218,6 @@ class ApiServer {
     }
 }
 
-private fun Routing.djiApiKeyRoute() {
-    post("/key") {
-        try {
-            val jsonStr = call.receiveText()
-            val element = Json.parseToJsonElement(jsonStr)
-            val result = KeyActivator.handleKeyRequest(element)
-
-            call.respond(ok { put("result", result) })
-        } catch (e: DJIErrorException) {
-            call.respond(djiErrorResponse(e))
-        } catch (e: Exception) {
-            call.respond(exceptResponse(e))
-        }
-    }
-}
-
-private fun Route.djiStatusRoute() {
-    get("/") {
-        try {
-            val isFlying = FlightControllerKey.KeyIsFlying.create().get(false)
-            val battery = BatteryKey.KeyChargeRemainingInPercent.create().get()
-            val velocity3D = FlightControllerKey.KeyAircraftVelocity.create().get()
-            val location3D = FlightControllerKey.KeyAircraftLocation3D.create().get()
-            val attitude = FlightControllerKey.KeyAircraftAttitude.create().get()
-            val gimbalAttitude = GimbalKey.KeyGimbalAttitude.create().get()
-
-            val version = ProductKey.KeyFirmwareVersion.create().get()
-            val connection = ProductKey.KeyConnection.create().get(false)
-
-            val controllerConnection = RemoteControllerKey.KeyConnection.create().get(false)
-            val controllerVersion = RemoteControllerKey.KeyFirmwareVersion.create().get()
-
-            call.respond(ok {
-                put("aircraft", buildJsonObject {
-                    put("isFlying", isFlying)
-                    put("battery", battery)
-                    put("velocity3D", velocity3D?.toJson().toJsonElement())
-                    put("position3D", location3D?.toJson().toJsonElement())
-                    put("attitude", attitude?.toJson().toJsonElement())
-                    put("gimbalAttitude", gimbalAttitude?.toJson().toJsonElement())
-                })
-                put("product", buildJsonObject {
-                    put("version", version)
-                    put("connection", connection)
-                })
-                put("controller", buildJsonObject {
-                    put("version", controllerVersion)
-                    put("connection", controllerConnection)
-                })
-            })
-        } catch (e: DJIErrorException) {
-            call.respond(djiErrorResponse(e))
-        } catch (e: Exception) {
-            call.respond(exceptResponse(e))
-        }
-    }
-    get("/battery") {
-        try {
-            val voltage = BatteryKey.KeyVoltage.create().get()
-            val capacity = BatteryKey.KeyFullChargeCapacity.create().get()
-            val remaining = BatteryKey.KeyChargeRemaining.create().get()
-            val percent = BatteryKey.KeyChargeRemainingInPercent.create().get()
-            call.respond(ok {
-                put("voltage", voltage)
-                put("capacity", capacity)
-                put("remaining", remaining)
-                put("percent", percent)
-            })
-        } catch (e: DJIErrorException) {
-            call.respond(djiErrorResponse(e))
-        } catch (e: Exception) {
-            call.respond(exceptResponse(e))
-        }
-    }
-    get("/gps") {
-        try {
-            val valid = FlightControllerKey.KeyGPSIsValid.create().get(false)
-            val satCount = FlightControllerKey.KeyGPSSatelliteCount.create().get()
-            val signalLevel = FlightControllerKey.KeyGPSSignalLevel.create().get()
-            val compass = FlightControllerKey.KeyCompassHeading.create().get()
-
-            val build: JsonObjectBuilder.() -> Unit = {
-                put("satCount", satCount)
-                put("signalLevel", signalLevel.toElement())
-                put("valid", valid)
-                put("compass", compass)
-            }
-            call.respond(if (valid) ok(build) else nok(build))
-        } catch (e: DJIErrorException) {
-            call.respond(djiErrorResponse(e))
-        } catch (e: Exception) {
-            call.respond(exceptResponse(e))
-        }
-    }
-    get("/signal") {
-        try {
-            val connection = AirLinkKey.KeyConnection.create().get(false)
-            val quality = AirLinkKey.KeySignalQuality.create().get()
-            val frequency = AirLinkKey.KeyFrequencyBand.create().get()
-            val range = AirLinkKey.KeyFrequencyBandRange.create().get()
-
-            call.respond(ok {
-                put("connection", connection)
-                put("quality", quality)
-                put("frequency", frequency.toElement())
-                put("range", range.toElement())
-            })
-        } catch (e: DJIErrorException) {
-            call.respond(djiErrorResponse(e))
-        } catch (e: Exception) {
-            call.respond(exceptResponse(e))
-        }
-    }
-}
-
-private fun Routing.djiQuickActionsRoute() {
-    get(Regex("/(fly|takeoff)")) {
-        try {
-            val isFlying = FlightControllerKey.KeyIsFlying.create().get(false)
-            if (isFlying) {
-                call.respond(errorResponse { "Aircraft already in air" })
-                return@get
-            }
-            FlightControllerKey.KeyStartTakeoff.create().actionOrExcept()
-            call.respond(ok())
-        } catch (e: DJIErrorException) {
-            call.respond(djiErrorResponse(e))
-        }
-    }
-    get("/land") {
-        try {
-            FlightControllerKey.KeyStartAutoLanding.create().actionOrExcept()
-            call.respond(ok())
-        } catch (e: DJIErrorException) {
-            call.respond(djiErrorResponse(e))
-        }
-    }
-}
-
-private fun Route.controllerRoute(
-    controllerProvider: () -> AircraftController?,
-    userProvider: () -> UserMetrics?
-) {
-    lateinit var controller: AircraftController
-    lateinit var user: UserMetrics
-
-    intercept(ApplicationCallPipeline.Plugins) {
-        val cr = controllerProvider()
-        if (cr == null) {
-            call.respond(
-                HttpStatusCode.ServiceUnavailable,
-                "AircraftController not initialized."
-            )
-            finish() // This prevents the actual get/post handlers below from running
-            return@intercept
-        }
-        controller = cr
-
-        val usr = userProvider()
-        if (usr != null)
-            user = usr
-    }
-
-    get("/") { call.respond(status { "controller is ready" }) }
-    post("/flyTo") {
-        val request = call.receive<FlyTo>()
-        controller.fly {
-            flyToSticks(
-                target = request.target,
-                maxVelocity = request.maxVelocity
-            )
-        }
-        call.respond(ok {
-            @OptIn(InternalSerializationApi::class)
-            put(
-                FlyTo::class.serializer().descriptor.serialName,
-                request.target.toJson().toJsonElement()
-            )
-        })
-    }
-    post("/lookAt") {
-        val request = call.receive<LookAt>()
-        controller.fly { lookAtWithSpin(request.target, request.height) }
-        call.respond(ok {
-            @OptIn(InternalSerializationApi::class)
-            put(
-                LookAt::class.serializer().descriptor.serialName,
-                request.target.toJson().toJsonElement()
-            )
-        })
-    }
-
-    post("/fly") {
-        val actions = when (val element = call.receive<JsonElement>()) {
-            is JsonArray -> element.map { json.decodeFromJsonElement<Action>(it) }
-            is JsonObject -> listOf(json.decodeFromJsonElement<Action>(element))
-            else -> throw BadRequestException("Unsupported JSON format for Action")
-        }
-        controller.fly { actions.forEach { action -> action.act(this, user) } }
-        call.respond(ok {
-            put("actions", JsonArray(actions.map { json.encodeToJsonElement(it) }))
-        })
-    }
-
-    post("/stop") {
-        controller.stop()
-        call.respond(status { "stop" })
-    }
-    post("/takeoff") {
-        controller.fly { takeoff() }
-        call.respond(status { "taking off" })
-    }
-    post("/land") {
-        controller.fly { land() }
-        call.respond(status { "landing" })
-    }
-
-    get("/(wave|hi|hey|hello)".toRegex()) {
-        controller.fly { wave() }
-        call.respond(status { "Hello! o/" })
-    }
-
-    route("/stream") {
-        post("/start") {
-            val request = call.receive<StreamRequest>()
-            val url = request.rtmpUrl?.trim('"')
-            if (url == null) {
-                call.respond(errorResponse { "rtmp url is required" })
-                return@post
-            }
-            runCatching {
-                controller.cam.startStream(url)
-                call.respond(ok {
-                    put("message", "Stream started")
-                    put("url", url)
-                })
-            }.onFailure { e ->
-                call.respond(exceptResponse(e))
-            }
-        }
-        post("/stop") {
-            runCatching {
-                controller.cam.stopStream()
-                call.respond(ok {
-                    put("message", "Stream stopped")
-                })
-            }.onFailure { e ->
-                call.respond(exceptResponse(e))
-            }
-        }
-        get("/status") {
-            call.respond(ok {
-                put("isStreaming", controller.cam.isStreaming.value)
-                controller.cam.liveStreamStatus.value?.toElement()?.let {
-                    put("status", it)
-                }
-            })
-        }
-    }
-}
 
 private suspend fun DefaultWebSocketServerSession.sticksControlSession(
     wsIncoming: MutableSharedFlow<String>,

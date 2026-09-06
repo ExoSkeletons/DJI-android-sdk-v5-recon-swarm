@@ -8,7 +8,7 @@ import android.os.Binder
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import com.kcg.dr.api.DjiVideoTcpServer
+import com.kcg.dr.api.dji.DjiVideoTcpServer
 import com.kcg.dr.flight.AircraftController
 import com.aviadl40.utils.net.getLocalIpAddress
 import com.aviadl40.utils.android.startAsForeground

@@ -1,6 +1,6 @@
 @file:OptIn(InternalSerializationApi::class)
 
-package com.kcg.dr.api.dto.actions
+package com.kcg.dr.api.ac.dto.actions
 
 import com.kcg.dr.djiutils.LocationUtils.RelativeDirection.BACKWARD
 import com.kcg.dr.djiutils.LocationUtils.bearingTo

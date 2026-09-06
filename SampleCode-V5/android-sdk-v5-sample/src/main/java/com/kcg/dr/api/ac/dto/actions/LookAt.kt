@@ -1,6 +1,6 @@
 @file:OptIn(InternalSerializationApi::class)
 
-package com.kcg.dr.api.dto.actions
+package com.kcg.dr.api.ac.dto.actions
 
 import com.kcg.dr.djiutils.dto.LocationCoordinate2DSerializer
 import com.kcg.dr.flight.AircraftController

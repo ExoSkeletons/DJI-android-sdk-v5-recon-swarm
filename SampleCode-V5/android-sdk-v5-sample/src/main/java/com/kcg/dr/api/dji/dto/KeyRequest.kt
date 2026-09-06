@@ -12,7 +12,7 @@
 */
 @file:OptIn(InternalSerializationApi::class)
 
-package com.kcg.dr.api.dto
+package com.kcg.dr.api.dji.dto
 
 import android.util.Log
 import com.google.gson.annotations.SerializedName

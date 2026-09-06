@@ -13,10 +13,10 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.kcg.dr.api.dto.actions.FlyToMe
-import com.kcg.dr.api.dto.actions.FollowMe
-import com.kcg.dr.api.dto.actions.ScanGround
-import com.kcg.dr.api.dto.actions.TrackMe
+import com.kcg.dr.api.ac.dto.actions.FlyToMe
+import com.kcg.dr.api.ac.dto.actions.FollowMe
+import com.kcg.dr.api.ac.dto.actions.ScanGround
+import com.kcg.dr.api.ac.dto.actions.TrackMe
 import com.kcg.dr.flight.AircraftControlVM
 import com.kcg.dr.location.UserVM
 import com.kcg.dr.managers.SFXManager

@@ -5,7 +5,7 @@ import android.util.Log
 import com.arm.aichat.AiChat
 import com.arm.aichat.InferenceEngine
 import com.arm.aichat.isModelLoaded
-import com.kcg.dr.api.dto.actions.Action
+import com.kcg.dr.api.ac.dto.actions.Action
 import com.kcg.dr.flight.AircraftController
 import com.kcg.dr.location.UserMetrics
 import com.aviadl40.utils.json.appendPropertyShortJson
