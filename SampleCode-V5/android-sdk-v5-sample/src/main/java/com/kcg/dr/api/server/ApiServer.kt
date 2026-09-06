@@ -552,6 +552,7 @@ private suspend inline fun <reified P, reified R> DefaultWebSocketServerSession.
     }.also { responderJob.cancel() }
 }
 
+@JvmName("serialisedJsonObjectSession")
 private suspend inline fun <reified P> DefaultWebSocketServerSession.serialisedSession(handler: suspend (P) -> JsonObject) =
     serialisedSession<P, JsonObject>(handler)
 
